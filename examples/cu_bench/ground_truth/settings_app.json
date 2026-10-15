@@ -1,0 +1,113 @@
+{
+  "app": "Settings_app",
+  "elements": [
+    {
+      "role": "check box",
+      "label": "Dark mode",
+      "x": 448,
+      "y": 310,
+      "w": 384,
+      "h": 23,
+      "app": "Settings_app.py"
+    },
+    {
+      "role": "check box",
+      "label": "Notifications",
+      "x": 448,
+      "y": 345,
+      "w": 384,
+      "h": 23,
+      "app": "Settings_app.py"
+    },
+    {
+      "role": "combo box",
+      "label": "English",
+      "x": 517,
+      "y": 380,
+      "w": 91,
+      "h": 34,
+      "app": "Settings_app.py"
+    },
+    {
+      "role": "button",
+      "label": "Save",
+      "x": 448,
+      "y": 426,
+      "w": 384,
+      "h": 34,
+      "app": "Settings_app.py"
+    },
+    {
+      "role": "check box",
+      "label": "Dark mode",
+      "x": 448,
+      "y": 310,
+      "w": 384,
+      "h": 23,
+      "app": "Settings_app.py"
+    },
+    {
+      "role": "check box",
+      "label": "Notifications",
+      "x": 448,
+      "y": 345,
+      "w": 384,
+      "h": 23,
+      "app": "Settings_app.py"
+    },
+    {
+      "role": "combo box",
+      "label": "English",
+      "x": 517,
+      "y": 380,
+      "w": 91,
+      "h": 34,
+      "app": "Settings_app.py"
+    },
+    {
+      "role": "button",
+      "label": "Save",
+      "x": 448,
+      "y": 426,
+      "w": 384,
+      "h": 34,
+      "app": "Settings_app.py"
+    },
+    {
+      "role": "check box",
+      "label": "Dark mode",
+      "x": 448,
+      "y": 310,
+      "w": 384,
+      "h": 23,
+      "app": "Settings_app.py"
+    },
+    {
+      "role": "check box",
+      "label": "Notifications",
+      "x": 448,
+      "y": 345,
+      "w": 384,
+      "h": 23,
+      "app": "Settings_app.py"
+    },
+    {
+      "role": "combo box",
+      "label": "English",
+      "x": 517,
+      "y": 380,
+      "w": 91,
+      "h": 34,
+      "app": "Settings_app.py"
+    },
+    {
+      "role": "button",
+      "label": "Save",
+      "x": 448,
+      "y": 426,
+      "w": 384,
+      "h": 34,
+      "app": "Settings_app.py"
+    }
+  ]
+}

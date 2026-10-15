@@ -1,0 +1,95 @@
+{
+  "app": "Mousepad",
+  "elements": [
+    {
+      "role": "menu",
+      "label": "File",
+      "x": 635,
+      "y": 29,
+      "w": 37,
+      "h": 27,
+      "app": "Org.xfce.mousepad"
+    },
+    {
+      "role": "menu",
+      "label": "Edit",
+      "x": 672,
+      "y": 29,
+      "w": 39,
+      "h": 27,
+      "app": "Org.xfce.mousepad"
+    },
+    {
+      "role": "menu",
+      "label": "Search",
+      "x": 711,
+      "y": 29,
+      "w": 57,
+      "h": 27,
+      "app": "Org.xfce.mousepad"
+    },
+    {
+      "role": "menu",
+      "label": "View",
+      "x": 768,
+      "y": 29,
+      "w": 44,
+      "h": 27,
+      "app": "Org.xfce.mousepad"
+    },
+    {
+      "role": "menu",
+      "label": "Document",
+      "x": 812,
+      "y": 29,
+      "w": 81,
+      "h": 27,
+      "app": "Org.xfce.mousepad"
+    },
+    {
+      "role": "menu",
+      "label": "Help",
+      "x": 893,
+      "y": 29,
+      "w": 45,
+      "h": 27,
+      "app": "Org.xfce.mousepad"
+    },
+    {
+      "role": "page tab",
+      "label": "Untitled 1",
+      "x": 658,
+      "y": 63,
+      "w": 150,
+      "h": 26,
+      "app": "Org.xfce.mousepad"
+    },
+    {
+      "role": "page tab",
+      "label": "Untitled 2",
+      "x": 868,
+      "y": 63,
+      "w": 151,
+      "h": 26,
+      "app": "Org.xfce.mousepad"
+    },
+    {
+      "role": "page tab",
+      "label": "Untitled 3",
+      "x": 1079,
+      "y": 63,
+      "w": 151,
+      "h": 26,
+      "app": "Org.xfce.mousepad"
+    },
+    {
+      "role": "text",
+      "label": "",
+      "x": 636,
+      "y": 96,
+      "w": 638,
+      "h": 410,
+      "app": "Org.xfce.mousepad"
+    }
+  ]
+}

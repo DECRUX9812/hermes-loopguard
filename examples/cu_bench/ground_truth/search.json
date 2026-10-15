@@ -1,0 +1,21 @@
+{
+  "captured_at": 1792068332.5732822,
+  "offset": null,
+  "page": "search.html",
+  "rects": {
+    "query": [
+      56,
+      201,
+      364,
+      41
+    ],
+    "search": [
+      424,
+      201,
+      92,
+      41
+    ]
+  },
+  "url": "http://127.0.0.1:8793/search.html",
+  "viewport": null
+}

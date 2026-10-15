@@ -1,0 +1,27 @@
+{
+  "captured_at": 1792068341.2029562,
+  "offset": null,
+  "page": "results.html",
+  "rects": {
+    "result-api-reference": [
+      56,
+      269,
+      250,
+      19
+    ],
+    "result-install-guide": [
+      56,
+      201,
+      237,
+      19
+    ],
+    "result-quickstart": [
+      56,
+      235,
+      279,
+      19
+    ]
+  },
+  "url": "http://127.0.0.1:8793/results.html?q=quickstart",
+  "viewport": null
+}

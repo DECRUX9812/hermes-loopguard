@@ -1,0 +1,366 @@
+"""cua-driver adapter: subprocess transport, no native wheels imported.
+
+Every call runs ``cua-driver call --socket <socket> <tool> '<json>'`` (the JSON
+payload is passed via argv, never stdin) against a ``cua-driver serve`` daemon.
+Element bounds come back in WINDOW-local pixels and are converted to DESKTOP
+pixels here (window origin added); clicks at desktop x,y are converted back to
+window-local pixels by finding the window under the point.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import shutil
+import subprocess
+import tempfile
+import time
+from typing import Any
+
+from hermes_loopguard.cu.driver import (
+    ActionResult,
+    DriverError,
+    Element,
+    Frame,
+    parse_action_result,
+    register_driver,
+)
+
+__all__ = ["CuaDriver", "desktop_to_window_local", "window_local_to_desktop"]
+
+_MOUSE_BUTTONS = {"left", "right", "middle"}
+
+
+def desktop_to_window_local(x: int, y: int, window_bounds: dict) -> tuple[int, int] | None:
+    """DESKTOP px -> WINDOW-local px.  None when the point is outside the window."""
+    if not window_bounds:
+        return None
+    wx = int(window_bounds.get("x", 0))
+    wy = int(window_bounds.get("y", 0))
+    ww = int(window_bounds.get("width", 0))
+    wh = int(window_bounds.get("height", 0))
+    lx, ly = int(x) - wx, int(y) - wy
+    if not (0 <= lx < ww and 0 <= ly < wh):
+        return None
+    return (lx, ly)
+
+
+def window_local_to_desktop(lx: int, ly: int, window_bounds: dict) -> tuple[int, int]:
+    """WINDOW-local px -> DESKTOP px (window origin added)."""
+    if not window_bounds:
+        return (int(lx), int(ly))
+    return (int(lx) + int(window_bounds.get("x", 0)), int(ly) + int(window_bounds.get("y", 0)))
+
+
+@register_driver("cua")
+class CuaDriver:
+    """Driver that shells out to the cua-driver CLI against its daemon socket."""
+
+    name = "cua"
+
+    def __init__(self, socket: str, app: str | None = None, cua_bin: str = "cua-driver", timeout_s: int = 20):
+        self.socket = socket
+        self.app = app
+        self.cua_bin = cua_bin
+        self.timeout_s = timeout_s
+        self._tmpdir: str | None = None
+        self._frame_no = 0
+        self._windows: list[dict] = []
+        self._token_windows: dict[str, dict] = {}  # element_token -> owning window
+        self.calls: list[dict] = []  # every tool call: {tool, payload, result}
+
+    # -- transport ----------------------------------------------------------
+
+    def _call(self, tool: str, payload: dict) -> dict:
+        """Run one CLI call.  NEVER raises; failures come back as {"_cua_error": ...}."""
+        cmd = [self.cua_bin, "call", "--socket", self.socket, tool, json.dumps(payload)]
+        try:
+            proc = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=self.timeout_s,
+            )
+        except subprocess.TimeoutExpired:
+            return {"_cua_error": f"timeout after {self.timeout_s}s: {tool}"}
+        except FileNotFoundError:
+            return {"_cua_error": f"cua-driver binary not found: {self.cua_bin}"}
+        except OSError as exc:
+            return {"_cua_error": f"os error running {tool}: {exc}"}
+        if proc.returncode != 0:
+            detail = (proc.stderr or proc.stdout or "").strip()[:500]
+            return {"_cua_error": f"{tool} exited {proc.returncode}: {detail}"}
+        try:
+            result = json.loads(proc.stdout)
+        except json.JSONDecodeError:
+            snippet = proc.stdout.strip()[:300]
+            return {"_cua_error": f"{tool}: non-JSON stdout: {snippet!r}"}
+        self.calls.append({"tool": tool, "payload": payload, "result": result})
+        return result
+
+    @staticmethod
+    def _unwrap(result: dict) -> dict:
+        """Get the structured payload out of an MCP-style tool result."""
+        if not isinstance(result, dict):
+            return {}
+        if "_cua_error" in result:
+            return result
+        inner = result.get("structuredContent")
+        if isinstance(inner, dict):
+            merged = dict(inner)
+            merged.setdefault("_raw", result)
+            return merged
+        return result
+
+    # -- capture ------------------------------------------------------------
+
+    def screenshot(self) -> Frame:
+        if self._tmpdir is None:
+            self._tmpdir = tempfile.mkdtemp(prefix="lg-cua-frames-")
+        self._frame_no += 1
+        path = os.path.join(self._tmpdir, f"frame-{self._frame_no:06d}.png")
+        result = self._unwrap(
+            self._call("get_desktop_state", {"screenshot_out_file": path})
+        )
+        if result.get("_cua_error"):
+            raise DriverError(f"get_desktop_state failed: {result['_cua_error']}")
+        if not os.path.exists(path):
+            raise DriverError("get_desktop_state did not write screenshot_out_file")
+        with open(path, "rb") as fh:
+            png = fh.read()
+        width = int(result.get("screen_width") or result.get("screenshot_width") or 0)
+        height = int(result.get("screen_height") or result.get("screenshot_height") or 0)
+        if not width or not height:
+            raise DriverError("get_desktop_state returned no screen dimensions")
+        return Frame(png=png, width=width, height=height, ts=time.time(), path=path)
+
+    # -- accessibility ------------------------------------------------------
+
+    def _list_windows(self, refresh: bool = True) -> list[dict]:
+        if refresh or not self._windows:
+            result = self._unwrap(self._call("list_windows", {"on_screen_only": True}))
+            windows = result.get("windows") if isinstance(result, dict) else None
+            self._windows = [w for w in windows if isinstance(w, dict)] if isinstance(windows, list) else []
+        return self._windows
+
+    @staticmethod
+    def _app_matches(window_app: str, wanted: str) -> bool:
+        a = (window_app or "").lower().replace("_", "-")
+        b = (wanted or "").lower().replace("_", "-")
+        return bool(a) and (b in a or a in b)
+
+    def elements(self, app: str | None = None) -> list[Element]:
+        """AT-SPI elements of the target app's windows, in DESKTOP pixels."""
+        wanted = app or self.app
+        out: list[Element] = []
+        for window in self._list_windows():
+            if wanted and not self._app_matches(window.get("app_name", ""), wanted):
+                continue
+            out.extend(self._window_elements(window))
+        return out
+
+    def _window_elements(self, window: dict) -> list[Element]:
+        # Single walk per call (contract semantics).  Chrome exposes its
+        # web-content tree only from the second walk on — find_element()
+        # retries with fresh walks, which also keeps element tokens fresh
+        # (cua-driver invalidates tokens from superseded snapshots).
+        result = self._unwrap(
+            self._call(
+                "get_window_state",
+                {
+                    "pid": window.get("pid"),
+                    "window_id": window.get("window_id"),
+                    "include_screenshot": False,
+                },
+            )
+        )
+        result.pop("_raw", None)
+        if result.get("_cua_error") or result.get("degraded"):
+            return []
+        return self._parse_elements(result, window)
+
+    def _parse_elements(self, result: dict, window: dict | None = None) -> list[Element]:
+        # Real cua-driver 0.28.2 element frames are already DESKTOP-absolute
+        # (verified: root frame == window_bounds origin; clicks land).  No
+        # window-origin shift is applied here.
+        elements: list[Element] = []
+        for el in result.get("elements", []) or []:
+            if not isinstance(el, dict):
+                continue
+            frame = el.get("frame") or {}
+            if not all(k in frame for k in ("x", "y", "w", "h")):
+                continue
+            token = str(el.get("element_token", ""))
+            if window is not None and token:
+                self._token_windows[token] = window
+            elements.append(
+                Element(
+                    token=token,
+                    role=str(el.get("role", "")),
+                    label=str(el.get("label", "") or el.get("value", "") or ""),
+                    x=int(frame["x"]),
+                    y=int(frame["y"]),
+                    w=int(frame["w"]),
+                    h=int(frame["h"]),
+                    app=str(result.get("app_name") or ""),
+                )
+            )
+        return elements
+
+    def find_element(self, label: str, role: str | None = None, retries: int = 3) -> Element | None:
+        """Case-insensitive substring match on label, with fresh AT-SPI walks.
+
+        Retries matter for Chrome: the web-content tree is exposed only from
+        the second walk on, and each walk returns fresh element tokens.
+        """
+        want = label.strip().lower()
+        for attempt in range(max(1, retries)):
+            for el in self.elements():
+                if want not in el.label.lower():
+                    continue
+                if role is not None and role.lower() not in el.role.lower():
+                    continue
+                return el
+            time.sleep(0.8)
+        return None
+
+    # -- actions ------------------------------------------------------------
+
+    def _window_at(self, x: int, y: int) -> dict | None:
+        """The on-screen window covering a DESKTOP point (topmost z first).
+
+        Skips windows without a pid (cua-driver's own cursor overlay is
+        pid-less, full-screen and topmost; it can never be clicked).
+        """
+        windows = [
+            w for w in self._list_windows()
+            if isinstance(w.get("bounds"), dict) and w.get("pid")
+        ]
+        windows.sort(key=lambda w: w.get("z_index") if isinstance(w.get("z_index"), int) else -1, reverse=True)
+        for window in windows:
+            if desktop_to_window_local(x, y, window["bounds"]) is not None:
+                return window
+        return None
+
+    def _window_target(self, window: dict) -> dict:
+        return {"kind": "window", "pid": window["pid"], "window_id": window["window_id"]}
+
+    def _parse(self, result: dict) -> ActionResult:
+        return parse_action_result(result, ok=None if "_cua_error" not in result else False)
+
+    def _act(self, tool: str, payload: dict, escalate: bool = True) -> ActionResult:
+        """One action call, auto-escalating background_unavailable to foreground."""
+        result = self._call(tool, payload)
+        code = result.get("code") if isinstance(result, dict) else None
+        if escalate and code == "background_unavailable":
+            retry = dict(payload)
+            retry["delivery_mode"] = "foreground"
+            result = self._call(tool, retry)
+        return self._parse(result)
+
+    def click(self, x: int, y: int, *, button: str = "left", count: int = 1) -> ActionResult:
+        button = button if button in _MOUSE_BUTTONS else "left"
+        window = self._window_at(x, y)
+        if window is not None:
+            # REAL cua-driver 0.28.2 takes WINDOW-LOCAL pixels for window
+            # targets (verified by discriminating click test, 2026-10-15).
+            local = desktop_to_window_local(x, y, window["bounds"])
+            payload: dict[str, Any] = {
+                "pid": window["pid"],
+                "window_id": window["window_id"],
+                "x": local[0],
+                "y": local[1],
+                "button": button,
+                "count": count,
+            }
+        else:
+            payload = {
+                "target": {"kind": "desktop", "display_id": "primary"},
+                "x": x,
+                "y": y,
+                "button": button,
+                "count": count,
+            }
+        return self._act("click", payload)
+
+    def click_element(self, el: Element) -> ActionResult:
+        payload: dict[str, Any] = {"element_token": el.token}
+        # cua 0.28.2 requires pid alongside element_token.
+        window = self._token_windows.get(el.token) or self._app_window()
+        if window is not None:
+            payload["pid"] = window["pid"]
+        return self._act("click", payload)
+
+    def _app_window(self) -> dict | None:
+        if not self.app:
+            return None
+        for window in self._list_windows():
+            if self._app_matches(window.get("app_name", ""), self.app):
+                return window
+        return None
+
+    def _activate(self, window: dict) -> None:
+        """Best-effort window activation so XTEST keyboard delivery lands."""
+        self._call(
+            "bring_to_front",
+            {"pid": window["pid"], "window_id": window["window_id"]},
+        )
+        time.sleep(0.3)
+
+    def type_text(self, text: str) -> ActionResult:
+        # Keyboard delivery needs an active window (XTEST): activate, then
+        # type in the foreground.
+        payload: dict[str, Any] = {"text": str(text), "delivery_mode": "foreground"}
+        window = self._app_window()
+        if window is not None:
+            payload["pid"] = window["pid"]
+            payload["window_id"] = window["window_id"]
+            self._activate(window)
+        return self._act("type_text", payload, escalate=False)
+
+    def key(self, keys: str) -> ActionResult:
+        """``"Return"``, ``"Tab"`` or combos like ``"ctrl+a"`` / ``"ctrl+shift+s"``."""
+        parts = [p for p in keys.strip().split("+") if p]
+        if len(parts) > 1:
+            payload: dict[str, Any] = {"keys": parts, "delivery_mode": "foreground"}
+            tool = "hotkey"
+        else:
+            payload = {"key": parts[0] if parts else keys, "delivery_mode": "foreground"}
+            tool = "press_key"
+        window = self._app_window()
+        if window is not None:
+            payload["pid"] = window["pid"]
+            payload["window_id"] = window["window_id"]
+            self._activate(window)
+        return self._act(tool, payload, escalate=False)
+
+    def scroll(self, x: int, y: int, direction: str, amount: int = 3) -> ActionResult:
+        direction = direction if direction in ("up", "down", "left", "right") else "down"
+        window = self._window_at(x, y)
+        if window is not None:
+            local = desktop_to_window_local(x, y, window["bounds"])
+            payload = {
+                "pid": window["pid"],
+                "window_id": window["window_id"],
+                "x": local[0],
+                "y": local[1],
+                "direction": direction,
+                "amount": max(1, min(int(amount), 50)),
+            }
+        else:
+            payload = {
+                "target": {"kind": "desktop", "display_id": "primary"},
+                "x": x,
+                "y": y,
+                "direction": direction,
+                "amount": max(1, min(int(amount), 50)),
+            }
+        return self._act("scroll", payload)
+
+    # -- lifecycle ----------------------------------------------------------
+
+    def close(self) -> None:
+        """Drop the frame temp dir.  Never kills the daemon (the stack owns it)."""
+        if self._tmpdir is not None:
+            shutil.rmtree(self._tmpdir, ignore_errors=True)
+            self._tmpdir = None

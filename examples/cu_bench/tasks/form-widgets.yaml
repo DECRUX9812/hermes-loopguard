@@ -1,0 +1,18 @@
+id: form-widgets
+trap: false
+max_steps: 12
+instruction: >
+  On the signup page, register the user "glitch" with email
+  "glitch@loopguard.dev", choose the Pro plan, tick the newsletter checkbox,
+  then click "Sign up".
+setup:
+  - open_url: "http://127.0.0.1:8765/form_widgets.html"
+judge:
+  type: form_post
+  page: form_widgets.html
+  expect:
+    username: "glitch"
+    email: "glitch@loopguard.dev"
+    plan: "pro"
+    newsletter: "yes"
+ground_truth: form_widgets.json

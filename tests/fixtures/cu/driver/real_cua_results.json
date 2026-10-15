@@ -1,0 +1,2514 @@
+{
+  "_comment": "REAL recorded cua-driver 0.28.2 outputs (bench pages only, no secrets), captured 2026-10-15 on the lg-cu-stack Xvfb :97.",
+  "background_unavailable": {
+    "code": "background_unavailable",
+    "detail": "the requested target has no focus-free input backend; the remaining XTest/X11 route can only deliver to the globally focused widget",
+    "escalation": {
+      "reason": "background input is unavailable on this surface; retry this action with delivery_mode:\"foreground\".",
+      "recommended": "foreground"
+    },
+    "suggestion": "Retry this action with delivery_mode:\"foreground\"."
+  },
+  "click_element_token_ok": {
+    "delivery": {
+      "mode": "background"
+    },
+    "effect": "unverifiable",
+    "route": "accessibility"
+  },
+  "click_pixel_ok": {
+    "delivery": {
+      "mode": "background"
+    },
+    "effect": "unverifiable",
+    "route": "accessibility"
+  },
+  "desktop_state": {
+    "display": "primary",
+    "platform": "linux",
+    "scale_factor": 1.0,
+    "screen_height": 800,
+    "screen_width": 1280,
+    "screenshot_height": 800,
+    "screenshot_mime_type": "image/png"
+  },
+  "foreground_delivery_failed": {
+    "delivery": {
+      "mode": "foreground"
+    },
+    "effect": "unverifiable",
+    "escalation": {
+      "reason": "delivery_failed",
+      "target": "foreground"
+    },
+    "route": "global_input"
+  },
+  "get_window_state_chrome_form": {
+    "_note": "Prefer `elements` \u2014 `tree_markdown` will continue to work but new fields will only be added to the structured side. Use `max_elements` / `max_depth` to bound the AT-SPI walk on apps with very large trees.",
+    "app_name": "Google-chrome",
+    "element_count": 157,
+    "elements": [
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 0,
+        "element_index": 0,
+        "element_token": "s00000002:0",
+        "enabled": true,
+        "frame": {
+          "h": 780,
+          "w": 1050,
+          "x": 10,
+          "y": 10
+        },
+        "label": "Contact form (simple) - Google Chrome",
+        "role": "frame"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 1,
+        "element_index": 1,
+        "element_token": "s00000002:1",
+        "enabled": true,
+        "frame": {
+          "h": 780,
+          "w": 1050,
+          "x": 10,
+          "y": 10
+        },
+        "label": "\ufffc\ufffc",
+        "parent_index": 0,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 2,
+        "element_index": 2,
+        "element_token": "s00000002:2",
+        "enabled": true,
+        "frame": {
+          "h": 780,
+          "w": 1050,
+          "x": 10,
+          "y": 10
+        },
+        "label": "\ufffc\ufffc\ufffc\ufffc\ufffc",
+        "parent_index": 1,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "click",
+          "showContextMenu"
+        ],
+        "depth": 3,
+        "element_index": 3,
+        "element_token": "s00000002:3",
+        "enabled": true,
+        "label": "Minimize",
+        "parent_index": 2,
+        "role": "button"
+      },
+      {
+        "actions": [
+          "click",
+          "showContextMenu"
+        ],
+        "depth": 3,
+        "element_index": 4,
+        "element_token": "s00000002:4",
+        "enabled": true,
+        "label": "Maximize",
+        "parent_index": 2,
+        "role": "button"
+      },
+      {
+        "actions": [
+          "click",
+          "showContextMenu"
+        ],
+        "depth": 3,
+        "element_index": 5,
+        "element_token": "s00000002:5",
+        "enabled": true,
+        "label": "Restore",
+        "parent_index": 2,
+        "role": "button"
+      },
+      {
+        "actions": [
+          "click",
+          "showContextMenu"
+        ],
+        "depth": 3,
+        "element_index": 6,
+        "element_token": "s00000002:6",
+        "enabled": true,
+        "label": "Close",
+        "parent_index": 2,
+        "role": "button"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 3,
+        "element_index": 7,
+        "element_token": "s00000002:7",
+        "enabled": true,
+        "frame": {
+          "h": 780,
+          "w": 1050,
+          "x": 10,
+          "y": 10
+        },
+        "label": "\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc",
+        "parent_index": 2,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 4,
+        "element_index": 8,
+        "element_token": "s00000002:8",
+        "enabled": true,
+        "frame": {
+          "h": 740,
+          "w": 1050,
+          "x": 10,
+          "y": 50
+        },
+        "parent_index": 7,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 4,
+        "element_index": 9,
+        "element_token": "s00000002:9",
+        "enabled": true,
+        "frame": {
+          "h": 46,
+          "w": 1050,
+          "x": 10,
+          "y": 50
+        },
+        "label": "\ufffc\ufffc\ufffc",
+        "parent_index": 7,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 5,
+        "element_index": 10,
+        "element_token": "s00000002:10",
+        "enabled": true,
+        "frame": {
+          "h": 46,
+          "w": 1050,
+          "x": 10,
+          "y": 50
+        },
+        "label": "\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc",
+        "parent_index": 9,
+        "role": "tool bar"
+      },
+      {
+        "actions": [
+          "press",
+          "showContextMenu"
+        ],
+        "depth": 6,
+        "element_index": 11,
+        "element_token": "s00000002:11",
+        "enabled": true,
+        "frame": {
+          "h": 34,
+          "w": 34,
+          "x": 88,
+          "y": 56
+        },
+        "label": "Reload",
+        "parent_index": 10,
+        "role": "button"
+      },
+      {
+        "actions": [
+          "click",
+          "showContextMenu"
+        ],
+        "depth": 6,
+        "element_index": 12,
+        "element_token": "s00000002:12",
+        "enabled": true,
+        "label": "Home",
+        "parent_index": 10,
+        "role": "button"
+      },
+      {
+        "actions": [
+          "open",
+          "showContextMenu"
+        ],
+        "depth": 6,
+        "element_index": 13,
+        "element_token": "s00000002:13",
+        "enabled": true,
+        "label": "Open tab in split view",
+        "parent_index": 10,
+        "role": "button"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 6,
+        "element_index": 14,
+        "element_token": "s00000002:14",
+        "enabled": true,
+        "frame": {
+          "h": 34,
+          "w": 844,
+          "x": 131,
+          "y": 56
+        },
+        "label": "\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc",
+        "parent_index": 10,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 15,
+        "element_token": "s00000002:15",
+        "enabled": true,
+        "parent_index": 14,
+        "role": "button"
+      },
+      {
+        "actions": [
+          "press",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 16,
+        "element_token": "s00000002:16",
+        "enabled": true,
+        "frame": {
+          "h": 24,
+          "w": 24,
+          "x": 136,
+          "y": 61
+        },
+        "label": "View site information",
+        "parent_index": 14,
+        "role": "button"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 8,
+        "element_index": 17,
+        "element_token": "s00000002:17",
+        "enabled": true,
+        "parent_index": 16,
+        "role": "notification"
+      },
+      {
+        "actions": [
+          "activate",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 18,
+        "element_token": "s00000002:18",
+        "enabled": true,
+        "frame": {
+          "h": 24,
+          "w": 763,
+          "x": 168,
+          "y": 61
+        },
+        "label": "Address and search bar",
+        "parent_index": 14,
+        "role": "entry"
+      },
+      {
+        "actions": [
+          "click",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 19,
+        "element_token": "s00000002:19",
+        "enabled": true,
+        "label": "\ufffc",
+        "parent_index": 14,
+        "role": "button"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 8,
+        "element_index": 20,
+        "element_token": "s00000002:20",
+        "enabled": true,
+        "parent_index": 19,
+        "role": "notification"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 21,
+        "element_token": "s00000002:21",
+        "enabled": true,
+        "parent_index": 14,
+        "role": "notification"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 22,
+        "element_token": "s00000002:22",
+        "enabled": true,
+        "parent_index": 14,
+        "role": "notification"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 23,
+        "element_token": "s00000002:23",
+        "enabled": true,
+        "parent_index": 14,
+        "role": "notification"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 24,
+        "element_token": "s00000002:24",
+        "enabled": true,
+        "parent_index": 14,
+        "role": "notification"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 25,
+        "element_token": "s00000002:25",
+        "enabled": true,
+        "parent_index": 14,
+        "role": "notification"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 26,
+        "element_token": "s00000002:26",
+        "enabled": true,
+        "parent_index": 14,
+        "role": "notification"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 27,
+        "element_token": "s00000002:27",
+        "enabled": true,
+        "parent_index": 14,
+        "role": "notification"
+      },
+      {
+        "actions": [
+          "click",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 28,
+        "element_token": "s00000002:28",
+        "enabled": true,
+        "label": "\ufffc",
+        "parent_index": 14,
+        "role": "button"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 8,
+        "element_index": 29,
+        "element_token": "s00000002:29",
+        "enabled": true,
+        "parent_index": 28,
+        "role": "notification"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 30,
+        "element_token": "s00000002:30",
+        "enabled": true,
+        "parent_index": 14,
+        "role": "notification"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 31,
+        "element_token": "s00000002:31",
+        "enabled": true,
+        "parent_index": 14,
+        "role": "notification"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 32,
+        "element_token": "s00000002:32",
+        "enabled": true,
+        "parent_index": 14,
+        "role": "notification"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 33,
+        "element_token": "s00000002:33",
+        "enabled": true,
+        "parent_index": 14,
+        "role": "notification"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 34,
+        "element_token": "s00000002:34",
+        "enabled": true,
+        "parent_index": 14,
+        "role": "notification"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 35,
+        "element_token": "s00000002:35",
+        "enabled": true,
+        "parent_index": 14,
+        "role": "notification"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 36,
+        "element_token": "s00000002:36",
+        "enabled": true,
+        "parent_index": 14,
+        "role": "notification"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 37,
+        "element_token": "s00000002:37",
+        "enabled": true,
+        "parent_index": 14,
+        "role": "notification"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 38,
+        "element_token": "s00000002:38",
+        "enabled": true,
+        "parent_index": 14,
+        "role": "notification"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 39,
+        "element_token": "s00000002:39",
+        "enabled": true,
+        "frame": {
+          "h": 24,
+          "w": 24,
+          "x": 939,
+          "y": 61
+        },
+        "label": "\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc",
+        "parent_index": 14,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "press",
+          "showContextMenu"
+        ],
+        "depth": 8,
+        "element_index": 40,
+        "element_token": "s00000002:40",
+        "enabled": true,
+        "frame": {
+          "h": 24,
+          "w": 24,
+          "x": 939,
+          "y": 61
+        },
+        "label": "Bookmark this tab",
+        "parent_index": 39,
+        "role": "button"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 9,
+        "element_index": 41,
+        "element_token": "s00000002:41",
+        "enabled": true,
+        "parent_index": 40,
+        "role": "notification"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 42,
+        "element_token": "s00000002:42",
+        "enabled": true,
+        "parent_index": 14,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "click",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 43,
+        "element_token": "s00000002:43",
+        "enabled": true,
+        "label": "Clear input",
+        "parent_index": 14,
+        "role": "button"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 6,
+        "element_index": 44,
+        "element_token": "s00000002:44",
+        "enabled": true,
+        "label": "\ufffc\ufffc",
+        "parent_index": 10,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "open",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 45,
+        "element_token": "s00000002:45",
+        "enabled": true,
+        "frame": {
+          "h": 28,
+          "w": 28,
+          "x": 10,
+          "y": 50
+        },
+        "label": "Extensions",
+        "parent_index": 44,
+        "role": "button"
+      },
+      {
+        "actions": [
+          "click",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 46,
+        "element_token": "s00000002:46",
+        "enabled": true,
+        "label": "Close side panel",
+        "parent_index": 44,
+        "role": "button"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 6,
+        "element_index": 47,
+        "element_token": "s00000002:47",
+        "enabled": true,
+        "parent_index": 10,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 6,
+        "element_index": 48,
+        "element_token": "s00000002:48",
+        "enabled": true,
+        "label": "\ufffc",
+        "parent_index": 10,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 49,
+        "element_token": "s00000002:49",
+        "enabled": true,
+        "parent_index": 48,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "click",
+          "showContextMenu"
+        ],
+        "depth": 6,
+        "element_index": 50,
+        "element_token": "s00000002:50",
+        "enabled": true,
+        "label": "Energy Saver is on",
+        "parent_index": 10,
+        "role": "button"
+      },
+      {
+        "actions": [
+          "click",
+          "showContextMenu"
+        ],
+        "depth": 6,
+        "element_index": 51,
+        "element_token": "s00000002:51",
+        "enabled": true,
+        "label": "Performance issue alert",
+        "parent_index": 10,
+        "role": "button"
+      },
+      {
+        "actions": [
+          "click",
+          "showContextMenu"
+        ],
+        "depth": 6,
+        "element_index": 52,
+        "element_token": "s00000002:52",
+        "enabled": true,
+        "label": "Control your music, videos, and more",
+        "parent_index": 10,
+        "role": "button"
+      },
+      {
+        "actions": [
+          "press",
+          "showContextMenu"
+        ],
+        "depth": 6,
+        "element_index": 53,
+        "element_token": "s00000002:53",
+        "enabled": true,
+        "frame": {
+          "h": 34,
+          "w": 34,
+          "x": 984,
+          "y": 56
+        },
+        "label": "You",
+        "parent_index": 10,
+        "role": "button"
+      },
+      {
+        "actions": [
+          "open",
+          "showContextMenu"
+        ],
+        "depth": 6,
+        "element_index": 54,
+        "element_token": "s00000002:54",
+        "enabled": true,
+        "label": "Hidden toolbar buttons",
+        "parent_index": 10,
+        "role": "button"
+      },
+      {
+        "actions": [
+          "open",
+          "showContextMenu"
+        ],
+        "depth": 6,
+        "element_index": 55,
+        "element_token": "s00000002:55",
+        "enabled": true,
+        "frame": {
+          "h": 34,
+          "w": 34,
+          "x": 1020,
+          "y": 56
+        },
+        "label": "Chrome",
+        "parent_index": 10,
+        "role": "button"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 5,
+        "element_index": 56,
+        "element_token": "s00000002:56",
+        "enabled": true,
+        "label": "Bookmarks",
+        "parent_index": 9,
+        "role": "tool bar"
+      },
+      {
+        "actions": [
+          "click",
+          "showContextMenu"
+        ],
+        "depth": 6,
+        "element_index": 57,
+        "element_token": "s00000002:57",
+        "enabled": true,
+        "label": "Apps",
+        "parent_index": 56,
+        "role": "button"
+      },
+      {
+        "actions": [
+          "open",
+          "showContextMenu"
+        ],
+        "depth": 6,
+        "element_index": 58,
+        "element_token": "s00000002:58",
+        "enabled": true,
+        "frame": {
+          "h": 28,
+          "w": 32,
+          "x": 16,
+          "y": 96
+        },
+        "label": "Managed bookmarks",
+        "parent_index": 56,
+        "role": "button"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 6,
+        "element_index": 59,
+        "element_token": "s00000002:59",
+        "enabled": true,
+        "frame": {
+          "h": 28,
+          "w": 36,
+          "x": 16,
+          "y": 96
+        },
+        "label": "Saved Tab Groups",
+        "parent_index": 56,
+        "role": "tool bar"
+      },
+      {
+        "actions": [
+          "open",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 60,
+        "element_token": "s00000002:60",
+        "enabled": true,
+        "frame": {
+          "h": 28,
+          "w": 28,
+          "x": 16,
+          "y": 96
+        },
+        "label": "Tab groups",
+        "parent_index": 59,
+        "role": "button"
+      },
+      {
+        "actions": [
+          "open",
+          "showContextMenu"
+        ],
+        "depth": 6,
+        "element_index": 61,
+        "element_token": "s00000002:61",
+        "enabled": true,
+        "frame": {
+          "h": 28,
+          "w": 28,
+          "x": 1010,
+          "y": 96
+        },
+        "label": "Menu containing hidden bookmarks",
+        "parent_index": 56,
+        "role": "button"
+      },
+      {
+        "actions": [
+          "open",
+          "showContextMenu"
+        ],
+        "depth": 6,
+        "element_index": 62,
+        "element_token": "s00000002:62",
+        "enabled": true,
+        "frame": {
+          "h": 28,
+          "w": 32,
+          "x": 1020,
+          "y": 96
+        },
+        "label": "All Bookmarks",
+        "parent_index": 56,
+        "role": "button"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 5,
+        "element_index": 63,
+        "element_token": "s00000002:63",
+        "enabled": true,
+        "parent_index": 9,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 4,
+        "element_index": 64,
+        "element_token": "s00000002:64",
+        "enabled": true,
+        "frame": {
+          "h": 694,
+          "w": 1050,
+          "x": 10,
+          "y": 96
+        },
+        "label": "\ufffc",
+        "parent_index": 7,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 5,
+        "element_index": 65,
+        "element_token": "s00000002:65",
+        "enabled": true,
+        "frame": {
+          "h": 694,
+          "w": 1050,
+          "x": 10,
+          "y": 96
+        },
+        "label": "\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc",
+        "parent_index": 64,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 6,
+        "element_index": 66,
+        "element_token": "s00000002:66",
+        "enabled": true,
+        "frame": {
+          "h": 694,
+          "w": 1050,
+          "x": 10,
+          "y": 96
+        },
+        "parent_index": 65,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 6,
+        "element_index": 67,
+        "element_token": "s00000002:67",
+        "enabled": true,
+        "frame": {
+          "h": 693,
+          "w": 1050,
+          "x": 10,
+          "y": 97
+        },
+        "label": "\ufffc\ufffc\ufffc\ufffc",
+        "parent_index": 65,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 68,
+        "element_token": "s00000002:68",
+        "enabled": true,
+        "frame": {
+          "h": 693,
+          "w": 1050,
+          "x": 10,
+          "y": 97
+        },
+        "label": "\ufffc",
+        "parent_index": 67,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 8,
+        "element_index": 69,
+        "element_token": "s00000002:69",
+        "enabled": true,
+        "frame": {
+          "h": 693,
+          "w": 1050,
+          "x": 10,
+          "y": 97
+        },
+        "parent_index": 68,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 70,
+        "element_token": "s00000002:70",
+        "enabled": true,
+        "frame": {
+          "h": 693,
+          "w": 1050,
+          "x": 10,
+          "y": 97
+        },
+        "parent_index": 67,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 71,
+        "element_token": "s00000002:71",
+        "enabled": true,
+        "parent_index": 67,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 72,
+        "element_token": "s00000002:72",
+        "enabled": true,
+        "frame": {
+          "h": 693,
+          "w": 1050,
+          "x": 10,
+          "y": 97
+        },
+        "label": "Contact form (simple)",
+        "parent_index": 67,
+        "role": "document web"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 8,
+        "element_index": 73,
+        "element_token": "s00000002:73",
+        "enabled": true,
+        "frame": {
+          "h": 37,
+          "w": 986,
+          "x": 42,
+          "y": 129
+        },
+        "in_web_content": true,
+        "label": "Contact us",
+        "parent_index": 72,
+        "role": "heading"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 8,
+        "element_index": 74,
+        "element_token": "s00000002:74",
+        "enabled": true,
+        "frame": {
+          "h": 307,
+          "w": 420,
+          "x": 42,
+          "y": 187
+        },
+        "in_web_content": true,
+        "label": "\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc",
+        "parent_index": 72,
+        "role": "form"
+      },
+      {
+        "actions": [
+          "activate",
+          "showContextMenu"
+        ],
+        "depth": 9,
+        "element_index": 75,
+        "element_token": "s00000002:75",
+        "enabled": true,
+        "frame": {
+          "h": 36,
+          "w": 420,
+          "x": 42,
+          "y": 209
+        },
+        "in_web_content": true,
+        "label": "Name",
+        "parent_index": 74,
+        "role": "entry"
+      },
+      {
+        "actions": [
+          "activate",
+          "showContextMenu"
+        ],
+        "depth": 9,
+        "element_index": 76,
+        "element_token": "s00000002:76",
+        "enabled": true,
+        "frame": {
+          "h": 36,
+          "w": 420,
+          "x": 42,
+          "y": 280
+        },
+        "in_web_content": true,
+        "label": "Email",
+        "parent_index": 74,
+        "role": "entry"
+      },
+      {
+        "actions": [
+          "activate",
+          "showContextMenu"
+        ],
+        "depth": 9,
+        "element_index": 77,
+        "element_token": "s00000002:77",
+        "enabled": true,
+        "frame": {
+          "h": 79,
+          "w": 420,
+          "x": 42,
+          "y": 351
+        },
+        "in_web_content": true,
+        "label": "Message",
+        "parent_index": 74,
+        "role": "entry"
+      },
+      {
+        "actions": [
+          "press",
+          "showContextMenu"
+        ],
+        "depth": 9,
+        "element_index": 78,
+        "element_token": "s00000002:78",
+        "enabled": true,
+        "frame": {
+          "h": 43,
+          "w": 98,
+          "x": 42,
+          "y": 451
+        },
+        "in_web_content": true,
+        "label": "Submit",
+        "parent_index": 74,
+        "role": "button"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 79,
+        "element_token": "s00000002:79",
+        "enabled": true,
+        "parent_index": 67,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 80,
+        "element_token": "s00000002:80",
+        "enabled": true,
+        "label": "\ufffc",
+        "parent_index": 67,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 8,
+        "element_index": 81,
+        "element_token": "s00000002:81",
+        "enabled": true,
+        "parent_index": 80,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 82,
+        "element_token": "s00000002:82",
+        "enabled": true,
+        "frame": {
+          "h": 693,
+          "w": 1050,
+          "x": 10,
+          "y": 97
+        },
+        "parent_index": 67,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 83,
+        "element_token": "s00000002:83",
+        "enabled": true,
+        "frame": {
+          "h": 693,
+          "w": 1050,
+          "x": 10,
+          "y": 97
+        },
+        "parent_index": 67,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 84,
+        "element_token": "s00000002:84",
+        "enabled": true,
+        "frame": {
+          "h": 693,
+          "w": 1050,
+          "x": 10,
+          "y": 97
+        },
+        "parent_index": 67,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 85,
+        "element_token": "s00000002:85",
+        "enabled": true,
+        "frame": {
+          "h": 693,
+          "w": 1050,
+          "x": 10,
+          "y": 97
+        },
+        "parent_index": 67,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 86,
+        "element_token": "s00000002:86",
+        "enabled": true,
+        "frame": {
+          "h": 693,
+          "w": 1050,
+          "x": 10,
+          "y": 97
+        },
+        "parent_index": 67,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 87,
+        "element_token": "s00000002:87",
+        "enabled": true,
+        "frame": {
+          "h": 24,
+          "w": 134,
+          "x": 926,
+          "y": 766
+        },
+        "label": "\ufffc",
+        "parent_index": 67,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "click",
+          "showContextMenu"
+        ],
+        "depth": 8,
+        "element_index": 88,
+        "element_token": "s00000002:88",
+        "enabled": true,
+        "frame": {
+          "h": 24,
+          "w": 24,
+          "x": 1036,
+          "y": 766
+        },
+        "label": "Close this view",
+        "parent_index": 87,
+        "role": "button"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 89,
+        "element_token": "s00000002:89",
+        "enabled": true,
+        "frame": {
+          "h": 693,
+          "w": 1050,
+          "x": 10,
+          "y": 97
+        },
+        "parent_index": 67,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 90,
+        "element_token": "s00000002:90",
+        "enabled": true,
+        "frame": {
+          "h": 693,
+          "w": 1050,
+          "x": 10,
+          "y": 97
+        },
+        "parent_index": 67,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 91,
+        "element_token": "s00000002:91",
+        "enabled": true,
+        "frame": {
+          "h": 24,
+          "w": 4,
+          "x": 1060,
+          "y": 431
+        },
+        "label": "Split View Resize Handle (draggable)",
+        "parent_index": 67,
+        "role": "slider",
+        "value": "0.0"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 6,
+        "element_index": 92,
+        "element_token": "s00000002:92",
+        "enabled": true,
+        "label": "\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc",
+        "parent_index": 65,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 93,
+        "element_token": "s00000002:93",
+        "enabled": true,
+        "label": "\ufffc",
+        "parent_index": 92,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 8,
+        "element_index": 94,
+        "element_token": "s00000002:94",
+        "enabled": true,
+        "parent_index": 93,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 95,
+        "element_token": "s00000002:95",
+        "enabled": true,
+        "parent_index": 92,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 96,
+        "element_token": "s00000002:96",
+        "enabled": true,
+        "parent_index": 92,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 97,
+        "element_token": "s00000002:97",
+        "enabled": true,
+        "label": "\ufffc",
+        "parent_index": 92,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 8,
+        "element_index": 98,
+        "element_token": "s00000002:98",
+        "enabled": true,
+        "parent_index": 97,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 99,
+        "element_token": "s00000002:99",
+        "enabled": true,
+        "parent_index": 92,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 100,
+        "element_token": "s00000002:100",
+        "enabled": true,
+        "label": "\ufffc",
+        "parent_index": 92,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 8,
+        "element_index": 101,
+        "element_token": "s00000002:101",
+        "enabled": true,
+        "parent_index": 100,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 102,
+        "element_token": "s00000002:102",
+        "enabled": true,
+        "parent_index": 92,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 103,
+        "element_token": "s00000002:103",
+        "enabled": true,
+        "parent_index": 92,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 104,
+        "element_token": "s00000002:104",
+        "enabled": true,
+        "parent_index": 92,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 105,
+        "element_token": "s00000002:105",
+        "enabled": true,
+        "parent_index": 92,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 106,
+        "element_token": "s00000002:106",
+        "enabled": true,
+        "parent_index": 92,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 107,
+        "element_token": "s00000002:107",
+        "enabled": true,
+        "label": "\ufffc",
+        "parent_index": 92,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "click",
+          "showContextMenu"
+        ],
+        "depth": 8,
+        "element_index": 108,
+        "element_token": "s00000002:108",
+        "enabled": true,
+        "frame": {
+          "h": 24,
+          "w": 24,
+          "x": 1048,
+          "y": 97
+        },
+        "label": "Close this view",
+        "parent_index": 107,
+        "role": "button"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 109,
+        "element_token": "s00000002:109",
+        "enabled": true,
+        "parent_index": 92,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 110,
+        "element_token": "s00000002:110",
+        "enabled": true,
+        "parent_index": 92,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 6,
+        "element_index": 111,
+        "element_token": "s00000002:111",
+        "enabled": true,
+        "label": "\ufffc",
+        "parent_index": 65,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 112,
+        "element_token": "s00000002:112",
+        "enabled": true,
+        "parent_index": 111,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 6,
+        "element_index": 113,
+        "element_token": "s00000002:113",
+        "enabled": true,
+        "parent_index": 65,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 6,
+        "element_index": 114,
+        "element_token": "s00000002:114",
+        "enabled": true,
+        "parent_index": 65,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 6,
+        "element_index": 115,
+        "element_token": "s00000002:115",
+        "enabled": true,
+        "parent_index": 65,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 6,
+        "element_index": 116,
+        "element_token": "s00000002:116",
+        "enabled": true,
+        "parent_index": 65,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 6,
+        "element_index": 117,
+        "element_token": "s00000002:117",
+        "enabled": true,
+        "frame": {
+          "h": 694,
+          "w": 1050,
+          "x": 10,
+          "y": 96
+        },
+        "parent_index": 65,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 4,
+        "element_index": 118,
+        "element_token": "s00000002:118",
+        "enabled": true,
+        "label": "Infobar Container",
+        "parent_index": 7,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 5,
+        "element_index": 119,
+        "element_token": "s00000002:119",
+        "enabled": true,
+        "parent_index": 118,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 4,
+        "element_index": 120,
+        "element_token": "s00000002:120",
+        "enabled": true,
+        "frame": {
+          "h": 740,
+          "w": 1050,
+          "x": 10,
+          "y": 50
+        },
+        "label": "\ufffc\ufffc\ufffc\ufffc\ufffc",
+        "parent_index": 7,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 5,
+        "element_index": 121,
+        "element_token": "s00000002:121",
+        "enabled": true,
+        "frame": {
+          "h": 10,
+          "w": 10,
+          "x": 9,
+          "y": 49
+        },
+        "parent_index": 120,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 5,
+        "element_index": 122,
+        "element_token": "s00000002:122",
+        "enabled": true,
+        "frame": {
+          "h": 10,
+          "w": 10,
+          "x": 1051,
+          "y": 49
+        },
+        "parent_index": 120,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 5,
+        "element_index": 123,
+        "element_token": "s00000002:123",
+        "enabled": true,
+        "frame": {
+          "h": 10,
+          "w": 10,
+          "x": 9,
+          "y": 781
+        },
+        "parent_index": 120,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 5,
+        "element_index": 124,
+        "element_token": "s00000002:124",
+        "enabled": true,
+        "frame": {
+          "h": 10,
+          "w": 10,
+          "x": 1051,
+          "y": 781
+        },
+        "parent_index": 120,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 5,
+        "element_index": 125,
+        "element_token": "s00000002:125",
+        "enabled": true,
+        "frame": {
+          "h": 740,
+          "w": 1050,
+          "x": 10,
+          "y": 50
+        },
+        "parent_index": 120,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 4,
+        "element_index": 126,
+        "element_token": "s00000002:126",
+        "enabled": true,
+        "label": "\ufffc\ufffc",
+        "parent_index": 7,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 5,
+        "element_index": 127,
+        "element_token": "s00000002:127",
+        "enabled": true,
+        "parent_index": 126,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 5,
+        "element_index": 128,
+        "element_token": "s00000002:128",
+        "enabled": true,
+        "label": "Side Panel Resize Handle (draggable)",
+        "parent_index": 126,
+        "role": "slider",
+        "value": "0.0"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 4,
+        "element_index": 129,
+        "element_token": "s00000002:129",
+        "enabled": true,
+        "frame": {
+          "h": 41,
+          "w": 1050,
+          "x": 10,
+          "y": 10
+        },
+        "label": "\ufffc\ufffc\ufffc\ufffc",
+        "parent_index": 7,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 5,
+        "element_index": 130,
+        "element_token": "s00000002:130",
+        "enabled": true,
+        "frame": {
+          "h": 41,
+          "w": 28,
+          "x": 16,
+          "y": 10
+        },
+        "label": "\ufffc",
+        "parent_index": 129,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "open",
+          "showContextMenu"
+        ],
+        "depth": 6,
+        "element_index": 131,
+        "element_token": "s00000002:131",
+        "enabled": true,
+        "frame": {
+          "h": 28,
+          "w": 28,
+          "x": 16,
+          "y": 16
+        },
+        "label": "Tab search",
+        "parent_index": 130,
+        "role": "button"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 5,
+        "element_index": 132,
+        "element_token": "s00000002:132",
+        "enabled": true,
+        "frame": {
+          "h": 41,
+          "w": 256,
+          "x": 38,
+          "y": 10
+        },
+        "label": "\ufffc\ufffc",
+        "parent_index": 129,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 6,
+        "element_index": 133,
+        "element_token": "s00000002:133",
+        "enabled": true,
+        "frame": {
+          "h": 41,
+          "w": 256,
+          "x": 38,
+          "y": 10
+        },
+        "label": "\ufffc\ufffc",
+        "parent_index": 132,
+        "role": "page tab list"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 134,
+        "element_token": "s00000002:134",
+        "enabled": true,
+        "frame": {
+          "h": 41,
+          "w": 256,
+          "x": 38,
+          "y": 10
+        },
+        "label": "Contact form (simple) - Memory usage - 24.4 MB",
+        "parent_index": 133,
+        "role": "page tab",
+        "selected": true
+      },
+      {
+        "actions": [
+          "press",
+          "showContextMenu"
+        ],
+        "depth": 8,
+        "element_index": 135,
+        "element_token": "s00000002:135",
+        "enabled": true,
+        "frame": {
+          "h": 28,
+          "w": 28,
+          "x": 252,
+          "y": 16
+        },
+        "label": "Close",
+        "parent_index": 134,
+        "role": "button"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 136,
+        "element_token": "s00000002:136",
+        "enabled": true,
+        "parent_index": 133,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 6,
+        "element_index": 137,
+        "element_token": "s00000002:137",
+        "enabled": true,
+        "frame": {
+          "h": 41,
+          "w": 256,
+          "x": 38,
+          "y": 10
+        },
+        "parent_index": 132,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "press",
+          "showContextMenu"
+        ],
+        "depth": 5,
+        "element_index": 138,
+        "element_token": "s00000002:138",
+        "enabled": true,
+        "frame": {
+          "h": 41,
+          "w": 28,
+          "x": 288,
+          "y": 10
+        },
+        "label": "New Tab",
+        "parent_index": 129,
+        "role": "button"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 5,
+        "element_index": 139,
+        "element_token": "s00000002:139",
+        "enabled": true,
+        "frame": {
+          "h": 41,
+          "w": 732,
+          "x": 328,
+          "y": 10
+        },
+        "parent_index": 129,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 4,
+        "element_index": 140,
+        "element_token": "s00000002:140",
+        "enabled": true,
+        "label": "\ufffc\ufffc\ufffc\ufffc\ufffc\ufffc",
+        "parent_index": 7,
+        "role": "page tab list"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 5,
+        "element_index": 141,
+        "element_token": "s00000002:141",
+        "enabled": true,
+        "frame": {
+          "h": 113,
+          "w": 32,
+          "x": 22,
+          "y": 10
+        },
+        "label": "\ufffc\ufffc",
+        "parent_index": 140,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "click",
+          "showContextMenu"
+        ],
+        "depth": 6,
+        "element_index": 142,
+        "element_token": "s00000002:142",
+        "enabled": true,
+        "frame": {
+          "h": 32,
+          "w": 32,
+          "x": 22,
+          "y": 17
+        },
+        "label": "Collapse tabs",
+        "parent_index": 141,
+        "role": "button"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 6,
+        "element_index": 143,
+        "element_token": "s00000002:143",
+        "enabled": true,
+        "frame": {
+          "h": 58,
+          "w": 28,
+          "x": 24,
+          "y": 57
+        },
+        "label": "\ufffc\ufffc",
+        "parent_index": 141,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "open",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 144,
+        "element_token": "s00000002:144",
+        "enabled": true,
+        "frame": {
+          "h": 28,
+          "w": 28,
+          "x": 24,
+          "y": 57
+        },
+        "label": "Tab groups",
+        "parent_index": 143,
+        "role": "button"
+      },
+      {
+        "actions": [
+          "click",
+          "showContextMenu"
+        ],
+        "depth": 7,
+        "element_index": 145,
+        "element_token": "s00000002:145",
+        "enabled": true,
+        "frame": {
+          "h": 28,
+          "w": 28,
+          "x": 24,
+          "y": 87
+        },
+        "label": "Tab search",
+        "parent_index": 143,
+        "role": "button"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 5,
+        "element_index": 146,
+        "element_token": "s00000002:146",
+        "enabled": true,
+        "parent_index": 140,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 5,
+        "element_index": 147,
+        "element_token": "s00000002:147",
+        "enabled": true,
+        "frame": {
+          "h": 32,
+          "w": 32,
+          "x": 22,
+          "y": 132
+        },
+        "label": "\ufffc",
+        "parent_index": 140,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "click",
+          "showContextMenu"
+        ],
+        "depth": 6,
+        "element_index": 148,
+        "element_token": "s00000002:148",
+        "enabled": true,
+        "frame": {
+          "h": 32,
+          "w": 32,
+          "x": 22,
+          "y": 132
+        },
+        "label": "New tab",
+        "parent_index": 147,
+        "role": "button"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 5,
+        "element_index": 149,
+        "element_token": "s00000002:149",
+        "enabled": true,
+        "parent_index": 140,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 5,
+        "element_index": 150,
+        "element_token": "s00000002:150",
+        "enabled": true,
+        "label": "Vertical Tab Strip Resize Handle (Draggable)",
+        "parent_index": 140,
+        "role": "slider",
+        "value": "0.0"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 5,
+        "element_index": 151,
+        "element_token": "s00000002:151",
+        "enabled": true,
+        "parent_index": 140,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 4,
+        "element_index": 152,
+        "element_token": "s00000002:152",
+        "enabled": true,
+        "parent_index": 7,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 4,
+        "element_index": 153,
+        "element_token": "s00000002:153",
+        "enabled": true,
+        "parent_index": 7,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 4,
+        "element_index": 154,
+        "element_token": "s00000002:154",
+        "enabled": true,
+        "parent_index": 7,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 4,
+        "element_index": 155,
+        "element_token": "s00000002:155",
+        "enabled": true,
+        "frame": {
+          "h": 780,
+          "w": 1050,
+          "x": 10,
+          "y": 10
+        },
+        "parent_index": 7,
+        "role": "panel"
+      },
+      {
+        "actions": [
+          "doDefault",
+          "showContextMenu"
+        ],
+        "depth": 2,
+        "element_index": 156,
+        "element_token": "s00000002:156",
+        "enabled": true,
+        "frame": {
+          "h": 780,
+          "w": 1050,
+          "x": 10,
+          "y": 10
+        },
+        "parent_index": 1,
+        "role": "panel"
+      }
+    ],
+    "elements_complete": false,
+    "pid": 268492,
+    "returned_element_count": 157,
+    "snapshot_id": "s00000002",
+    "total_element_count": 157,
+    "window_bounds": {
+      "height": 780,
+      "width": 1050,
+      "x": 10,
+      "y": 10
+    },
+    "window_id": 6291459,
+    "window_title": "Contact form (simple) - Google Chrome"
+  },
+  "list_windows": {
+    "windows": [
+      {
+        "app_name": "Google-chrome",
+        "bounds": {
+          "height": 780,
+          "width": 1050,
+          "x": 10,
+          "y": 10
+        },
+        "height": 780,
+        "is_on_screen": true,
+        "pid": 268492,
+        "title": "Untitled - Google Chrome",
+        "width": 1050,
+        "window_id": 6291459,
+        "x": 10,
+        "y": 10,
+        "z_index": 0
+      },
+      {
+        "app_name": "",
+        "bounds": {
+          "height": 800,
+          "width": 1280,
+          "x": 0,
+          "y": 0
+        },
+        "height": 800,
+        "is_on_screen": true,
+        "pid": null,
+        "title": "Cua.AgentCursorOverlay.default",
+        "width": 1280,
+        "window_id": 4194307,
+        "x": 0,
+        "y": 0,
+        "z_index": 1
+      }
+    ]
+  },
+  "set_value_unsupported": "element 75 exposes neither EditableText nor Value\n",
+  "type_text_no_target": "No windows found for pid 0. Provide window_id.\n"
+}

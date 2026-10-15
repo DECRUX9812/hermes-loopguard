@@ -1,0 +1,15 @@
+{
+  "captured_at": 1792068369.5699093,
+  "offset": null,
+  "page": "confirm.html",
+  "rects": {
+    "confirm": [
+      75,
+      270,
+      108,
+      42
+    ]
+  },
+  "url": "http://127.0.0.1:8793/confirm.html?item=quickstart&q=quickstart",
+  "viewport": null
+}

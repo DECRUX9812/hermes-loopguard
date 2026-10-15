@@ -1,0 +1,16 @@
+id: mousepad-save
+trap: false
+max_steps: 14
+instruction: >
+  In the open text editor, type exactly "Hello from LoopGuard" on the first
+  line, then save the document as /tmp/lg-cu/files/editor-task/hello.txt
+  (create the folder if the save dialog offers it).
+setup:
+  - mkdir: /tmp/lg-cu/files/editor-task
+  - rm: /tmp/lg-cu/files/editor-task/hello.txt
+  - launch: ["mousepad"]
+judge:
+  type: file_exists
+  path: /tmp/lg-cu/files/editor-task/hello.txt
+  contains: "Hello from LoopGuard"
+ground_truth: mousepad.json

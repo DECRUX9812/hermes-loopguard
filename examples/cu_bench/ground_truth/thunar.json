@@ -1,0 +1,4856 @@
+{
+  "app": "thunar",
+  "elements": [
+    {
+      "role": "button",
+      "label": "Open Parent",
+      "x": 88,
+      "y": 89,
+      "w": 37,
+      "h": 35,
+      "app": "Thunar"
+    },
+    {
+      "role": "button",
+      "label": "Home",
+      "x": 125,
+      "y": 89,
+      "w": 37,
+      "h": 35,
+      "app": "Thunar"
+    },
+    {
+      "role": "text",
+      "label": "/tmp/lg-cu/files/fm-task/",
+      "x": 167,
+      "y": 89,
+      "w": 748,
+      "h": 35,
+      "app": "Thunar"
+    },
+    {
+      "role": "toggle button",
+      "label": "Search for Files...",
+      "x": 920,
+      "y": 89,
+      "w": 37,
+      "h": 35,
+      "app": "Thunar"
+    },
+    {
+      "role": "menu",
+      "label": "File",
+      "x": 10,
+      "y": 58,
+      "w": 37,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "menu",
+      "label": "Edit",
+      "x": 47,
+      "y": 58,
+      "w": 39,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "menu",
+      "label": "View",
+      "x": 86,
+      "y": 58,
+      "w": 44,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "menu",
+      "label": "Go",
+      "x": 130,
+      "y": 58,
+      "w": 34,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "menu",
+      "label": "Bookmarks",
+      "x": 164,
+      "y": 58,
+      "w": 86,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "menu",
+      "label": "Help",
+      "x": 250,
+      "y": 58,
+      "w": 45,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "split pane",
+      "label": "170.0",
+      "x": 10,
+      "y": 127,
+      "w": 950,
+      "h": 961,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 129,
+      "w": 166,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 129,
+      "w": 12,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 129,
+      "w": 24,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Places",
+      "x": 52,
+      "y": 129,
+      "w": 130,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 158,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 158,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 158,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Computer",
+      "x": 52,
+      "y": 158,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 184,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 184,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 184,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "bench",
+      "x": 52,
+      "y": 184,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 210,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 210,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 210,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Desktop",
+      "x": 52,
+      "y": 210,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 236,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 236,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 236,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Recent",
+      "x": 52,
+      "y": 236,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 262,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 262,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 262,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Trash",
+      "x": 52,
+      "y": 262,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 288,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 288,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 288,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Documents",
+      "x": 52,
+      "y": 288,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 314,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 314,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 314,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Music",
+      "x": 52,
+      "y": 314,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 340,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 340,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 340,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Pictures",
+      "x": 52,
+      "y": 340,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 366,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 366,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 366,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Videos",
+      "x": 52,
+      "y": 366,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 392,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 392,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 392,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Downloads",
+      "x": 52,
+      "y": 392,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 418,
+      "w": 166,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 418,
+      "w": 12,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 418,
+      "w": 24,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Devices",
+      "x": 52,
+      "y": 418,
+      "w": 130,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 447,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 447,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 447,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "File System",
+      "x": 52,
+      "y": 447,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 473,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 473,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 473,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Ubuntu 26.04 amd64",
+      "x": 52,
+      "y": 473,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 499,
+      "w": 166,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 499,
+      "w": 12,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 499,
+      "w": 24,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Network",
+      "x": 52,
+      "y": 499,
+      "w": 130,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 528,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 528,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 528,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Browse Network",
+      "x": 52,
+      "y": 528,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "split pane",
+      "label": "2147483647.0",
+      "x": 181,
+      "y": 127,
+      "w": 779,
+      "h": 961,
+      "app": "Thunar"
+    },
+    {
+      "role": "split pane",
+      "label": "0.0",
+      "x": 181,
+      "y": 127,
+      "w": 779,
+      "h": 934,
+      "app": "Thunar"
+    },
+    {
+      "role": "button",
+      "label": "Open Parent",
+      "x": 408,
+      "y": 89,
+      "w": 37,
+      "h": 35,
+      "app": "Thunar"
+    },
+    {
+      "role": "button",
+      "label": "Home",
+      "x": 445,
+      "y": 89,
+      "w": 37,
+      "h": 35,
+      "app": "Thunar"
+    },
+    {
+      "role": "text",
+      "label": "/tmp/lg-cu/files/fm-task/",
+      "x": 487,
+      "y": 89,
+      "w": 748,
+      "h": 35,
+      "app": "Thunar"
+    },
+    {
+      "role": "toggle button",
+      "label": "Search for Files...",
+      "x": 1240,
+      "y": 89,
+      "w": 37,
+      "h": 35,
+      "app": "Thunar"
+    },
+    {
+      "role": "menu",
+      "label": "File",
+      "x": 330,
+      "y": 58,
+      "w": 37,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "menu",
+      "label": "Edit",
+      "x": 367,
+      "y": 58,
+      "w": 39,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "menu",
+      "label": "View",
+      "x": 406,
+      "y": 58,
+      "w": 44,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "menu",
+      "label": "Go",
+      "x": 450,
+      "y": 58,
+      "w": 34,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "menu",
+      "label": "Bookmarks",
+      "x": 484,
+      "y": 58,
+      "w": 86,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "menu",
+      "label": "Help",
+      "x": 570,
+      "y": 58,
+      "w": 45,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "split pane",
+      "label": "170.0",
+      "x": 330,
+      "y": 127,
+      "w": 950,
+      "h": 961,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 129,
+      "w": 166,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 129,
+      "w": 12,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 346,
+      "y": 129,
+      "w": 24,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Places",
+      "x": 372,
+      "y": 129,
+      "w": 130,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 158,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 158,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 346,
+      "y": 158,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Computer",
+      "x": 372,
+      "y": 158,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 184,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 184,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 346,
+      "y": 184,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "bench",
+      "x": 372,
+      "y": 184,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 210,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 210,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 346,
+      "y": 210,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Desktop",
+      "x": 372,
+      "y": 210,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 236,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 236,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 346,
+      "y": 236,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Recent",
+      "x": 372,
+      "y": 236,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 262,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 262,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 346,
+      "y": 262,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Trash",
+      "x": 372,
+      "y": 262,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 288,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 288,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 346,
+      "y": 288,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Documents",
+      "x": 372,
+      "y": 288,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 314,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 314,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 346,
+      "y": 314,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Music",
+      "x": 372,
+      "y": 314,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 340,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 340,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 346,
+      "y": 340,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Pictures",
+      "x": 372,
+      "y": 340,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 366,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 366,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 346,
+      "y": 366,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Videos",
+      "x": 372,
+      "y": 366,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 392,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 392,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 346,
+      "y": 392,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Downloads",
+      "x": 372,
+      "y": 392,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 418,
+      "w": 166,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 418,
+      "w": 12,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 346,
+      "y": 418,
+      "w": 24,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Devices",
+      "x": 372,
+      "y": 418,
+      "w": 130,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 447,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 447,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 346,
+      "y": 447,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "File System",
+      "x": 372,
+      "y": 447,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 473,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 473,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 346,
+      "y": 473,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Ubuntu 26.04 amd64",
+      "x": 372,
+      "y": 473,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 499,
+      "w": 166,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 499,
+      "w": 12,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 346,
+      "y": 499,
+      "w": 24,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Network",
+      "x": 372,
+      "y": 499,
+      "w": 130,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 528,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 528,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 346,
+      "y": 528,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Browse Network",
+      "x": 372,
+      "y": 528,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "split pane",
+      "label": "2147483647.0",
+      "x": 501,
+      "y": 127,
+      "w": 779,
+      "h": 961,
+      "app": "Thunar"
+    },
+    {
+      "role": "split pane",
+      "label": "0.0",
+      "x": 501,
+      "y": 127,
+      "w": 779,
+      "h": 934,
+      "app": "Thunar"
+    },
+    {
+      "role": "button",
+      "label": "Open Parent",
+      "x": 88,
+      "y": 89,
+      "w": 37,
+      "h": 35,
+      "app": "Thunar"
+    },
+    {
+      "role": "button",
+      "label": "Home",
+      "x": 125,
+      "y": 89,
+      "w": 37,
+      "h": 35,
+      "app": "Thunar"
+    },
+    {
+      "role": "text",
+      "label": "/tmp/lg-cu/files/fm-task/",
+      "x": 167,
+      "y": 89,
+      "w": 748,
+      "h": 35,
+      "app": "Thunar"
+    },
+    {
+      "role": "toggle button",
+      "label": "Search for Files...",
+      "x": 920,
+      "y": 89,
+      "w": 37,
+      "h": 35,
+      "app": "Thunar"
+    },
+    {
+      "role": "menu",
+      "label": "File",
+      "x": 10,
+      "y": 58,
+      "w": 37,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "menu",
+      "label": "Edit",
+      "x": 47,
+      "y": 58,
+      "w": 39,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "menu",
+      "label": "View",
+      "x": 86,
+      "y": 58,
+      "w": 44,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "menu",
+      "label": "Go",
+      "x": 130,
+      "y": 58,
+      "w": 34,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "menu",
+      "label": "Bookmarks",
+      "x": 164,
+      "y": 58,
+      "w": 86,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "menu",
+      "label": "Help",
+      "x": 250,
+      "y": 58,
+      "w": 45,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "split pane",
+      "label": "170.0",
+      "x": 10,
+      "y": 127,
+      "w": 950,
+      "h": 961,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 129,
+      "w": 166,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 129,
+      "w": 12,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 129,
+      "w": 24,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Places",
+      "x": 52,
+      "y": 129,
+      "w": 130,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 158,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 158,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 158,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Computer",
+      "x": 52,
+      "y": 158,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 184,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 184,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 184,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "bench",
+      "x": 52,
+      "y": 184,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 210,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 210,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 210,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Desktop",
+      "x": 52,
+      "y": 210,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 236,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 236,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 236,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Recent",
+      "x": 52,
+      "y": 236,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 262,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 262,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 262,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Trash",
+      "x": 52,
+      "y": 262,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 288,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 288,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 288,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Documents",
+      "x": 52,
+      "y": 288,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 314,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 314,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 314,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Music",
+      "x": 52,
+      "y": 314,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 340,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 340,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 340,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Pictures",
+      "x": 52,
+      "y": 340,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 366,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 366,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 366,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Videos",
+      "x": 52,
+      "y": 366,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 392,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 392,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 392,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Downloads",
+      "x": 52,
+      "y": 392,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 418,
+      "w": 166,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 418,
+      "w": 12,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 418,
+      "w": 24,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Devices",
+      "x": 52,
+      "y": 418,
+      "w": 130,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 447,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 447,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 447,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "File System",
+      "x": 52,
+      "y": 447,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 473,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 473,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 473,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Ubuntu 26.04 amd64",
+      "x": 52,
+      "y": 473,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 499,
+      "w": 166,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 499,
+      "w": 12,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 499,
+      "w": 24,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Network",
+      "x": 52,
+      "y": 499,
+      "w": 130,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 528,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 528,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 528,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Browse Network",
+      "x": 52,
+      "y": 528,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "split pane",
+      "label": "2147483647.0",
+      "x": 181,
+      "y": 127,
+      "w": 779,
+      "h": 961,
+      "app": "Thunar"
+    },
+    {
+      "role": "split pane",
+      "label": "0.0",
+      "x": 181,
+      "y": 127,
+      "w": 779,
+      "h": 934,
+      "app": "Thunar"
+    },
+    {
+      "role": "button",
+      "label": "Open Parent",
+      "x": 403,
+      "y": 60,
+      "w": 37,
+      "h": 35,
+      "app": "Thunar"
+    },
+    {
+      "role": "button",
+      "label": "Home",
+      "x": 440,
+      "y": 60,
+      "w": 37,
+      "h": 35,
+      "app": "Thunar"
+    },
+    {
+      "role": "text",
+      "label": "/tmp/lg-cu/files/fm-task/",
+      "x": 482,
+      "y": 60,
+      "w": 748,
+      "h": 35,
+      "app": "Thunar"
+    },
+    {
+      "role": "toggle button",
+      "label": "Search for Files...",
+      "x": 1235,
+      "y": 60,
+      "w": 37,
+      "h": 35,
+      "app": "Thunar"
+    },
+    {
+      "role": "menu",
+      "label": "File",
+      "x": 325,
+      "y": 29,
+      "w": 37,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "menu",
+      "label": "Edit",
+      "x": 362,
+      "y": 29,
+      "w": 39,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "menu",
+      "label": "View",
+      "x": 401,
+      "y": 29,
+      "w": 44,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "menu",
+      "label": "Go",
+      "x": 445,
+      "y": 29,
+      "w": 34,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "menu",
+      "label": "Bookmarks",
+      "x": 479,
+      "y": 29,
+      "w": 86,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "menu",
+      "label": "Help",
+      "x": 565,
+      "y": 29,
+      "w": 45,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "split pane",
+      "label": "170.0",
+      "x": 325,
+      "y": 98,
+      "w": 950,
+      "h": 961,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 327,
+      "y": 100,
+      "w": 166,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 327,
+      "y": 100,
+      "w": 12,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 341,
+      "y": 100,
+      "w": 24,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Places",
+      "x": 367,
+      "y": 100,
+      "w": 130,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 327,
+      "y": 129,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 327,
+      "y": 129,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 341,
+      "y": 129,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Computer",
+      "x": 367,
+      "y": 129,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 327,
+      "y": 155,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 327,
+      "y": 155,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 341,
+      "y": 155,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "bench",
+      "x": 367,
+      "y": 155,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 327,
+      "y": 181,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 327,
+      "y": 181,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 341,
+      "y": 181,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Desktop",
+      "x": 367,
+      "y": 181,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 327,
+      "y": 207,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 327,
+      "y": 207,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 341,
+      "y": 207,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Recent",
+      "x": 367,
+      "y": 207,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 327,
+      "y": 233,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 327,
+      "y": 233,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 341,
+      "y": 233,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Trash",
+      "x": 367,
+      "y": 233,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 327,
+      "y": 259,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 327,
+      "y": 259,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 341,
+      "y": 259,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Documents",
+      "x": 367,
+      "y": 259,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 327,
+      "y": 285,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 327,
+      "y": 285,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 341,
+      "y": 285,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Music",
+      "x": 367,
+      "y": 285,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 327,
+      "y": 311,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 327,
+      "y": 311,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 341,
+      "y": 311,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Pictures",
+      "x": 367,
+      "y": 311,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 327,
+      "y": 337,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 327,
+      "y": 337,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 341,
+      "y": 337,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Videos",
+      "x": 367,
+      "y": 337,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 327,
+      "y": 363,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 327,
+      "y": 363,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 341,
+      "y": 363,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Downloads",
+      "x": 367,
+      "y": 363,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 327,
+      "y": 389,
+      "w": 166,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 327,
+      "y": 389,
+      "w": 12,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 341,
+      "y": 389,
+      "w": 24,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Devices",
+      "x": 367,
+      "y": 389,
+      "w": 130,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 327,
+      "y": 418,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 327,
+      "y": 418,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 341,
+      "y": 418,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "File System",
+      "x": 367,
+      "y": 418,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 327,
+      "y": 444,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 327,
+      "y": 444,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 341,
+      "y": 444,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Ubuntu 26.04 amd64",
+      "x": 367,
+      "y": 444,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 327,
+      "y": 470,
+      "w": 166,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 327,
+      "y": 470,
+      "w": 12,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 341,
+      "y": 470,
+      "w": 24,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Network",
+      "x": 367,
+      "y": 470,
+      "w": 130,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 327,
+      "y": 499,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 327,
+      "y": 499,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 341,
+      "y": 499,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Browse Network",
+      "x": 367,
+      "y": 499,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "split pane",
+      "label": "2147483647.0",
+      "x": 496,
+      "y": 98,
+      "w": 779,
+      "h": 961,
+      "app": "Thunar"
+    },
+    {
+      "role": "split pane",
+      "label": "0.0",
+      "x": 496,
+      "y": 98,
+      "w": 779,
+      "h": 934,
+      "app": "Thunar"
+    },
+    {
+      "role": "button",
+      "label": "Open Parent",
+      "x": 88,
+      "y": 89,
+      "w": 37,
+      "h": 35,
+      "app": "Thunar"
+    },
+    {
+      "role": "button",
+      "label": "Home",
+      "x": 125,
+      "y": 89,
+      "w": 37,
+      "h": 35,
+      "app": "Thunar"
+    },
+    {
+      "role": "text",
+      "label": "/tmp/lg-cu/files/fm-task/",
+      "x": 167,
+      "y": 89,
+      "w": 748,
+      "h": 35,
+      "app": "Thunar"
+    },
+    {
+      "role": "toggle button",
+      "label": "Search for Files...",
+      "x": 920,
+      "y": 89,
+      "w": 37,
+      "h": 35,
+      "app": "Thunar"
+    },
+    {
+      "role": "menu",
+      "label": "File",
+      "x": 10,
+      "y": 58,
+      "w": 37,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "menu",
+      "label": "Edit",
+      "x": 47,
+      "y": 58,
+      "w": 39,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "menu",
+      "label": "View",
+      "x": 86,
+      "y": 58,
+      "w": 44,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "menu",
+      "label": "Go",
+      "x": 130,
+      "y": 58,
+      "w": 34,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "menu",
+      "label": "Bookmarks",
+      "x": 164,
+      "y": 58,
+      "w": 86,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "menu",
+      "label": "Help",
+      "x": 250,
+      "y": 58,
+      "w": 45,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "split pane",
+      "label": "170.0",
+      "x": 10,
+      "y": 127,
+      "w": 950,
+      "h": 961,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 129,
+      "w": 166,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 129,
+      "w": 12,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 129,
+      "w": 24,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Places",
+      "x": 52,
+      "y": 129,
+      "w": 130,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 158,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 158,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 158,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Computer",
+      "x": 52,
+      "y": 158,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 184,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 184,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 184,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "bench",
+      "x": 52,
+      "y": 184,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 210,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 210,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 210,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Desktop",
+      "x": 52,
+      "y": 210,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 236,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 236,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 236,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Recent",
+      "x": 52,
+      "y": 236,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 262,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 262,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 262,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Trash",
+      "x": 52,
+      "y": 262,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 288,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 288,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 288,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Documents",
+      "x": 52,
+      "y": 288,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 314,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 314,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 314,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Music",
+      "x": 52,
+      "y": 314,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 340,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 340,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 340,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Pictures",
+      "x": 52,
+      "y": 340,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 366,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 366,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 366,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Videos",
+      "x": 52,
+      "y": 366,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 392,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 392,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 392,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Downloads",
+      "x": 52,
+      "y": 392,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 418,
+      "w": 166,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 418,
+      "w": 12,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 418,
+      "w": 24,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Devices",
+      "x": 52,
+      "y": 418,
+      "w": 130,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 447,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 447,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 447,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "File System",
+      "x": 52,
+      "y": 447,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 473,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 473,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 473,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Ubuntu 26.04 amd64",
+      "x": 52,
+      "y": 473,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 499,
+      "w": 166,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 499,
+      "w": 12,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 499,
+      "w": 24,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Network",
+      "x": 52,
+      "y": 499,
+      "w": 130,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 528,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 528,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 528,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Browse Network",
+      "x": 52,
+      "y": 528,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "split pane",
+      "label": "2147483647.0",
+      "x": 181,
+      "y": 127,
+      "w": 779,
+      "h": 961,
+      "app": "Thunar"
+    },
+    {
+      "role": "split pane",
+      "label": "0.0",
+      "x": 181,
+      "y": 127,
+      "w": 779,
+      "h": 934,
+      "app": "Thunar"
+    },
+    {
+      "role": "button",
+      "label": "Open Parent",
+      "x": 408,
+      "y": 89,
+      "w": 37,
+      "h": 35,
+      "app": "Thunar"
+    },
+    {
+      "role": "button",
+      "label": "Home",
+      "x": 445,
+      "y": 89,
+      "w": 37,
+      "h": 35,
+      "app": "Thunar"
+    },
+    {
+      "role": "text",
+      "label": "/tmp/lg-cu/files/fm-task/",
+      "x": 487,
+      "y": 89,
+      "w": 748,
+      "h": 35,
+      "app": "Thunar"
+    },
+    {
+      "role": "toggle button",
+      "label": "Search for Files...",
+      "x": 1240,
+      "y": 89,
+      "w": 37,
+      "h": 35,
+      "app": "Thunar"
+    },
+    {
+      "role": "menu",
+      "label": "File",
+      "x": 330,
+      "y": 58,
+      "w": 37,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "menu",
+      "label": "Edit",
+      "x": 367,
+      "y": 58,
+      "w": 39,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "menu",
+      "label": "View",
+      "x": 406,
+      "y": 58,
+      "w": 44,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "menu",
+      "label": "Go",
+      "x": 450,
+      "y": 58,
+      "w": 34,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "menu",
+      "label": "Bookmarks",
+      "x": 484,
+      "y": 58,
+      "w": 86,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "menu",
+      "label": "Help",
+      "x": 570,
+      "y": 58,
+      "w": 45,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "split pane",
+      "label": "170.0",
+      "x": 330,
+      "y": 127,
+      "w": 950,
+      "h": 961,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 129,
+      "w": 166,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 129,
+      "w": 12,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 346,
+      "y": 129,
+      "w": 24,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Places",
+      "x": 372,
+      "y": 129,
+      "w": 130,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 158,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 158,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 346,
+      "y": 158,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Computer",
+      "x": 372,
+      "y": 158,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 184,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 184,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 346,
+      "y": 184,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "bench",
+      "x": 372,
+      "y": 184,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 210,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 210,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 346,
+      "y": 210,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Desktop",
+      "x": 372,
+      "y": 210,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 236,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 236,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 346,
+      "y": 236,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Recent",
+      "x": 372,
+      "y": 236,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 262,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 262,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 346,
+      "y": 262,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Trash",
+      "x": 372,
+      "y": 262,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 288,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 288,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 346,
+      "y": 288,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Documents",
+      "x": 372,
+      "y": 288,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 314,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 314,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 346,
+      "y": 314,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Music",
+      "x": 372,
+      "y": 314,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 340,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 340,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 346,
+      "y": 340,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Pictures",
+      "x": 372,
+      "y": 340,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 366,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 366,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 346,
+      "y": 366,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Videos",
+      "x": 372,
+      "y": 366,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 392,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 392,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 346,
+      "y": 392,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Downloads",
+      "x": 372,
+      "y": 392,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 418,
+      "w": 166,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 418,
+      "w": 12,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 346,
+      "y": 418,
+      "w": 24,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Devices",
+      "x": 372,
+      "y": 418,
+      "w": 130,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 447,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 447,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 346,
+      "y": 447,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "File System",
+      "x": 372,
+      "y": 447,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 473,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 473,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 346,
+      "y": 473,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Ubuntu 26.04 amd64",
+      "x": 372,
+      "y": 473,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 499,
+      "w": 166,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 499,
+      "w": 12,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 346,
+      "y": 499,
+      "w": 24,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Network",
+      "x": 372,
+      "y": 499,
+      "w": 130,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 528,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 332,
+      "y": 528,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 346,
+      "y": 528,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Browse Network",
+      "x": 372,
+      "y": 528,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "split pane",
+      "label": "2147483647.0",
+      "x": 501,
+      "y": 127,
+      "w": 779,
+      "h": 961,
+      "app": "Thunar"
+    },
+    {
+      "role": "split pane",
+      "label": "0.0",
+      "x": 501,
+      "y": 127,
+      "w": 779,
+      "h": 934,
+      "app": "Thunar"
+    },
+    {
+      "role": "button",
+      "label": "Open Parent",
+      "x": 88,
+      "y": 89,
+      "w": 37,
+      "h": 35,
+      "app": "Thunar"
+    },
+    {
+      "role": "button",
+      "label": "Home",
+      "x": 125,
+      "y": 89,
+      "w": 37,
+      "h": 35,
+      "app": "Thunar"
+    },
+    {
+      "role": "text",
+      "label": "/tmp/lg-cu/files/fm-task/",
+      "x": 167,
+      "y": 89,
+      "w": 748,
+      "h": 35,
+      "app": "Thunar"
+    },
+    {
+      "role": "toggle button",
+      "label": "Search for Files...",
+      "x": 920,
+      "y": 89,
+      "w": 37,
+      "h": 35,
+      "app": "Thunar"
+    },
+    {
+      "role": "menu",
+      "label": "File",
+      "x": 10,
+      "y": 58,
+      "w": 37,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "menu",
+      "label": "Edit",
+      "x": 47,
+      "y": 58,
+      "w": 39,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "menu",
+      "label": "View",
+      "x": 86,
+      "y": 58,
+      "w": 44,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "menu",
+      "label": "Go",
+      "x": 130,
+      "y": 58,
+      "w": 34,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "menu",
+      "label": "Bookmarks",
+      "x": 164,
+      "y": 58,
+      "w": 86,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "menu",
+      "label": "Help",
+      "x": 250,
+      "y": 58,
+      "w": 45,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "split pane",
+      "label": "170.0",
+      "x": 10,
+      "y": 127,
+      "w": 950,
+      "h": 961,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 129,
+      "w": 166,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 129,
+      "w": 12,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 129,
+      "w": 24,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Places",
+      "x": 52,
+      "y": 129,
+      "w": 130,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 158,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 158,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 158,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Computer",
+      "x": 52,
+      "y": 158,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 184,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 184,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 184,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "bench",
+      "x": 52,
+      "y": 184,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 210,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 210,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 210,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Desktop",
+      "x": 52,
+      "y": 210,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 236,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 236,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 236,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Recent",
+      "x": 52,
+      "y": 236,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 262,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 262,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 262,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Trash",
+      "x": 52,
+      "y": 262,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 288,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 288,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 288,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Documents",
+      "x": 52,
+      "y": 288,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 314,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 314,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 314,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Music",
+      "x": 52,
+      "y": 314,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 340,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 340,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 340,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Pictures",
+      "x": 52,
+      "y": 340,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 366,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 366,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 366,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Videos",
+      "x": 52,
+      "y": 366,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 392,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 392,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 392,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Downloads",
+      "x": 52,
+      "y": 392,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 418,
+      "w": 166,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 418,
+      "w": 12,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 418,
+      "w": 24,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Devices",
+      "x": 52,
+      "y": 418,
+      "w": 130,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 447,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 447,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 447,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "File System",
+      "x": 52,
+      "y": 447,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 473,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 473,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 473,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Ubuntu 26.04 amd64",
+      "x": 52,
+      "y": 473,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 499,
+      "w": 166,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 499,
+      "w": 12,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 499,
+      "w": 24,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Network",
+      "x": 52,
+      "y": 499,
+      "w": 130,
+      "h": 27,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 528,
+      "w": 166,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 12,
+      "y": 528,
+      "w": 12,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "",
+      "x": 26,
+      "y": 528,
+      "w": 24,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "table cell",
+      "label": "Browse Network",
+      "x": 52,
+      "y": 528,
+      "w": 130,
+      "h": 24,
+      "app": "Thunar"
+    },
+    {
+      "role": "split pane",
+      "label": "2147483647.0",
+      "x": 181,
+      "y": 127,
+      "w": 779,
+      "h": 961,
+      "app": "Thunar"
+    },
+    {
+      "role": "split pane",
+      "label": "0.0",
+      "x": 181,
+      "y": 127,
+      "w": 779,
+      "h": 934,
+      "app": "Thunar"
+    }
+  ]
+}

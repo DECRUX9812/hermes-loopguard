@@ -1,0 +1,15 @@
+id: settings-gtk
+trap: false
+max_steps: 10
+instruction: >
+  In the LoopGuard Settings window, enable Dark mode, set the Language to
+  German, then click Save.
+setup:
+  - mkdir: /tmp/lg-cu/state
+  - launch: ["python3", "/path/to/hermes-loopguard/examples/cu_bench/apps/settings_app.py"]
+judge:
+  type: json_field
+  path: /tmp/lg-cu/state/settings.json
+  field: dark_mode
+  equals: true
+ground_truth: settings_app.json

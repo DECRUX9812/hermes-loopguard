@@ -1,0 +1,27 @@
+{
+  "captured_at": 1792068274.9362767,
+  "offset": null,
+  "page": "form_scroll.html",
+  "rects": {
+    "feedback": [
+      56,
+      1218,
+      420,
+      63
+    ],
+    "name": [
+      56,
+      1147,
+      420,
+      35
+    ],
+    "submit": [
+      56,
+      1303,
+      155,
+      42
+    ]
+  },
+  "url": "http://127.0.0.1:8793/form_scroll.html",
+  "viewport": null
+}

@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Signup form (widgets)</title>
+<style>
+  body { font-family: sans-serif; margin: 2rem; background: #fafafa; }
+  form { width: 460px; }
+  label { display: block; margin-top: 14px; font-weight: 600; }
+  input[type=text], input[type=email], select { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; }
+  .check { margin-top: 16px; font-weight: 400; }
+  .check input { width: auto; margin-right: 8px; }
+  button { margin-top: 20px; padding: 10px 22px; font-size: 16px; }
+</style>
+</head>
+<body data-page="form_widgets.html">
+<h1>Create your account</h1>
+<form action="/submit" method="POST">
+  <label for="username">Username</label>
+  <input id="username" name="username" data-gt="username" type="text">
+  <label for="email">Email</label>
+  <input id="email" name="email" data-gt="email" type="email">
+  <label for="plan">Plan</label>
+  <select id="plan" name="plan" data-gt="plan">
+    <option value="">Choose a plan…</option>
+    <option value="free">Free</option>
+    <option value="pro">Pro</option>
+    <option value="team">Team</option>
+  </select>
+  <label class="check"><input type="checkbox" name="newsletter" data-gt="newsletter" value="yes"> Subscribe to the newsletter</label>
+  <button type="submit" data-gt="submit">Sign up</button>
+</form>
+</body>
+</html>

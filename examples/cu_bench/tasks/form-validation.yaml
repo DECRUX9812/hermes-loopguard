@@ -1,0 +1,16 @@
+id: form-validation
+trap: false
+max_steps: 14
+instruction: >
+  Register a developer account on the open page: organisation
+  "Analytical Engines", work email "engines@loopguard.dev", then click
+  Register. The email must be valid or the form refuses to submit.
+setup:
+  - open_url: "http://127.0.0.1:8765/form_validation.html"
+judge:
+  type: form_post
+  page: form_validation.html
+  expect:
+    org: "Analytical Engines"
+    email: "engines@loopguard.dev"
+ground_truth: form_validation.json

@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Feedback form (below the fold)</title>
+<style>
+  body { font-family: sans-serif; margin: 2rem; background: #fafafa; }
+  .tall { height: 900px; background: linear-gradient(#eef, #ccf); border-radius: 8px;
+          display: flex; align-items: center; justify-content: center; color: #334; }
+  form { width: 420px; margin-top: 24px; }
+  label { display: block; margin-top: 14px; font-weight: 600; }
+  input, textarea { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; }
+  button { margin-top: 18px; padding: 10px 22px; font-size: 16px; }
+</style>
+</head>
+<body data-page="form_scroll.html">
+<h1>We value your feedback</h1>
+<div class="tall"><p>Marketing space — the form is below the fold.</p></div>
+<form action="/submit" method="POST">
+  <label for="name">Name</label>
+  <input id="name" name="name" data-gt="name" type="text">
+  <label for="feedback">Feedback</label>
+  <textarea id="feedback" name="feedback" data-gt="feedback" rows="3"></textarea>
+  <button type="submit" data-gt="submit">Send feedback</button>
+</form>
+</body>
+</html>

@@ -1,0 +1,31 @@
+{
+  "_comment": "UNIT-TEST FAKE script: replays a recorded bench session (screenshot of the loopguard contact-form bench page; no secrets).",
+  "frames": [
+    { "file": "frame_form.png", "width": 1280, "height": 800 }
+  ],
+  "elements": {
+    "Google-chrome": [
+      { "token": "s0000000e:75", "role": "entry", "label": "Name", "x": 60, "y": 219, "w": 420, "h": 36, "app": "Google-chrome" },
+      { "token": "s0000000e:76", "role": "entry", "label": "Email", "x": 60, "y": 290, "w": 420, "h": 36, "app": "Google-chrome" },
+      { "token": "s0000000e:78", "role": "button", "label": "Submit", "x": 60, "y": 451, "w": 98, "h": 43, "app": "Google-chrome" }
+    ]
+  },
+  "actions": {
+    "click": [
+      { "ok": true, "effect": "unverifiable", "verified": null, "raw": { "route": "accessibility" } },
+      { "ok": false, "effect": "error", "error": "click exited 1: stale element", "raw": {} }
+    ],
+    "click_element": [
+      { "ok": true, "effect": "confirmed", "verified": true, "raw": { "route": "accessibility" } }
+    ],
+    "type_text": [
+      { "ok": true, "effect": "unverifiable", "verified": null, "raw": { "route": "global_input" } }
+    ],
+    "key": [
+      { "ok": true, "effect": "confirmed", "verified": true, "raw": {} }
+    ],
+    "scroll": [
+      { "ok": true, "effect": "unverifiable", "verified": null, "raw": {} }
+    ]
+  }
+}

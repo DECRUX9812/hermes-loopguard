@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Confirm your choice</title>
+<style>
+  body { font-family: sans-serif; margin: 2rem; background: #fafafa; }
+  .card { border: 1px solid #ccd; border-radius: 8px; padding: 18px; width: 420px; background: #fff; }
+  button { padding: 10px 24px; font-size: 16px; }
+</style>
+</head>
+<body data-page="confirm.html">
+<h1>Confirm your choice</h1>
+<div class="card">
+  <p id="summary">Loading…</p>
+  <form action="/submit" method="POST">
+    <input type="hidden" name="flow" value="search_pick">
+    <input type="hidden" name="item" id="item" value="">
+    <input type="hidden" name="q" id="q" value="">
+    <button type="submit" data-gt="confirm">Confirm</button>
+  </form>
+</div>
+<script>
+  var params = new URLSearchParams(location.search);
+  document.getElementById("item").value = params.get("item") || "";
+  document.getElementById("q").value = params.get("q") || "";
+  document.getElementById("summary").textContent =
+    "You picked: " + (params.get("item") || "?") + (params.get("q") ? " (search: " + params.get("q") + ")" : "");
+</script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+id: thunar-rename
+trap: false
+max_steps: 10
+instruction: >
+  In the file manager window showing the fm-task folder, rename the file
+  report.txt to report-final.txt.
+setup:
+  - mkdir: /tmp/lg-cu/files/fm-task
+  - rm: /tmp/lg-cu/files/fm-task/report-final.txt
+  - write:
+      path: /tmp/lg-cu/files/fm-task/report.txt
+      content: "Q3 numbers: 42 loops guarded, 1200 dollars saved.\n"
+  - launch: ["thunar", "/tmp/lg-cu/files/fm-task"]
+judge:
+  - type: file_exists
+    path: /tmp/lg-cu/files/fm-task/report-final.txt
+  - type: file_absent
+    path: /tmp/lg-cu/files/fm-task/report.txt
+ground_truth: thunar.json

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Search results</title>
+<style>
+  body { font-family: sans-serif; margin: 2rem; background: #fafafa; }
+  .result { margin: 14px 0; }
+  .result a { font-size: 17px; color: #1a0dab; text-decoration: none; }
+</style>
+</head>
+<body data-page="results.html">
+<h1>Results</h1>
+<div id="out"></div>
+<script>
+  var q = new URLSearchParams(location.search).get("q") || "";
+  var docs = [
+    { id: "install-guide", title: "Install guide" },
+    { id: "quickstart", title: "Quickstart tutorial" },
+    { id: "api-reference", title: "API reference" },
+  ];
+  var out = document.getElementById("out");
+  docs.forEach(function (d) {
+    var div = document.createElement("div");
+    div.className = "result";
+    var a = document.createElement("a");
+    a.href = "confirm.html?item=" + d.id + "&q=" + encodeURIComponent(q);
+    a.setAttribute("data-gt", "result-" + d.id);
+    a.textContent = d.title + " — about " + q;
+    div.appendChild(a);
+    out.appendChild(div);
+  });
+</script>
+</body>
+</html>

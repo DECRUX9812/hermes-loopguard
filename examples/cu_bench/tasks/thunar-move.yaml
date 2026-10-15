@@ -1,0 +1,20 @@
+id: thunar-move
+trap: false
+max_steps: 12
+instruction: >
+  In the file manager window showing the fm-task folder, move notes.txt into
+  the archive folder that is next to it.
+setup:
+  - mkdir: /tmp/lg-cu/files/fm-task
+  - rm: /tmp/lg-cu/files/fm-task/archive
+  - write:
+      path: /tmp/lg-cu/files/fm-task/notes.txt
+      content: "Meeting notes: verify clicks land before trusting them.\n"
+  - mkdir: /tmp/lg-cu/files/fm-task/archive
+  - launch: ["thunar", "/tmp/lg-cu/files/fm-task"]
+judge:
+  - type: file_exists
+    path: /tmp/lg-cu/files/fm-task/archive/notes.txt
+  - type: file_absent
+    path: /tmp/lg-cu/files/fm-task/notes.txt
+ground_truth: thunar.json

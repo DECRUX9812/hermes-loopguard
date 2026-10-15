@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Join the beta</title>
+<style>
+  body { font-family: sans-serif; margin: 2rem; background: #fafafa; }
+  form { width: 400px; }
+  label { display: block; margin-top: 14px; font-weight: 600; }
+  input { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; }
+  button { margin-top: 18px; padding: 10px 22px; font-size: 16px; }
+</style>
+</head>
+<body data-page="flow2.html">
+<h1>Join the beta program</h1>
+<form action="/submit" method="POST">
+  <input type="hidden" name="flow" value="beta_signup">
+  <label for="name">Full name</label>
+  <input id="name" name="name" data-gt="name" type="text">
+  <label for="email">Work email</label>
+  <input id="email" name="email" data-gt="email" type="email">
+  <button type="submit" data-gt="join">Join beta</button>
+</form>
+</body>
+</html>

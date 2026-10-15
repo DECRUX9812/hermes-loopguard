@@ -1,0 +1,16 @@
+id: search-pick-confirm
+trap: false
+max_steps: 10
+instruction: >
+  In the browser, search the docs for "quickstart", open the result titled
+  "Quickstart tutorial", then click Confirm on the page that follows.
+setup:
+  - open_url: "http://127.0.0.1:8765/search.html"
+judge:
+  type: form_post
+  page: confirm.html
+  expect:
+    flow: "search_pick"
+    item: "quickstart"
+    q: "quickstart"
+ground_truth: search_confirm.json

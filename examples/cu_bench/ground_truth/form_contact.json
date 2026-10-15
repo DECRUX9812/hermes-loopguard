@@ -1,0 +1,33 @@
+{
+  "captured_at": 1792068218.1350133,
+  "offset": null,
+  "page": "form_contact.html",
+  "rects": {
+    "email": [
+      56,
+      294,
+      420,
+      35
+    ],
+    "message": [
+      56,
+      365,
+      420,
+      78
+    ],
+    "name": [
+      56,
+      223,
+      420,
+      35
+    ],
+    "submit": [
+      56,
+      465,
+      98,
+      42
+    ]
+  },
+  "url": "http://127.0.0.1:8793/form_contact.html",
+  "viewport": null
+}

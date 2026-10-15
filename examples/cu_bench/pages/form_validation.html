@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Register (validation)</title>
+<style>
+  body { font-family: sans-serif; margin: 2rem; background: #fafafa; }
+  form { width: 420px; }
+  label { display: block; margin-top: 14px; font-weight: 600; }
+  input { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; }
+  button { margin-top: 18px; padding: 10px 22px; font-size: 16px; }
+</style>
+</head>
+<body data-page="form_validation.html">
+<h1>Create a developer account</h1>
+<form action="/submit" method="POST">
+  <label for="org">Organisation</label>
+  <input id="org" name="org" data-gt="org" type="text" required>
+  <label for="email">Work email (must be a valid address)</label>
+  <input id="email" name="email" data-gt="email" type="email" required
+         pattern="[^@\s]+@[^@\s]+\.[^@\s]+">
+  <button type="submit" data-gt="submit">Register</button>
+</form>
+</body>
+</html>

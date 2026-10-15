@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Contact form (simple)</title>
+<style>
+  body { font-family: sans-serif; margin: 2rem; background: #fafafa; }
+  form { width: 420px; }
+  label { display: block; margin-top: 14px; font-weight: 600; }
+  input, textarea { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; }
+  button { margin-top: 18px; padding: 10px 22px; font-size: 16px; }
+</style>
+</head>
+<body data-page="form_contact.html">
+<h1>Contact us</h1>
+<form action="/submit" method="POST">
+  <label for="name">Name</label>
+  <input id="name" name="name" data-gt="name" type="text" placeholder="Your name">
+  <label for="email">Email</label>
+  <input id="email" name="email" data-gt="email" type="email" placeholder="you@example.com">
+  <label for="message">Message</label>
+  <textarea id="message" name="message" data-gt="message" rows="4"></textarea>
+  <button type="submit" data-gt="submit">Submit</button>
+</form>
+</body>
+</html>

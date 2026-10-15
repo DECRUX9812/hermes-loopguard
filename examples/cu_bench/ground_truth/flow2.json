@@ -1,0 +1,27 @@
+{
+  "captured_at": 1792068426.073339,
+  "offset": null,
+  "page": "flow2.html",
+  "rects": {
+    "email": [
+      56,
+      294,
+      400,
+      35
+    ],
+    "join": [
+      56,
+      347,
+      113,
+      42
+    ],
+    "name": [
+      56,
+      223,
+      400,
+      35
+    ]
+  },
+  "url": "http://127.0.0.1:8793/flow2.html",
+  "viewport": null
+}
