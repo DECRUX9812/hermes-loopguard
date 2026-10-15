@@ -6,7 +6,7 @@ instruction: >
   German, then click Save.
 setup:
   - mkdir: /tmp/lg-cu/state
-  - launch: ["python3", "/path/to/hermes-loopguard/examples/cu_bench/apps/settings_app.py"]
+  - launch: ["python3", "{repo}/examples/cu_bench/apps/settings_app.py"]
 judge:
   type: json_field
   path: /tmp/lg-cu/state/settings.json

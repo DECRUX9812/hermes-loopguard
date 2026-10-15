@@ -5,7 +5,7 @@ instruction: >
   In the browser, search the docs for "quickstart", open the result titled
   "Quickstart tutorial", then click Confirm on the page that follows.
 setup:
-  - open_url: "http://127.0.0.1:8765/search.html"
+  - open_url: "http://127.0.0.1:8793/search.html"
 judge:
   type: form_post
   page: confirm.html

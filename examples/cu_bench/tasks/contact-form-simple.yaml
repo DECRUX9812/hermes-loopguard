@@ -6,7 +6,7 @@ instruction: >
   field, "ada@analytical.engine" in the Email field, "Hello from LoopGuard" in
   the Message box, then click Submit.
 setup:
-  - open_url: "http://127.0.0.1:8765/form_contact.html"
+  - open_url: "http://127.0.0.1:8793/form_contact.html"
 judge:
   type: form_post
   page: form_contact.html

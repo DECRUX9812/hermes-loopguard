@@ -12,3 +12,7 @@ venv/
 .env
 .oc/*.log
 .oc/*.log.part
+
+# bench run frames are large; BENCH.md links a few JPEG thumbnails instead
+examples/cu_bench/results/**/frames/
+examples/cu_bench/results/**/cu-frames/

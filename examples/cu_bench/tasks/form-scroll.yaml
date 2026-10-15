@@ -6,7 +6,7 @@ instruction: >
   feedback "The fold is not a bug", then submit. Note the form is below the
   fold and needs scrolling.
 setup:
-  - open_url: "http://127.0.0.1:8765/form_scroll.html"
+  - open_url: "http://127.0.0.1:8793/form_scroll.html"
 judge:
   type: form_post
   page: form_scroll.html

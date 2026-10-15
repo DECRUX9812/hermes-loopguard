@@ -6,7 +6,7 @@ instruction: >
   announcement, then join the beta with the name "Charles Babbage" and email
   "babbage@loopguard.dev".
 setup:
-  - open_url: "http://127.0.0.1:8765/flow1.html"
+  - open_url: "http://127.0.0.1:8793/flow1.html"
 judge:
   type: form_post
   page: flow2.html

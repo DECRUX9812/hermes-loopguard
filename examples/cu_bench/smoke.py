@@ -22,7 +22,7 @@ import time
 import urllib.request
 from pathlib import Path
 
-sys.path.insert(0, "/path/to/hermes-loopguard/src")
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
 from hermes_loopguard.cu.drivers.cua import CuaDriver  # noqa: E402
 

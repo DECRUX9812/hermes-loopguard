@@ -23,6 +23,7 @@ import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
+REPO = HERE.parent.parent  # repo root (examples/cu_bench -> repo)
 SOCKET = "/tmp/lg-cu/launcher.sock"
 CHROME = "google-chrome"
 CHROME_ARGS = [
@@ -56,6 +57,17 @@ def open_url(url: str) -> dict:
     return launch([CHROME, *CHROME_ARGS, url])
 
 
+def _resolve(obj):
+    """Replace the {repo} placeholder in step strings with the repo root."""
+    if isinstance(obj, str):
+        return obj.replace("{repo}", str(REPO))
+    if isinstance(obj, list):
+        return [_resolve(x) for x in obj]
+    if isinstance(obj, dict):
+        return {k: _resolve(v) for k, v in obj.items()}
+    return obj
+
+
 def run_setup(task_id: str) -> int:
     import yaml
 
@@ -63,7 +75,7 @@ def run_setup(task_id: str) -> int:
     if task_path.suffix != ".yaml":
         task_path = HERE / "tasks" / f"{task_id}.yaml"
     task = yaml.safe_load(task_path.read_text())
-    steps = task.get("setup", [])
+    steps = _resolve(task.get("setup", []))
     print(f"setup for {task['id']}:")
     for step in steps:
         if isinstance(step, str):  # e.g. "open_url: http://..."

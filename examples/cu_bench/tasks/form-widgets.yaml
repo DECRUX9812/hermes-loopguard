@@ -6,7 +6,7 @@ instruction: >
   "glitch@loopguard.dev", choose the Pro plan, tick the newsletter checkbox,
   then click "Sign up".
 setup:
-  - open_url: "http://127.0.0.1:8765/form_widgets.html"
+  - open_url: "http://127.0.0.1:8793/form_widgets.html"
 judge:
   type: form_post
   page: form_widgets.html

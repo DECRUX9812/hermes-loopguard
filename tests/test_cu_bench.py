@@ -1,0 +1,266 @@
+"""X4 bench unit tests: pricing guards, JSON action parsing, screenshot->desktop
+coordinate mapping, and summary math.
+
+The driver in these tests is the FakeDriver replay fixture (UNIT-TEST FAKE,
+never used outside tests) and the model transport is monkeypatched — no
+network, no screenshots, no spend.
+"""
+
+from __future__ import annotations
+
+import io
+import json
+import sys
+from pathlib import Path
+
+import pytest
+
+HERE = Path(__file__).resolve().parent
+REPO = HERE.parent
+BENCH = REPO / "examples" / "cu_bench"
+sys.path.insert(0, str(BENCH))
+sys.path.insert(0, str(REPO / "src"))
+
+import baseline  # noqa: E402
+from hermes_loopguard.cu import pricing  # noqa: E402
+from run_bench import aggregate  # noqa: E402
+
+
+# --- pricing -------------------------------------------------------------------
+
+
+def test_usd_known_model_math():
+    # (in $/Mtok, out $/Mtok) applied to tokens
+    assert pricing.usd("claude-opus-4-6-thinking", 1_000_000, 1_000_000) == pytest.approx(30.0)
+    assert pricing.usd("jev-1.14.0", 1_000_000, 999_999_999) == pytest.approx(0.042)
+
+
+def test_usd_existing_entries_unchanged():
+    assert pricing.USD_PER_MTOK["jev-1.14.0"] == (0.042, 0.0)
+    assert pricing.USD_PER_MTOK["gemini-3.8-flash-high"] == (0.75, 3.75)
+
+
+def test_planner_model_is_priced():
+    from hermes_loopguard.config import DEFAULTS
+
+    planner = DEFAULTS["computer_use"]["planner_model"]
+    assert pricing.is_priced(planner), f"planner model {planner!r} has no price row"
+
+
+def test_unpriced_models_flagged():
+    assert pricing.unpriced_models(["jev-1.14.0", "claude-opus-4-6-thinking"]) == []
+    assert pricing.unpriced_models(["totally-unknown-model", "jev-1.14.0"]) == [
+        "totally-unknown-model"
+    ]
+    # zero-token calls to unpriced models must still be flagged (the point of
+    # the guard: unknown must not read as free)
+    assert pricing.usd("totally-unknown-model", 5000, 1000) == 0.0
+    assert not pricing.is_priced("totally-unknown-model")
+
+
+# --- baseline JSON action parsing -----------------------------------------------
+
+
+def test_parse_action_plain_json():
+    action = baseline.parse_action('{"action": "click", "x": 10, "y": 20, "reason": "ok"}')
+    assert action == {"action": "click", "x": 10, "y": 20, "reason": "ok"}
+
+
+def test_parse_action_prose_and_fence():
+    wrapped = 'Thinking...\n```json\n{"action": "done", "reason": "form submitted"}\n```'
+    assert baseline.parse_action(wrapped)["action"] == "done"
+
+
+def test_parse_action_invalid():
+    assert baseline.parse_action("") is None
+    assert baseline.parse_action("no json at all") is None
+    assert baseline.parse_action('{"action": "rm_rf_everything"}') is None
+    assert baseline.parse_action('{"action": "click"') is None  # truncated
+
+
+# --- screenshot px -> desktop px mapping -----------------------------------------
+
+
+def test_map_point_identity_when_sizes_match():
+    assert baseline.map_point(640, 400, 1280, 800, 1280, 800) == (640, 400)
+
+
+def test_map_point_downscaled_screenshot():
+    # 1280x800 desktop shown at 1024x640: factor 1.25 both axes
+    assert baseline.map_point(512, 320, 1024, 640, 1280, 800) == (640, 400)
+
+
+def test_map_point_clamps_to_desktop():
+    assert baseline.map_point(9999, 9999, 1024, 640, 1280, 800) == (1279, 799)
+    assert baseline.map_point(-5, -5, 1024, 640, 1280, 800) == (0, 0)
+
+
+# --- one baseline turn on the FakeDriver (UNIT-TEST FAKE) -------------------------
+
+
+def _png(width: int = 512, height: int = 300) -> bytes:
+    from PIL import Image
+
+    buf = io.BytesIO()
+    Image.new("RGB", (width, height), (40, 40, 60)).save(buf, format="PNG")
+    return buf.getvalue()
+
+
+@pytest.fixture()
+def fake_driver():
+    from hermes_loopguard.cu.drivers.fake import FakeDriver
+
+    fixture = {
+        "frames": [{"png_b64": base64_of(_png()), "width": 512, "height": 300}],
+        "elements": {},
+        "actions": {"click": [{"ok": True, "effect": "unverifiable"}]},
+    }
+    return FakeDriver(fixture)
+
+
+def base64_of(png: bytes) -> str:
+    import base64
+
+    return base64.b64encode(png).decode("ascii")
+
+
+def test_baseline_runs_click_then_done(fake_driver, monkeypatch):
+    replies = [
+        ('{"action": "click", "x": 100, "y": 50, "reason": "the button"}', 1000, 40),
+        ('{"action": "done", "reason": "task complete"}', 800, 20),
+    ]
+
+    def fake_chat(model, system, png, history):
+        content, inp, out = replies.pop(0)
+        return content, {"prompt_tokens": inp, "completion_tokens": out}, {}
+
+    monkeypatch.setattr(baseline, "chat_with_image", fake_chat)
+    result = baseline.run_baseline("click the button", fake_driver, max_steps=5)
+
+    assert result.state == "completed"
+    assert result.steps == 1
+    clicks = [c for c in fake_driver.calls if c["method"] == "click"]
+    assert len(clicks) == 1
+    assert clicks[0]["args"]["x"] == 100 and clicks[0]["args"]["y"] == 50  # 1:1 sizes
+    assert result.input_tokens == 1800 and result.output_tokens == 60
+    assert result.calls_per_model == {"claude-opus-4-6-thinking": 2}
+    assert result.big_model_calls == 2
+    assert result.usd == pytest.approx(pricing.usd("claude-opus-4-6-thinking", 1800, 60))
+
+
+def test_baseline_maps_downscaled_coords(fake_driver, monkeypatch):
+    """Desktop 1024x600, model saw it at half size (512x300) -> coords double."""
+    from hermes_loopguard.cu import frames as frames_mod
+    from hermes_loopguard.cu.drivers.fake import FakeDriver
+
+    prepared, _w, _h = frames_mod.prepare_image(_png(1024, 600))  # <=1568, unchanged
+    seen_w, seen_h = 512, 300
+    driver = FakeDriver(
+        {
+            "frames": [{"png_b64": base64_of(_png(1024, 600)), "width": 1024, "height": 600}],
+            "elements": {},
+            "actions": {},
+        }
+    )
+
+    def fake_chat(model, system, png, history):
+        return '{"action": "click", "x": 256, "y": 150, "reason": "r"}', {
+            "prompt_tokens": 10,
+            "completion_tokens": 5,
+        }, {}
+
+    monkeypatch.setattr(baseline, "chat_with_image", fake_chat)
+    monkeypatch.setattr(baseline.frames, "prepare_image", lambda png: (prepared, seen_w, seen_h))
+    result = baseline.run_baseline("click", driver, max_steps=1)
+    click = next(c for c in driver.calls if c["method"] == "click")
+    assert click["args"]["x"] == 512 and click["args"]["y"] == 300
+    assert result.state == "max_steps"  # one turn, model kept going (no done)
+
+
+def test_baseline_ask_human_pauses(fake_driver, monkeypatch):
+    def fake_chat(model, system, png, history):
+        return '{"action": "ask_human", "reason": "confirm payment needed"}', {
+            "prompt_tokens": 5,
+            "completion_tokens": 5,
+        }, {}
+
+    monkeypatch.setattr(baseline, "chat_with_image", fake_chat)
+    result = baseline.run_baseline("task", fake_driver, max_steps=3)
+    assert result.state == "paused_for_approval"
+    assert result.steps == 0  # ask_human is not an executed action
+
+
+def test_baseline_budget_stops_the_loop(fake_driver, monkeypatch):
+    def fake_chat(model, system, png, history):
+        # every turn wants another click; cost per call: 1M in-tok = $5
+        return '{"action": "click", "x": 1, "y": 1, "reason": "r"}', {
+            "prompt_tokens": 1_000_000,
+            "completion_tokens": 0,
+        }, {}
+
+    monkeypatch.setattr(baseline, "chat_with_image", fake_chat)
+    result = baseline.run_baseline("task", fake_driver, max_steps=10, budget_usd=10.0)
+    assert result.state == "budget_exhausted"
+    assert len(result.turns) == 2  # two $5 turns cross the $10 cap before turn 3
+
+
+# --- summary math -----------------------------------------------------------------
+
+
+def _row(task, arm, success, usd, steps=5, wall=10.0, big=1):
+    return {
+        "task": task,
+        "arm": arm,
+        "repeat": 1,
+        "success": success,
+        "steps": steps,
+        "wall_s": wall,
+        "input_tokens": 100,
+        "output_tokens": 10,
+        "usd": usd,
+        "big_model_calls": big,
+        "calls_per_model": {"m": 1},
+    }
+
+
+def test_aggregate_counts_and_averages():
+    rows = [
+        _row("a", "baseline", True, 2.0),
+        _row("b", "baseline", False, 1.0),
+        _row("a", "jev", True, 0.02),
+        _row("b", "jev", True, 0.03),
+    ]
+    agg = aggregate(rows)
+    base, jev = agg["baseline"], agg["jev"]
+    assert base["attempts"] == 2 and base["successes"] == 1
+    assert base["usd"] == pytest.approx(3.0)
+    assert base["usd_per_success"] == pytest.approx(3.0)
+    assert base["avg_steps"] == pytest.approx(5.0)
+    assert jev["attempts"] == 2 and jev["successes"] == 2
+    assert jev["usd"] == pytest.approx(0.05)
+    assert jev["usd_per_success"] == pytest.approx(0.025)
+    # per-(task, arm) cells
+    assert base["tasks"]["a"]["successes"] == 1
+    assert base["tasks"]["b"]["successes"] == 0
+    assert jev["tasks"]["b"]["successes"] == 1
+
+
+def test_aggregate_no_success_is_none_not_divzero():
+    agg = aggregate([_row("a", "baseline", False, 1.0)])
+    assert agg["baseline"]["usd_per_success"] is None
+
+
+def test_aggregate_success_bar_math():
+    """The BENCH bar: jev cost <= 10% of baseline with >= successes."""
+    rows = [
+        _row(f"t{i}", "baseline", True, 0.5) for i in range(4)
+    ] + [
+        _row("t0", "jev", True, 0.01),
+        _row("t1", "jev", True, 0.01),
+        _row("t2", "jev", False, 0.01),  # one jev failure: fewer successes
+        _row("t3", "jev", True, 0.01),
+    ]
+    agg = aggregate(rows)
+    ratio = agg["jev"]["usd"] / agg["baseline"]["usd"]
+    assert ratio == pytest.approx(0.02)  # cheap enough
+    assert agg["jev"]["successes"] < agg["baseline"]["successes"]  # ...but bar NOT met
