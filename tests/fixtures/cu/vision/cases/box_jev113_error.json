@@ -1,0 +1,19 @@
+{
+  "backend": "typesafe",
+  "case": "box_jev113_error",
+  "error": "TypeSafe System One call failed: POST https://api.typesafe.ai/v1/systemone: 400 Invalid request. (request_id=req_01a13f76487178d698dc281da15b3f49)",
+  "expect": "error (Box is a Jev 1.14 primitive)",
+  "model": "jev-1.13.0",
+  "note": "REAL recorded error from jev-1.13.0 on a Box question; no key material stored",
+  "ok": true,
+  "questions": {
+    "target": {
+      "instructions": "the Submit button in `<ref>`",
+      "type": "box"
+    }
+  },
+  "recorded": true,
+  "request_headers": {
+    "TypeSafe-Danger-Zone-Images": "true"
+  }
+}

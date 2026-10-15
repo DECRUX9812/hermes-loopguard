@@ -26,7 +26,13 @@ class Score:
     type: str = "score"
 
 
-Question = Union[Choice, Noul, Score]
+@dataclass(frozen=True)
+class Box:
+    instructions: str
+    type: str = "box"
+
+
+Question = Union[Choice, Noul, Score, Box]
 
 
 @dataclass
@@ -52,7 +58,21 @@ class ScoreAnswer:
     type: str = "score"
 
 
-Answer = Union[ChoiceAnswer, NoulAnswer, ScoreAnswer]
+@dataclass
+class BoxAnswer:
+    left: float
+    top: float
+    right: float
+    bottom: float
+    confidence: float
+    type: str = "box"
+
+    @property
+    def center(self) -> tuple[float, float]:
+        return ((self.left + self.right) / 2.0, (self.top + self.bottom) / 2.0)
+
+
+Answer = Union[ChoiceAnswer, NoulAnswer, ScoreAnswer, BoxAnswer]
 
 
 def normalize(probs: dict) -> dict:
@@ -110,6 +130,10 @@ def question_from_spec(spec: dict) -> Question:
         if not isinstance(criteria, list) or not criteria:
             raise ValueError("Score question criteria must be a non-empty list of levels")
         return Score(instructions=instructions, criteria=criteria)
+    elif qtype == "box":
+        if "criteria" in spec and spec["criteria"]:
+            raise ValueError("Box question takes no criteria")
+        return Box(instructions=instructions)
     else:
         raise ValueError(f"Unknown question type: {qtype}")
 
@@ -127,6 +151,8 @@ def question_to_dict(q: Question) -> dict:
         return {"type": "noul", "instructions": q.instructions, "criteria": q.criteria}
     elif isinstance(q, Score):
         return {"type": "score", "instructions": q.instructions, "criteria": q.criteria}
+    elif isinstance(q, Box):
+        return {"type": "box", "instructions": q.instructions}
     raise ValueError(f"Unknown question type: {type(q)}")
 
 
@@ -159,6 +185,15 @@ def answer_to_dict(a: Answer) -> dict:
             "probabilities": {str(k): v for k, v in a.probabilities.items()},
             "legend": {str(k): v for k, v in a.legend.items()},
         }
+    elif isinstance(a, BoxAnswer):
+        return {
+            "type": "box",
+            "left": a.left,
+            "top": a.top,
+            "right": a.right,
+            "bottom": a.bottom,
+            "confidence": a.confidence,
+        }
     raise ValueError(f"Unknown answer type: {type(a)}")
 
 
@@ -178,5 +213,13 @@ def answer_from_dict(d: dict) -> Answer:
             confidence=float(d["confidence"]),
             probabilities={int(k): float(v) for k, v in d.get("probabilities", {}).items()},
             legend={int(k): str(v) for k, v in d.get("legend", {}).items()},
+        )
+    elif atype == "box":
+        return BoxAnswer(
+            left=float(d["left"]),
+            top=float(d["top"]),
+            right=float(d["right"]),
+            bottom=float(d["bottom"]),
+            confidence=float(d.get("confidence", 0.0)),
         )
     raise ValueError(f"Unknown answer type: {atype}")

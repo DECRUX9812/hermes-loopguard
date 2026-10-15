@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import json
 import math
 import string
@@ -10,7 +11,14 @@ from hermes_loopguard import paths
 from hermes_loopguard.backends._json_prompt import build_prompt, parse_answers
 from hermes_loopguard.backends.base import BackendError, GateResult, Usage
 from hermes_loopguard.fingerprint import canonical
-from hermes_loopguard.questions import Answer, Choice, Question, choice_answer
+from hermes_loopguard.questions import (
+    Answer,
+    Box,
+    BoxAnswer,
+    Choice,
+    Question,
+    choice_answer,
+)
 
 
 class OpenAICompatBackend:
@@ -53,13 +61,50 @@ class OpenAICompatBackend:
         out_cost = (out_tok * float(self.cfg.get("usd_per_mtok_out", 0.0))) / 1e6
         return Usage(input_tokens=in_tok, output_tokens=out_tok, cost_usd=in_cost + out_cost)
 
-    def _ask_json(self, state_str: str, questions: dict[str, Question]) -> tuple[dict[str, Answer], Usage, Any]:
-        prompt = build_prompt(questions)
+    @staticmethod
+    def _box_prompt(box_questions: dict[str, Box]) -> str:
+        lines = [
+            "- Box: {\"<qname>\": {\"left\": float, \"top\": float, \"right\": float, "
+            "\"bottom\": float, \"confidence\": float}} — the edges of the box around the "
+            "target in the referenced image, as fractions of the image width (left/right) "
+            "and height (top/bottom) from 0.0 to 1.0, measured from the top-left corner",
+            "",
+            "Box questions to evaluate (targets are inside the image referenced by name):",
+        ]
+        for name, q in box_questions.items():
+            lines.append(f"\nQuestion '{name}' [Box]: {q.instructions}")
+        return "\n".join(lines)
+
+    def _user_content(self, state_str: str, images: dict[str, bytes] | None) -> Any:
+        if not images:
+            return f"State:\n{state_str}"
+        parts: list[dict[str, Any]] = [{"type": "text", "text": f"State:\n{state_str}"}]
+        for ref, png in images.items():
+            b64 = base64.b64encode(png).decode("ascii")
+            parts.append({"type": "text", "text": f"Image `{ref}`:"})
+            parts.append(
+                {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{b64}"}}
+            )
+        return parts
+
+    def _ask_json(
+        self,
+        state_str: str,
+        questions: dict[str, Question],
+        *,
+        images: dict[str, bytes] | None = None,
+        model: str | None = None,
+    ) -> tuple[dict[str, Answer], Usage, Any]:
+        box_questions = {n: q for n, q in questions.items() if isinstance(q, Box)}
+        text_questions = {n: q for n, q in questions.items() if not isinstance(q, Box)}
+        prompt = build_prompt(text_questions)
+        if box_questions:
+            prompt += "\n" + self._box_prompt(box_questions)
         payload = {
-            "model": self.cfg["model"],
+            "model": model or self.cfg["model"],
             "messages": [
                 {"role": "system", "content": prompt},
-                {"role": "user", "content": f"State:\n{state_str}"},
+                {"role": "user", "content": self._user_content(state_str, images)},
             ],
             "temperature": 0.0,
             "response_format": {"type": "json_object"},
@@ -81,13 +126,55 @@ class OpenAICompatBackend:
         except Exception as e:
             raise BackendError(f"Failed to parse JSON response from OpenAI: {e}") from e
 
-        answers = parse_answers(obj, questions)
+        answers = parse_answers(obj, text_questions)
+        for name, q in box_questions.items():
+            item = obj.get(name)
+            if not isinstance(item, dict):
+                raise BackendError(f"Missing or malformed box answer for question '{name}'")
+            try:
+                answers[name] = BoxAnswer(
+                    left=float(item["left"]),
+                    top=float(item["top"]),
+                    right=float(item["right"]),
+                    bottom=float(item["bottom"]),
+                    confidence=float(item.get("confidence", 0.0)),
+                )
+            except (KeyError, TypeError, ValueError) as e:
+                raise BackendError(f"Invalid box answer for question '{name}': {e}") from e
         usage = self._calc_usage(resp.get("usage", {}))
         return answers, usage, resp
 
-    def ask(self, state: str | dict, questions: dict[str, Question]) -> GateResult:
+    def ask(
+        self,
+        state: str | dict,
+        questions: dict[str, Question],
+        *,
+        images: dict[str, bytes] | None = None,
+        model: str | None = None,
+    ) -> GateResult:
         state_str = canonical(state) if isinstance(state, (dict, list)) else str(state)
         mode = self.cfg.get("mode", "json")
+
+        if images:
+            # Vision requests always run the json path (logprobs mode is text-only).
+            answers, usage, raw = self._ask_json(state_str, questions, images=images, model=model)
+            return GateResult(
+                answers=answers,
+                backend=self.name,
+                model=model or self.cfg.get("model", "openai"),
+                usage=usage,
+                raw=raw,
+            )
+
+        if model:
+            answers, usage, raw = self._ask_json(state_str, questions, model=model)
+            return GateResult(
+                answers=answers,
+                backend=self.name,
+                model=model,
+                usage=usage,
+                raw=raw,
+            )
 
         if mode == "logprobs":
             # For each Choice question, attempt logprobs request

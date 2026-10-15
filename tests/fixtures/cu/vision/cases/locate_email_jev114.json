@@ -1,0 +1,44 @@
+{
+  "answers": {
+    "presence": {
+      "noul": 0.97,
+      "type": "noul"
+    },
+    "target": {
+      "bottom": 0.38,
+      "confidence": 0.93,
+      "left": 0.36,
+      "right": 0.65,
+      "top": 0.31,
+      "type": "box"
+    }
+  },
+  "backend": "typesafe",
+  "case": "locate_email_jev114",
+  "expect": "found: Email field on the form",
+  "fallbacks": [],
+  "found": true,
+  "grounding": "box",
+  "model": "jev-1.14.0",
+  "note": "REAL recorded response, replayed by a fake transport in unit tests",
+  "ok": true,
+  "questions": {
+    "presence": {
+      "instructions": "Is there <target> in `<ref>`?",
+      "type": "noul"
+    },
+    "target": {
+      "instructions": "<target> in `<ref>`",
+      "type": "box"
+    }
+  },
+  "recorded": true,
+  "request_headers": {
+    "TypeSafe-Danger-Zone-Images": "true"
+  },
+  "usage": {
+    "input_tokens": 8387,
+    "output_tokens": 36
+  },
+  "usd_list_price": 0.00035225400000000003
+}

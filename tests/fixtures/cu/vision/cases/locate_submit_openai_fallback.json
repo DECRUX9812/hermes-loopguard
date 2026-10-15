@@ -1,0 +1,44 @@
+{
+  "answers": {
+    "presence": {
+      "noul": 1.0,
+      "type": "noul"
+    },
+    "target": {
+      "bottom": 0.77,
+      "confidence": 1.0,
+      "left": 0.351,
+      "right": 0.429,
+      "top": 0.696,
+      "type": "box"
+    }
+  },
+  "backend": "openai",
+  "case": "locate_submit_openai_fallback",
+  "expect": "found via fallback JSON grounding: Submit on the form",
+  "fallbacks": [],
+  "found": true,
+  "grounding": "fallback",
+  "model": "gemini-3.8-flash-high",
+  "note": "REAL recorded response, replayed by a fake transport in unit tests",
+  "ok": true,
+  "questions": {
+    "presence": {
+      "instructions": "Is there <target> in `<ref>`?",
+      "type": "noul"
+    },
+    "target": {
+      "instructions": "<target> in `<ref>`",
+      "type": "box"
+    }
+  },
+  "recorded": true,
+  "request_headers": {
+    "Authorization": "Bearer <CLIPROXY_API_KEY> (present, value not stored)"
+  },
+  "usage": {
+    "input_tokens": 1506,
+    "output_tokens": 660
+  },
+  "usd_list_price": 0.0036045
+}

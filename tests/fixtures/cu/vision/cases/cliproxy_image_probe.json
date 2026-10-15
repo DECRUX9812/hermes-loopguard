@@ -1,0 +1,29 @@
+{
+  "answers": {
+    "color": {
+      "noul": 1.0,
+      "type": "noul"
+    }
+  },
+  "backend": "openai",
+  "case": "cliproxy_image_probe",
+  "expect": "noul high: the image is a solid red square",
+  "model": "gemini-3.8-flash-high",
+  "note": "proves image input works on the CLIProxy OpenAI-compatible route",
+  "ok": true,
+  "questions": {
+    "color": {
+      "instructions": "Is the image `img` mostly red?",
+      "type": "noul"
+    }
+  },
+  "recorded": true,
+  "request_headers": {
+    "TypeSafe-Danger-Zone-Images": "true"
+  },
+  "usage": {
+    "input_tokens": 1273,
+    "output_tokens": 139
+  },
+  "usd_list_price": 0.001476
+}

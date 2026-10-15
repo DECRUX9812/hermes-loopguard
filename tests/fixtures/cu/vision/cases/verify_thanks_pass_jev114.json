@@ -1,0 +1,30 @@
+{
+  "answers": {
+    "ok": {
+      "noul": 0.98,
+      "type": "noul"
+    }
+  },
+  "backend": "typesafe",
+  "case": "verify_thanks_pass_jev114",
+  "expect": "pass: thanks page",
+  "model": "jev-1.14.0",
+  "note": "REAL recorded response, replayed by a fake transport in unit tests",
+  "ok": true,
+  "passed": true,
+  "questions": {
+    "ok": {
+      "instructions": "Does `<ref>` show: <expected>?",
+      "type": "noul"
+    }
+  },
+  "recorded": true,
+  "request_headers": {
+    "TypeSafe-Danger-Zone-Images": "true"
+  },
+  "usage": {
+    "input_tokens": 5682,
+    "output_tokens": 20
+  },
+  "usd_list_price": 0.00023864400000000001
+}

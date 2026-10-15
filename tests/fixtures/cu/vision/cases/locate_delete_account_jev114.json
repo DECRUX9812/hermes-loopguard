@@ -1,0 +1,44 @@
+{
+  "answers": {
+    "presence": {
+      "noul": 0.01,
+      "type": "noul"
+    },
+    "target": {
+      "bottom": 0.48,
+      "confidence": 0.44,
+      "left": 0.36,
+      "right": 0.43,
+      "top": 0.45,
+      "type": "box"
+    }
+  },
+  "backend": "typesafe",
+  "case": "locate_delete_account_jev114",
+  "expect": "NOT found: no such button on the form",
+  "fallbacks": [],
+  "found": false,
+  "grounding": "box",
+  "model": "jev-1.14.0",
+  "note": "REAL recorded response, replayed by a fake transport in unit tests",
+  "ok": false,
+  "questions": {
+    "presence": {
+      "instructions": "Is there <target> in `<ref>`?",
+      "type": "noul"
+    },
+    "target": {
+      "instructions": "<target> in `<ref>`",
+      "type": "box"
+    }
+  },
+  "recorded": true,
+  "request_headers": {
+    "TypeSafe-Danger-Zone-Images": "true"
+  },
+  "usage": {
+    "input_tokens": 8390,
+    "output_tokens": 36
+  },
+  "usd_list_price": 0.00035238
+}
