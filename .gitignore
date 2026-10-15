@@ -11,3 +11,4 @@ venv/
 *.sqlite3
 .env
 .oc/*.log
+.oc/*.log.part

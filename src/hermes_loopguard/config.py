@@ -5,9 +5,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Sequence
 
-import yaml
-
-from hermes_loopguard import paths
+from hermes_loopguard import _yaml, paths
 
 DEFAULTS = {
     "backend": "auto",  # auto | typesafe | openai | hermes | local
@@ -65,7 +63,7 @@ def load_config(path: Path | None = None) -> dict:
 
     if cfg_file.exists():
         with open(cfg_file, "r", encoding="utf-8") as f:
-            data = yaml.safe_load(f) or {}
+            data = _yaml.safe_load(f) or {}
         return deep_merge(DEFAULTS, data)
     return copy.deepcopy(DEFAULTS)
 
@@ -87,13 +85,15 @@ class WatcherSpec:
     claim_ttl_s: int = 7200
     shadow: bool | None = None  # None -> global
     kanban: dict = field(default_factory=dict)  # {"assignee": str, "board": str|None, "tenant": str|None}
+    config: dict | None = None  # per-watcher overrides merged over the global config
 
 
 def watcher_from_dict(d: dict) -> WatcherSpec:
     kwargs = dict(d)
     name = kwargs.pop("name")
     source = kwargs.pop("source")
-    return WatcherSpec(name=name, source=source, **kwargs)
+    cfg_overrides = kwargs.pop("config", None)
+    return WatcherSpec(name=name, source=source, config=cfg_overrides, **kwargs)
 
 
 def load_watcher(name_or_path: str) -> WatcherSpec:
@@ -110,7 +110,7 @@ def load_watcher(name_or_path: str) -> WatcherSpec:
             raise FileNotFoundError(f"Watcher spec not found: {name_or_path}")
 
     with open(path, "r", encoding="utf-8") as f:
-        data = yaml.safe_load(f) or {}
+        data = _yaml.safe_load(f) or {}
     if "name" not in data:
         data["name"] = path.stem
     return watcher_from_dict(data)

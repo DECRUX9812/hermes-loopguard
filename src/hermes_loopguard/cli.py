@@ -14,9 +14,7 @@ import shutil
 import subprocess
 import sys
 
-import yaml
-
-from hermes_loopguard import paths
+from hermes_loopguard import _yaml, paths
 
 DEFAULT_PROMPT = (
     "You are woken by LoopGuard only when items need work. Handle each item in the "
@@ -167,7 +165,7 @@ def _short_time(ts) -> str:
 def _cmd_poll(args) -> int:
     from hermes_loopguard import router
     from hermes_loopguard.backends import backend_chain
-    from hermes_loopguard.config import load_config, load_watcher
+    from hermes_loopguard.config import deep_merge, load_config, load_watcher
     from hermes_loopguard.db import Store
 
     paths.bootstrap_hermes_env()
@@ -177,6 +175,8 @@ def _cmd_poll(args) -> int:
     except Exception as e:
         print(f"Cannot load watcher '{args.watcher}': {e}", file=sys.stderr)
         return 1
+    if spec.config:
+        cfg = deep_merge(cfg, spec.config)
 
     store = Store.open_default()
     try:
@@ -250,6 +250,8 @@ def _cmd_watch_list(args) -> int:
 
 
 def _cmd_watch_install(args) -> int:
+    import hermes_loopguard
+
     from hermes_loopguard.config import watcher_from_dict
     from hermes_loopguard.cron import SHIM_TEMPLATE
 
@@ -258,7 +260,7 @@ def _cmd_watch_install(args) -> int:
         print(f"Watcher spec not found: {src}", file=sys.stderr)
         return 1
     with open(src, "r", encoding="utf-8") as fh:
-        data = yaml.safe_load(fh) or {}
+        data = _yaml.safe_load(fh) or {}
     if not isinstance(data, dict):
         print(f"Watcher spec must be a YAML mapping: {src}", file=sys.stderr)
         return 1
@@ -273,12 +275,13 @@ def _cmd_watch_install(args) -> int:
     wdir = paths.watchers_dir()
     wdir.mkdir(parents=True, exist_ok=True)
     dest = wdir / f"{spec.name}.yaml"
-    dest.write_text(yaml.safe_dump(data), encoding="utf-8")
+    dest.write_text(_yaml.safe_dump(data), encoding="utf-8")
 
     sdir = paths.scripts_dir()
     sdir.mkdir(parents=True, exist_ok=True)
     shim = sdir / f"loopguard_{spec.name}.py"
-    shim.write_text(SHIM_TEMPLATE.format(name=spec.name), encoding="utf-8")
+    pkg_root = Path(hermes_loopguard.__file__).resolve().parent.parent
+    shim.write_text(SHIM_TEMPLATE.format(name=spec.name, pkg_root=str(pkg_root)), encoding="utf-8")
 
     cmd = [
         "hermes",
@@ -624,11 +627,11 @@ def _cmd_shadow(args) -> int:
         if path is None:
             print(f"Watcher not found: {args.watcher}", file=sys.stderr)
             return 1
-        data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        data = _yaml.safe_load(path.read_text(encoding="utf-8")) or {}
         if not isinstance(data, dict):
             data = {}
         data["shadow"] = enabled
-        path.write_text(yaml.safe_dump(data), encoding="utf-8")
+        path.write_text(_yaml.safe_dump(data), encoding="utf-8")
         print(f"shadow {'on' if enabled else 'off'} for watcher '{args.watcher}' ({path})")
         return 0
 
@@ -637,11 +640,11 @@ def _cmd_shadow(args) -> int:
     path = config_dir / "config.yaml"
     data = {}
     if path.is_file():
-        data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        data = _yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     if not isinstance(data, dict):
         data = {}
     data["shadow"] = enabled
-    path.write_text(yaml.safe_dump(data), encoding="utf-8")
+    path.write_text(_yaml.safe_dump(data), encoding="utf-8")
     print(f"shadow {'on' if enabled else 'off'} ({path})")
     return 0
 

@@ -1,0 +1,12 @@
+[
+  {
+    "id": "ISS-101",
+    "title": "TypeError when saving settings with an empty email",
+    "body": "Steps to reproduce:\n1. Open Settings\n2. Leave the email field blank\n3. Click Save\n\nExpected: a validation error asking for an email.\nActual: the app crashes.\n\n```\nTypeError: argument of type 'NoneType' is not iterable\n  File settings/views.py, line 214, in save_settings\n```\n\nVersion: 2.4.1, Ubuntu 24.04, Python 3.12. Happens every time."
+  },
+  {
+    "id": "ISS-102",
+    "title": "BUY CHEAP FOLLOWERS NOW - amazing limited deals!!!",
+    "body": "Limited offer!!! Buy 10000 followers for $5!!! Visit spam-deals.example now!!!\n\n(Duplicate of the airdrop spam posted earlier today by the same account.)"
+  }
+]

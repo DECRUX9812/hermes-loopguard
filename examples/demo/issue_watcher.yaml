@@ -1,0 +1,56 @@
+# LoopGuard demo watcher: triage a file-backed issue queue.
+#
+# run_demo.sh replaces @ISSUES_JSON@ with the absolute path of its
+# issues.json before installing this spec.
+#
+# Gate backend: openai-compatible endpoint (CLIProxy) at
+# http://127.0.0.1:8317/v1 with model gemini-3.1-flash-lite and the key in
+# the CLIPROXY_API_KEY env var, falling back to `local` heuristics if the
+# call fails. Backend settings ride on the watcher via the `config` block
+# below (merged over the global LoopGuard config by the shim and `poll`).
+name: demo-issues
+source:
+  file: "@ISSUES_JSON@"
+id_field: id
+title_field: title
+fingerprint_fields: [title, body]
+state_fields: [title, body]
+brief: |
+  Triage the issue queue below. Work only from the admitted items.
+  One item at a time. Do not comment anywhere or push anything.
+config:
+  backend: auto
+  openai:
+    base_url: http://127.0.0.1:8317/v1
+    model: gemini-3.1-flash-lite
+    api_key_env: CLIPROXY_API_KEY
+    timeout: 60
+gate:
+  route_question: kind
+  questions:
+    kind:
+      type: choice
+      instructions: What does this issue need?
+      criteria:
+        bug: a defect in existing behaviour that a code change can fix
+        feature: a request for new behaviour
+        question: a usage or support question answerable without code changes
+        duplicate_or_spam: spam, empty, duplicate, or off-topic
+    actionable:
+      type: noul
+      instructions: Is there enough detail (steps, error text, versions, or a
+        precise ask) for an engineer to start now?
+      criteria:
+        "true": there are steps, error text, versions, or a precise ask
+        "false": the report is too vague to act on
+  routes:
+    bug:
+      handler: agent
+      min_prob: 0.6
+      when: {actionable: ">=0.6"}
+      brief: "Reproduce first. Find the root cause. Propose the smallest fix
+        with a test. Do not push."
+    duplicate_or_spam:
+      handler: drop
+      min_prob: 0.75
+  default_route: review
