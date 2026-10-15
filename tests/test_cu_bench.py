@@ -430,3 +430,58 @@ def test_agent_runresult_records_vision_calls_and_fallbacks():
     totals.add(failed)
     assert totals.fallbacks[-1] == "jev-1.14.0: timeout"
     assert "failed" not in totals.vision_calls  # no model answered: not a call
+
+
+# --- launcher disposable HOME (X7 privacy) -------------------------------------
+
+
+def test_launcher_env_forces_disposable_identity():
+    """REAL bench bug: the apps ran with the REAL home, so Thunar's sidebar
+    showed the account name and Mousepad's Save As listed the real home
+    directory — on screenshots sent to the vision models.  The launcher must
+    force a disposable HOME/identity that the request cannot override."""
+    import launcher
+
+    base = {
+        "DISPLAY": ":97",
+        "HOME": "/home/bench",
+        "USER": "bench",
+        "LOGNAME": "bench",
+        "XDG_RUNTIME_DIR": "/tmp/lg-cu/runtime",  # private session bus runtime
+    }
+    env = launcher.build_bench_env(
+        base, "/tmp/lg-cu/home", {"FOO": "bar", "HOME": "/home/bench", "USER": "bench"}
+    )
+    assert env["HOME"] == "/tmp/lg-cu/home"
+    assert env["XDG_CONFIG_HOME"] == "/tmp/lg-cu/home/.config"
+    assert env["XDG_DATA_HOME"] == "/tmp/lg-cu/home/.local/share"
+    assert env["XDG_CACHE_HOME"] == "/tmp/lg-cu/home/.cache"
+    assert env["USER"] == "bench" and env["LOGNAME"] == "bench"
+    assert env["FOO"] == "bar"  # non-privacy request env still applies
+    assert env["DISPLAY"] == ":97" and env["XDG_RUNTIME_DIR"] == "/tmp/lg-cu/runtime"
+
+
+def test_launcher_reset_disposable_home_wipes_and_recreates(tmp_path):
+    import launcher
+
+    root = tmp_path / "home"
+    (root / "stale-task-leftover").mkdir(parents=True)
+    (root / "stale-file.txt").write_text("old")
+    launcher.reset_disposable_home(str(root))
+    for sub in ("", ".config", ".local/share", ".cache"):
+        assert (root / sub).is_dir()
+    assert not (root / "stale-task-leftover").exists()
+    assert not (root / "stale-file.txt").exists()
+
+
+def test_launcher_cwd_defaults_to_disposable_home():
+    """REAL bench bug (found in the live privacy proof): the launcher inherited
+    systemd's cwd (/home/bench) and GTK's Save As dialog opens at the process
+    cwd — the real home directory (with real file names) appeared on screen
+    even though HOME was disposable."""
+    import launcher
+
+    assert launcher.resolve_cwd(None, "/tmp/lg-cu/home") == "/tmp/lg-cu/home"
+    assert launcher.resolve_cwd("/tmp/lg-cu/files/fm-task", "/tmp/lg-cu/home") == (
+        "/tmp/lg-cu/files/fm-task"
+    )

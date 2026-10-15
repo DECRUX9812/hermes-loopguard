@@ -264,23 +264,65 @@ def test_pad_region_grows_tiny_box_to_typeafe_minimum():
     assert 0 <= x0 < x1 <= w and 0 <= y0 < y1 <= h
 
 
-def test_verify_fail_on_unchanged_screen_is_unverified_not_failed(monkeypatch):
-    """REAL failure: ctrl+x (cut) shows NO visible change, so the verify Noul
-    failed and the retry ladder burned the run.  A verify failure on a
-    COMPLETELY unchanged screen is an invisible outcome, not a visible
-    failure: mark 'unverified' and continue."""
-    driver = make_driver(["form.png", "form.png", "form.png", "form.png"], elements=[])
+def test_clipboard_keys_are_never_verified_and_never_stall(monkeypatch):
+    """REAL failure: ctrl+x (cut) has NO visible effect, so the verify Noul
+    rated it ~0.13 and the stall detector called it a no-op; the move was
+    retried, then blocked.  A clipboard-only key is neither verified on
+    screen nor counted as a no-op/stall: the next visible step (the paste)
+    carries the check."""
+    driver = make_driver(["form.png"] * 8, elements=[])
     gate = FakeGate()
     gate.verify_results.append(VerifyResult(passed=False, yes=0.13, usage=_usage()))
-    steps = [agent.Step(action="key", keys="ctrl+x", expect="the file is cut")]
+    steps = [
+        agent.Step(action="key", keys="ctrl+x", expect="the file is cut"),
+        agent.Step(action="key", keys="ctrl+v", expect="the file appears here"),
+    ]
     patch_plan(monkeypatch, [steps])
-    result = agent.run_task("cut it", driver, gate, {"max_steps": 5})
-    rec = result.steps[0]
-    assert rec.verdict == "unverified"
-    assert result.state == "completed"
-    # step verify + final goal check only — no retry/replan/escalation ladder
+    result = agent.run_task("move it", driver, gate, {"max_steps": 5})
+    cut = result.steps[0]
+    paste = result.steps[1]
+    assert cut.verdict == "free"  # not verified, not a no-op
+    assert paste.verdict == "unverified"  # unchanged screen: invisible, not fail
+    assert result.state == "completed"  # no stall, no retry ladder
+    # the cut produced ZERO verify calls; only the paste + the final goal check
     assert len(gate.calls["verify"]) == 2
-    assert len(gate.calls["locate"]) == 0
+    assert [c["expected"] for c in gate.calls["verify"]] == [
+        "the file appears here",
+        "the overall task is done: move it",
+    ]
+
+
+def test_is_invisible_key_matches_clipboard_combos_only():
+    assert agent._is_invisible_key("ctrl+x")
+    assert agent._is_invisible_key("Ctrl+C")  # case/space tolerant
+    assert agent._is_invisible_key("ctrl+insert")
+    assert not agent._is_invisible_key("ctrl+v")  # the paste IS visible
+    assert not agent._is_invisible_key("Return")
+    assert not agent._is_invisible_key("ctrl+a")
+    assert not agent._is_invisible_key("")
+    assert not agent._is_invisible_key(None)
+
+
+def test_goal_replan_warns_against_repeating_toggles(monkeypatch):
+    """REAL failure (settings-gtk r2): the goal check failed once, the replan
+    re-clicked 'Dark mode' (a toggle) which UNDID it, and the judge failed.
+    The goal-replan evidence must forbid repeating toggles and allow an
+    empty plan when the goal is already met."""
+    driver = make_driver(
+        ["form.png", "form.png", "form.png", "form.png", "form.png"],
+        elements=[{"token": "e1", "role": "toggle", "label": "Dark mode", "x": 10, "y": 20, "w": 120, "h": 30}],
+    )
+    gate = FakeGate()
+    gate.verify_results.append(VerifyResult(passed=False, yes=0.01, usage=_usage()))
+    gate.verify_results.append(VerifyResult(passed=False, yes=0.01, usage=_usage()))
+    steps = [agent.Step(action="click", target="Dark mode", expect="dark mode is on")]
+    calls = patch_plan(monkeypatch, [steps, []])  # replan returns nothing: straight to terminal
+    result = agent.run_task("enable dark mode", driver, gate, {"max_steps": 5})
+    assert result.state == "blocked"
+    evidence = calls[1]
+    assert evidence is not None
+    assert "UNDOES" in evidence
+    assert "empty steps list" in evidence
 
 
 def test_verify_fail_on_changed_screen_still_fails(monkeypatch):
@@ -404,6 +446,28 @@ def test_zoom_retry_uses_padded_region(monkeypatch):
     # which the zoom now GROWS to meet the TypeSafe minimums (>=256/side,
     # >=78400 px): 354x256 centered on the same point -> (398,232,753,488).
     assert gate.calls["locate"][1]["region"] == (398, 232, 753, 488)
+
+
+def test_padded_region_crops_always_meet_typesafe_minimums():
+    """REAL failure (mousepad-save r2): two Jev `400 Invalid image dimensions`
+    responses came from crops too small to prepare.  Every region _pad_region
+    returns must survive crop + prepare_image without raising or shrinking
+    below the TypeSafe minimums, including corner-hugging and sliver boxes."""
+    from hermes_loopguard.cu import frames
+
+    frame_png = (FIX / "form.png").read_bytes()
+    for frac_box in [
+        (0.40, 0.30, 0.42, 0.315),  # tiny sliver mid-screen
+        (0.05, 0.90, 0.30, 0.99),  # hugging the bottom-left corner
+        (0.95, 0.05, 0.99, 0.40),  # hugging the right edge
+        (0.48, 0.48, 0.52, 0.52),  # tiny square dead center
+    ]:
+        region = agent._pad_region(frac_box, 1280, 800)
+        assert region is not None, frac_box
+        x0, y0, x1, y1 = region
+        prepared, w, h = frames.prepare_image(frames.crop(frame_png, x0, y0, x1, y1))
+        assert w >= frames.MIN_SIDE and h >= frames.MIN_SIDE, frac_box
+        assert w * h >= frames.MIN_PIXELS, frac_box
 
 
 # --------------------------------------------------------------------- safety

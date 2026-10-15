@@ -526,3 +526,82 @@ def test_accessibility_route_background_click_is_not_retried(monkeypatch):
     driver.click(600, 300)
     clicks = [c for c in driver._fake_proc.calls if c[4] == "click"]
     assert len(clicks) == 1  # no retry: the background click really delivered
+
+
+# --------------------------------------------------------------------------
+# label matching specificity + capture robustness (X7)
+# --------------------------------------------------------------------------
+
+
+def test_match_score_ranks_specificity():
+    score = CuaDriver._match_score
+    assert score("search", "Search") == 4  # exact
+    assert score("search", "Search…") == 3  # label extends the target
+    assert score("dark mode switch", "Dark mode") == 1  # target over-specifies
+    assert score("name", "Address") == -1  # no containment either way
+    assert score("", "anything") == -1
+    assert score("x", "") == -1
+
+
+def test_find_element_prefers_exact_over_substring(monkeypatch):
+    """REAL failure (search-pick-confirm r4): find_element('Search') returned
+    the INPUT (placeholder 'Search…') because plain substring matching took
+    the first walk-order hit — the click went into the input and the step did
+    nothing, twice.  The exact label must win."""
+    driver = _driver_over_windows(monkeypatch, _mousepad_windows())
+    els = [
+        Element(token="in", role="entry", label="Search…", x=0, y=0, w=200, h=30),
+        Element(token="btn", role="push button", label="Search", x=0, y=40, w=90, h=30),
+    ]
+    monkeypatch.setattr(driver, "elements", lambda app=None: els)
+    hit = driver.find_element("Search")
+    assert hit is not None and hit.token == "btn"
+
+
+def test_find_element_reverse_containment_matches_over_specified_target(monkeypatch):
+    """REAL failure (settings-gtk r1): the planner asked for 'Dark mode
+    switch' but the checkbox's label is 'Dark mode' — plain substring
+    matching found NOTHING, grounding failed three times and the run
+    escalated.  A label fully contained in the target must match."""
+    driver = _driver_over_windows(monkeypatch, _mousepad_windows())
+    els = [Element(token="sw", role="check box", label="Dark mode", x=0, y=0, w=120, h=30)]
+    monkeypatch.setattr(driver, "elements", lambda app=None: els)
+    hit = driver.find_element("Dark mode switch")
+    assert hit is not None and hit.token == "sw"
+    assert driver.find_element("Nothing like this") is None
+
+
+def test_screenshot_retries_once_on_capture_error(cua):
+    """REAL failure (form-widgets r1): one transient cua capture error
+    ("get_desktop_state: non-JSON stdout: 'Capture err...'") took the whole
+    run down.  One retry after a short settle must absorb it."""
+    png = (FIX / "frame_form.png").read_bytes()
+    state = {"n": 0}
+
+    def capture(fake, cmd):
+        state["n"] += 1
+        payload = json.loads(cmd[5])
+        if state["n"] == 1:
+            return json.dumps(
+                {"_cua_error": "get_desktop_state: non-JSON stdout: 'Capture err...'"}
+            )
+        Path(payload["screenshot_out_file"]).write_bytes(png)
+        return json.dumps(REAL["desktop_state"])
+
+    cua._fake_proc.script["get_desktop_state"] = capture
+    frame = cua.screenshot()
+    assert state["n"] == 2
+    assert frame.png.startswith(b"\x89PNG")
+
+
+def test_screenshot_raises_after_repeated_capture_errors(cua):
+    def capture(fake, cmd):
+        return json.dumps(
+            {"_cua_error": "get_desktop_state: non-JSON stdout: 'Capture err...'"}
+        )
+
+    cua._fake_proc.script["get_desktop_state"] = capture
+    with pytest.raises(DriverError):
+        cua.screenshot()
+    attempts = [c for c in cua._fake_proc.calls if c[4] == "get_desktop_state"]
+    assert len(attempts) == 2  # exactly one retry, then give up

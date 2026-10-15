@@ -70,6 +70,18 @@ PLANNER_MAX_STEPS = 12
 _SAFETY_GATED = ("click", "type", "key")
 _PLANNER_REF = "screen"  # fixed image reference for batched verifications
 
+# Keys whose effect lives entirely in the clipboard/selection and therefore
+# has NO visible outcome: the screen cannot prove or refute them, so they
+# are neither verified on screen nor counted as no-ops/stalls; the next
+# visible step (the paste that lands the cut/copied file) carries the check.
+INVISIBLE_KEYS = ("ctrl+x", "ctrl+c", "ctrl+insert", "shift+insert", "shift+del")
+
+
+def _is_invisible_key(keys: str | None) -> bool:
+    """True for clipboard-only key combos (cut/copy): no visible outcome."""
+    norm = "+".join(p.strip().lower() for p in str(keys or "").split("+") if p.strip())
+    return norm in INVISIBLE_KEYS
+
 
 # --- planner steps --------------------------------------------------------------
 
@@ -322,6 +334,9 @@ _PLANNER_SYSTEM = (
     "`entry 'Name'` has target \"Name\"). "
     "- `expect` must be visible on a screenshot afterwards, e.g. \"the Name field shows Ada "
     "Lovelace\". Use action \"key\" with keys like \"Return\" or \"ctrl+a\". "
+    "- When typing into a rename or save-as name field, make `expect` the OUTCOME (the new "
+    "name shown in the file list, the window title), not the text inside the field: such "
+    "fields often close as soon as the step is confirmed."
     "- To move or copy a file in a file manager: click the file to select it, press key "
     "\"ctrl+x\" (or \"ctrl+c\"), click the destination folder, then press key \"ctrl+v\"; set "
     "the expect of that final paste to the file appearing in the destination. "
@@ -873,7 +888,11 @@ def run_task(
                     failure_evidence=(
                         "the planned steps all ran, but the overall goal check "
                         "says the goal is NOT met yet; look at what is still "
-                        "missing on screen and plan ONLY the remaining work"
+                        "missing on screen and plan ONLY the remaining work. "
+                        "If the screen already shows everything done, return "
+                        "an empty steps list. NEVER repeat a toggle or "
+                        "checkbox step that already ran: clicking it again "
+                        "UNDOES it."
                     ),
                 )
                 totals.add(plan_usage, vision=False)
@@ -1011,7 +1030,12 @@ def run_task(
 
         # 5. Verdict: free path -> batched verify (type) -> Jev verify.
         ok = True
-        if res.effect == "confirmed" and res.verified is True and step.expect:
+        if step.action == "key" and _is_invisible_key(step.keys):
+            # Clipboard-only combo (cut/copy): the screen can never show the
+            # outcome, so don't verify it and don't let the unchanged frame
+            # count as a no-op/stall — the paste carries the real check.
+            rec.verdict = "free"
+        elif res.effect == "confirmed" and res.verified is True and step.expect:
             # Free path: the driver itself confirmed the a11y-checkable outcome.
             rec.verdict = "free"
         elif step.action == "type" and step.expect:
@@ -1069,7 +1093,13 @@ def run_task(
             before_hash,
             after_hash,
             changed=changed,
-            force_noop=(res.effect == "suspected_noop"),
+            # A clipboard-only key cannot be a no-op on screen evidence; the
+            # driver's "suspected_noop" (also screen-derived) must not veto
+            # the carry-forward decision above.
+            force_noop=(
+                res.effect == "suspected_noop"
+                and not (step.action == "key" and _is_invisible_key(step.keys))
+            ),
         )
         rec.stall = ",".join(f for f in ("noop", "loop", "stale") if getattr(stall_v, f))
         if stall_v.loop or stall_v.stale:

@@ -119,13 +119,25 @@ class CuaDriver:
             self._tmpdir = tempfile.mkdtemp(prefix="lg-cua-frames-")
         self._frame_no += 1
         path = os.path.join(self._tmpdir, f"frame-{self._frame_no:06d}.png")
-        result = self._unwrap(
-            self._call("get_desktop_state", {"screenshot_out_file": path})
-        )
-        if result.get("_cua_error"):
-            raise DriverError(f"get_desktop_state failed: {result['_cua_error']}")
-        if not os.path.exists(path):
-            raise DriverError("get_desktop_state did not write screenshot_out_file")
+        # One transient capture error (a real cua-daemon "Capture err..." with
+        # non-JSON stdout killed a whole bench run) should not go terminal:
+        # retry once after a short settle before giving up.
+        last_error: str | None = None
+        for attempt in range(2):
+            result = self._unwrap(
+                self._call("get_desktop_state", {"screenshot_out_file": path})
+            )
+            if not result.get("_cua_error") and os.path.exists(path):
+                break
+            last_error = (
+                f"get_desktop_state failed: {result.get('_cua_error')}"
+                if result.get("_cua_error")
+                else "get_desktop_state did not write screenshot_out_file"
+            )
+            if attempt == 0:
+                time.sleep(1.0)
+        else:
+            raise DriverError(last_error or "get_desktop_state failed")
         with open(path, "rb") as fh:
             png = fh.read()
         width = int(result.get("screen_width") or result.get("screenshot_width") or 0)
@@ -207,20 +219,51 @@ class CuaDriver:
             )
         return elements
 
+    @staticmethod
+    def _match_score(want: str, label: str) -> int:
+        """Specificity of a label match (higher = better; -1 = no match).
+
+        First-substring-match picks the WRONG element when one label merely
+        contains the target ("Search…" input) and another IS the target
+        ("Search" button): the substring click landed on the input and the
+        step did nothing.  Exact beats prefix beats substring; a label fully
+        contained in the target ("Dark mode" for target "Dark mode switch")
+        still matches — planners over-specify switch/checkbox labels.
+        """
+        if not want or not label:
+            return -1
+        lbl = label.lower()
+        if lbl == want:
+            return 4
+        if lbl.startswith(want):
+            return 3
+        if want in lbl:
+            return 2
+        if lbl in want:
+            return 1
+        return -1
+
     def find_element(self, label: str, role: str | None = None, retries: int = 3) -> Element | None:
-        """Case-insensitive substring match on label, with fresh AT-SPI walks.
+        """Best-specificity case-insensitive label match, with fresh AT-SPI
+        walks.
 
         Retries matter for Chrome: the web-content tree is exposed only from
         the second walk on, and each walk returns fresh element tokens.
         """
         want = label.strip().lower()
         for attempt in range(max(1, retries)):
+            best: Element | None = None
+            best_score = 0
             for el in self.elements():
-                if want not in el.label.lower():
+                score = self._match_score(want, el.label)
+                if score < 0:
                     continue
                 if role is not None and role.lower() not in el.role.lower():
                     continue
-                return el
+                if score > best_score:
+                    best, best_score = el, score
+            if best is not None:
+                return best
             time.sleep(0.8)
         return None
 
