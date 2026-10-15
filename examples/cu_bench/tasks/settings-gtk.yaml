@@ -6,6 +6,7 @@ instruction: >
   German, then click Save.
 setup:
   - mkdir: /tmp/lg-cu/state
+  - rm: /tmp/lg-cu/state/settings.json
   - launch: ["python3", "{repo}/examples/cu_bench/apps/settings_app.py"]
 judge:
   type: json_field

@@ -402,3 +402,127 @@ def test_fake_driver_frames_cycle():
     f1 = driver.screenshot()
     f2 = driver.screenshot()  # repeats the last frame
     assert f1.width == f2.width and f2.png == f1.png
+
+
+# --------------------------------------------------------------------------
+# keyboard targeting: type/key must land in the window the agent works in
+# (REAL failure: an editor at z0 with its Save As dialog at z1 — typing went
+# to the editor because _app_window returned the FIRST window list match)
+# --------------------------------------------------------------------------
+
+
+def _mousepad_windows() -> dict:
+    return {
+        "windows": [
+            {
+                "app_name": "Org.xfce.mousepad", "pid": 11, "window_id": 100,
+                "title": "*Untitled - Mousepad", "z_index": 0,
+                "bounds": {"x": 0, "y": 0, "width": 900, "height": 700},
+            },
+            {
+                "app_name": "Org.xfce.mousepad", "pid": 11, "window_id": 200,
+                "title": "Save As", "z_index": 1,
+                "bounds": {"x": 100, "y": 100, "width": 900, "height": 600},
+            },
+        ]
+    }
+
+
+def _driver_over_windows(monkeypatch, windows: dict):
+    driver = CuaDriver(socket="/tmp/lg-cu/cua.sock", app="Mousepad")
+    fake = FakeProc(
+        {
+            "list_windows": json.dumps(windows),
+            "click": json.dumps(REAL["click_element_token_ok"]),
+            "type_text": json.dumps(REAL["click_element_token_ok"]),
+            "press_key": json.dumps(REAL["click_element_token_ok"]),
+            "hotkey": json.dumps(REAL["click_element_token_ok"]),
+            "bring_to_front": json.dumps(REAL["click_element_token_ok"]),
+        }
+    )
+    monkeypatch.setattr("hermes_loopguard.cu.drivers.cua.subprocess.run", fake)
+    driver._fake_proc = fake
+    return driver
+
+
+def test_app_window_returns_topmost_match(monkeypatch):
+    driver = _driver_over_windows(monkeypatch, _mousepad_windows())
+    win = driver._app_window()
+    assert win["window_id"] == 200  # the Save As dialog, not the editor
+
+
+def test_type_text_after_click_targets_clicked_dialog(monkeypatch):
+    """click into the dialog -> type lands in the DIALOG (window-local click
+    was recorded), and no activate runs (the dialog is already topmost)."""
+    driver = _driver_over_windows(monkeypatch, _mousepad_windows())
+    driver.click(600, 300)  # covered by BOTH windows: the dialog is topmost
+    driver.type_text("/tmp/lg-cu/files/editor-task/hello.txt")
+    payload = json.loads(driver._fake_proc.calls[-1][5])
+    assert payload["pid"] == 11
+    assert payload["window_id"] == 200
+    # the dialog is already topmost: activating would steal focus, none ran
+    tools = [c[4] for c in driver._fake_proc.calls]
+    assert "bring_to_front" not in tools
+
+
+def test_type_text_goes_to_topmost_window_even_after_background_click(monkeypatch):
+    """Clicking into a covered background window must NOT aim the typing
+    there: the app's topmost window (the modal Save As dialog) owns the
+    input, and activating the background editor would steal its focus."""
+    driver = _driver_over_windows(monkeypatch, _mousepad_windows())
+    driver.click(50, 50)  # only the editor (z0) covers this point
+    driver.type_text("Hello from LoopGuard")
+    payload = json.loads(driver._fake_proc.calls[-1][5])
+    assert payload["window_id"] == 200  # the dialog, not the clicked editor
+
+
+def test_key_targets_clicked_window_too(monkeypatch):
+    driver = _driver_over_windows(monkeypatch, _mousepad_windows())
+    driver.click(600, 300)
+    driver.key("ctrl+a")
+    payload = json.loads(driver._fake_proc.calls[-1][5])
+    assert payload["window_id"] == 200
+
+
+def test_global_input_background_click_retries_foreground(monkeypatch):
+    """REAL failure: cua-driver 0.28.2 queues window-targeted clicks as
+    route 'global_input' in background delivery and the stack SILENTLY DROPS
+    them (thunar icon clicks, chrome <select> popup items) — no error code,
+    nothing changes on screen.  The adapter must retry in foreground."""
+    driver = _driver_over_windows(monkeypatch, _mousepad_windows())
+    script = driver._fake_proc.script
+
+    def respond(fake, cmd):
+        payload = json.loads(cmd[5])
+        if payload.get("delivery_mode") == "foreground":
+            return json.dumps(
+                {"delivery": {"mode": "foreground"}, "effect": "unverifiable",
+                 "route": "global_input"}
+            )
+        return json.dumps(
+            {"delivery": {"mode": "background"}, "effect": "unverifiable",
+             "route": "global_input"}
+        )
+
+    script["click"] = respond
+    driver.click(600, 300)
+    clicks = [c for c in driver._fake_proc.calls if c[4] == "click"]
+    assert len(clicks) == 2  # background attempt + foreground retry
+    first = json.loads(clicks[0][5])
+    second = json.loads(clicks[1][5])
+    assert "delivery_mode" not in first or first["delivery_mode"] != "foreground"
+    assert second["delivery_mode"] == "foreground"
+
+
+def test_accessibility_route_background_click_is_not_retried(monkeypatch):
+    """Chrome main-tree clicks work in background (route 'accessibility');
+    a foreground retry would double-click them."""
+    driver = _driver_over_windows(monkeypatch, _mousepad_windows())
+    script = driver._fake_proc.script
+    script["click"] = json.dumps(
+        {"delivery": {"mode": "background"}, "effect": "unverifiable",
+         "route": "accessibility"}
+    )
+    driver.click(600, 300)
+    clicks = [c for c in driver._fake_proc.calls if c[4] == "click"]
+    assert len(clicks) == 1  # no retry: the background click really delivered

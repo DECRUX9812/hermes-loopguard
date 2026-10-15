@@ -23,6 +23,7 @@ from __future__ import annotations
 import argparse
 import fcntl
 import json
+import os
 import subprocess
 import sys
 import time
@@ -45,6 +46,13 @@ STACK_LOCK = "/tmp/lg-cu/stack.lock"
 RESULTS = HERE / "results"
 
 
+def _comm_matches(actual: str, wanted: str) -> bool:
+    """Case-insensitive comm check: mousepad's /proc comm is 'mousepad', so a
+    case-sensitive startswith('Mousepad') never matched and the editor (plus
+    its modal Save As dialog) survived every reset, haunting later tasks."""
+    return actual.strip().lower().startswith(wanted.strip().lower())
+
+
 def kill_bench_apps() -> None:
     """Scoped reset: kill ONLY processes this bench launched (never pkill -f
     broad): our chrome profile, mousepad, thunar on our folder, settings_app.
@@ -64,7 +72,7 @@ def kill_bench_apps() -> None:
                 actual = Path(f"/proc/{pid}/comm").read_text().strip()
             except OSError:
                 continue
-            if actual.startswith(comm):
+            if _comm_matches(actual, comm):
                 try:
                     subprocess.run(["kill", pid], capture_output=True)
                 except ProcessLookupError:
@@ -228,6 +236,27 @@ def run_arm(arm: str, task: dict, repeat: int, run_dir: Path, cfg_extra: dict | 
             "big_model_calls": res.big_model_calls,
             "reason": res.reason,
             "frames": str(run_dir / "cu-frames" / f"{task['id']}-r{repeat}"),
+            # Cheap-path proof: fallback reasons (VisionUsage.fallbacks across
+            # the run) and vision calls per model.  A row whose vision calls
+            # are not jev-* did NOT drive on the cheap path (see --summary).
+            "fallbacks": list(res.fallbacks),
+            "fallback_count": len(res.fallbacks),
+            "vision_calls_by_model": dict(res.vision_calls_by_model),
+            "trace": [
+                {
+                    "idx": rec.idx,
+                    "action": rec.action,
+                    "target": rec.target,
+                    "grounding": rec.grounding,
+                    "verdict": rec.verdict,
+                    "noul": rec.noul,
+                    "effect": rec.effect,
+                    "stall": rec.stall,
+                    "safety": rec.safety,
+                    "point": rec.point,
+                }
+                for rec in res.steps
+            ],
         }
     finally:
         driver.close()
@@ -331,8 +360,6 @@ def load_secrets() -> None:
     """Load ~/.hermes/.env keys into the process env (per CONTRACTS-CU.md).
     Never prints values.  Background units do not inherit the interactive
     shell's exports, and paths.get_secret() depends on them."""
-    import os
-
     env_file = Path.home() / ".hermes" / ".env"
     if not env_file.exists():
         return
@@ -345,8 +372,83 @@ def load_secrets() -> None:
             os.environ[name] = value
 
 
+# --- Jev-arm preflight (the invalid first run must stay impossible) ---------
+
+
+def _import_typesafe_sdk():
+    import typesafe_sdk  # noqa: F401
+
+    return typesafe_sdk
+
+
+def _jev_ping(model: str = "jev-1.14.0", timeout: float = 45.0) -> str:
+    """One tiny REAL System One call through the SDK path (a few tokens).
+
+    Returns the model id that actually served the request; raises when the
+    Jev call fails or a fallback model answered instead.
+    """
+    from hermes_loopguard.backends.typesafe import TypeSafeBackend
+    from hermes_loopguard.questions import Noul
+
+    backend = TypeSafeBackend({"typesafe": {"timeout": timeout}})
+    result = backend.ask(
+        "Preflight: answer the question about integers.",
+        {"ok": Noul(instructions="Is 2 + 2 equal to 4?")},
+        model=model,
+    )
+    usage = getattr(result, "usage", None)
+    used = str(
+        getattr(result, "model", "") or getattr(usage, "model", "") or ""
+    )
+    if model not in used:
+        raise RuntimeError(f"preflight request was served by {used!r}, not {model}")
+    return used
+
+
+def preflight_jev(_import_sdk=None, _ping=None, _key=None) -> None:
+    """Exit non-zero BEFORE any spend unless the Jev arm can really run.
+
+    Guards the failure mode of the invalid first Jev run
+    (results/invalid-no-typesafe-sdk): run_bench.py executed under a python
+    without typesafe-sdk, every Jev request failed, and VisionGate silently
+    fell back to the CLIProxy model — a whole "Jev arm" with zero jev-* calls.
+    """
+    try:
+        (_import_sdk or _import_typesafe_sdk)()
+    except Exception as e:
+        raise SystemExit(
+            "JEV PREFLIGHT FAILED: typesafe-sdk is not importable from this "
+            f"interpreter ({e}). Run the bench with "
+            "~/Code/ship-test/lg-venv/bin/python and PYTHONPATH=src (see BENCH.md) "
+            "— otherwise every Jev call fails and the gate falls back silently."
+        )
+    key = _key if _key is not None else os.environ.get("TYPESAFE_API_KEY", "")
+    if not key:
+        raise SystemExit(
+            "JEV PREFLIGHT FAILED: TYPESAFE_API_KEY is not set (load ~/.hermes/.env "
+            "or run_bench.py's load_secrets must have found it). Refusing to run "
+            "a Jev arm that would silently fall back."
+        )
+    try:
+        used = str((_ping or _jev_ping)())
+    except Exception as e:
+        raise SystemExit(
+            "JEV PREFLIGHT FAILED: tiny real jev-1.14.0 call did not succeed: "
+            f"{e}. Fix the endpoint/key first; refusing to burn a run on "
+            "guaranteed fallbacks."
+        )
+    if "jev-1.14.0" not in used:
+        raise SystemExit(
+            f"JEV PREFLIGHT FAILED: the tiny call was served by {used!r}, "
+            "not jev-1.14.0 (fallback chain active). Refusing to run."
+        )
+    print(f"jev preflight: sdk importable, key present, tiny call ok (served by {used})", flush=True)
+
+
 def run(args) -> int:
     load_secrets()
+    if args.arm == "jev":
+        preflight_jev()
     check_pricing(args.arm)
     tasks = load_tasks(args.tasks)
     out = Path(args.out) if args.out else default_out(args.arm)
@@ -515,6 +617,42 @@ def aggregate(rows: list[dict]) -> dict:
     return arms
 
 
+def non_jev_vision(row: dict) -> dict[str, int]:
+    """Vision-gate calls served by anything other than a jev-* model.
+
+    This is the silent-fallback signature of the invalid first run (a "Jev"
+    arm whose vision calls are all CLIProxy).  Returns {model: calls}.
+    """
+    return {
+        m: n
+        for m, n in (row.get("vision_calls_by_model") or {}).items()
+        if not str(m).startswith("jev-")
+    }
+
+
+def flag_fallback_rows(rows: list[dict]) -> int:
+    """Print a loud flag for every row with non-Jev vision calls or recorded
+    fallbacks.  Returns the number of flagged rows."""
+    flagged = 0
+    for row in rows:
+        non_jev = non_jev_vision(row)
+        fallbacks = row.get("fallbacks") or []
+        if not non_jev and not fallbacks:
+            continue
+        flagged += 1
+        label = f"{row.get('arm', '?')}/{row.get('task', '?')}/r{row.get('repeat', '?')}"
+        if non_jev:
+            print(
+                f"  FLAG {label}: {sum(non_jev.values())} NON-JEV vision call(s) "
+                f"{non_jev} — the cheap path did NOT serve this row"
+                + ("" if row.get("big_model_calls") else " (silent fallback?)"),
+                flush=True,
+            )
+        for reason in fallbacks:
+            print(f"  FALLBACK {label}: {reason}", flush=True)
+    return flagged
+
+
 def summary(results_dir: Path | None = None) -> None:
     rows = load_rows(results_dir)
     if not rows:
@@ -557,6 +695,15 @@ def summary(results_dir: Path | None = None) -> None:
             f"cost ratio jev/baseline: {ratio:.3f}" if ratio is not None
             else "cost ratio undefined (baseline $0)"
         )
+    flagged = flag_fallback_rows(rows)
+    if flagged:
+        print(
+            f"WARNING: {flagged} row(s) with non-Jev vision calls or fallbacks "
+            "(see FLAG/FALLBACK lines above); BENCH.md must not use those rows "
+            "as Jev-arm results."
+        )
+    else:
+        print("all rows served their vision calls on the jev-* cheap path")
 
 
 def main() -> int:

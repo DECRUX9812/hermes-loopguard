@@ -167,6 +167,175 @@ def test_box_grounding_when_a11y_missing(monkeypatch):
     assert clicks and clicks[0]["args"]["x"] == 200 and clicks[0]["args"]["y"] == 300
 
 
+# ------------------------------------------------------------------ X4B fixes
+
+
+def test_ground_type_step_prefers_editable_over_same_named_label(monkeypatch):
+    """REAL failure: a static 'Feedback' label shadowed the 'Feedback' text
+    area, so typing went into the still-focused Name field.  A type step must
+    ground to the editable element first."""
+    driver = make_driver(
+        ["form.png", "form.png", "thanks.png", "thanks.png"],
+        elements=[
+            {"token": "lab", "role": "label", "label": "Feedback", "x": 10, "y": 20, "w": 80, "h": 24},
+            {"token": "ta", "role": "text area", "label": "Feedback", "x": 10, "y": 50, "w": 300, "h": 120},
+        ],
+    )
+    gate = FakeGate()
+    steps = [agent.Step(action="type", target="Feedback", text="hi", expect="the Feedback field shows hi")]
+    patch_plan(monkeypatch, [steps])
+    result = agent.run_task("fill feedback", driver, gate, {"max_steps": 5})
+    rec = result.steps[0]
+    assert rec.grounding == "a11y"
+    clicked = [c for c in driver.calls if c["method"] == "click_element"]
+    assert clicked and clicked[0]["args"]["token"] == "ta"
+
+
+def test_click_step_still_grounds_without_role_preference(monkeypatch):
+    """Clicks keep the plain first-match lookup (buttons have no editable role)."""
+    driver = make_driver(
+        ["form.png", "form.png", "thanks.png", "thanks.png"],
+        elements=[
+            {"token": "btn", "role": "push button", "label": "Send feedback", "x": 10, "y": 400, "w": 120, "h": 34},
+        ],
+    )
+    gate = FakeGate()
+    steps = [agent.Step(action="click", target="Send feedback", expect="the thanks page is shown")]
+    patch_plan(monkeypatch, [steps])
+    result = agent.run_task("submit", driver, gate, {"max_steps": 5})
+    rec = result.steps[0]
+    assert rec.grounding == "a11y"
+    clicked = [c for c in driver.calls if c["method"] == "click_element"]
+    assert clicked and clicked[0]["args"]["token"] == "btn"
+
+
+def test_type_step_selects_all_before_typing(monkeypatch):
+    """REAL failure: retried typing APPENDED ('Grace HopperThe fold is not a
+    bugThe fold is not a bug').  The agent must ctrl+a (replace) before typing
+    so every attempt is idempotent."""
+    driver = make_driver(
+        ["form.png", "form.png", "thanks.png", "thanks.png"],
+        elements=[{"token": "e1", "role": "entry", "label": "Name", "x": 10, "y": 20, "w": 300, "h": 30}],
+    )
+    gate = FakeGate()
+    steps = [agent.Step(action="type", target="Name", text="Ada", expect="the Name field shows Ada")]
+    patch_plan(monkeypatch, [steps])
+    result = agent.run_task("type Ada", driver, gate, {"max_steps": 5})
+    assert result.state == "completed"
+    methods = [c["method"] for c in driver.calls]
+    assert methods.index("key") < methods.index("type_text")
+    keys = [c["args"]["keys"] for c in driver.calls if c["method"] == "key"]
+    assert "ctrl+a" in keys
+
+
+def test_type_step_without_target_types_into_focus(monkeypatch):
+    """REAL failure: the planner's type step for a fresh text-editor document
+    had an EMPTY target; the agent died in grounding ("grounding failed")
+    instead of just typing into the focused window."""
+    driver = make_driver(
+        ["form.png", "form.png", "thanks.png", "thanks.png"], elements=[]
+    )
+    gate = FakeGate()
+    steps = [agent.Step(action="type", target="", text="Hello from LoopGuard",
+                        expect="the document shows Hello from LoopGuard")]
+    patch_plan(monkeypatch, [steps])
+    result = agent.run_task("type into the editor", driver, gate, {"max_steps": 5})
+    assert result.state == "completed"
+    rec = result.steps[0]
+    assert rec.verdict in ("pass", "free")
+    methods = [c["method"] for c in driver.calls]
+    assert "click" not in methods and "click_element" not in methods
+    typed = [c for c in driver.calls if c["method"] == "type_text"]
+    assert typed and typed[0]["args"]["text"] == "Hello from LoopGuard"
+    assert "key" in methods  # ctrl+a before typing (idempotent)
+
+
+def test_pad_region_grows_tiny_box_to_typeafe_minimum():
+    """REAL failure: a zoomed-retry crop of 154x36 px was rejected by
+    prepare_image (side >= 256, >= 78400 px), killing the zoom retry."""
+    w, h = 1280, 800
+    box = (0.40, 0.30, 0.52, 0.345)  # ~154x36 px on this display
+    region = agent._pad_region(box, w, h)
+    assert region is not None
+    x0, y0, x1, y1 = region
+    assert x1 - x0 >= 256
+    assert y1 - y0 >= 256
+    assert (x1 - x0) * (y1 - y0) >= 78_400
+    assert 0 <= x0 < x1 <= w and 0 <= y0 < y1 <= h
+
+
+def test_verify_fail_on_unchanged_screen_is_unverified_not_failed(monkeypatch):
+    """REAL failure: ctrl+x (cut) shows NO visible change, so the verify Noul
+    failed and the retry ladder burned the run.  A verify failure on a
+    COMPLETELY unchanged screen is an invisible outcome, not a visible
+    failure: mark 'unverified' and continue."""
+    driver = make_driver(["form.png", "form.png", "form.png", "form.png"], elements=[])
+    gate = FakeGate()
+    gate.verify_results.append(VerifyResult(passed=False, yes=0.13, usage=_usage()))
+    steps = [agent.Step(action="key", keys="ctrl+x", expect="the file is cut")]
+    patch_plan(monkeypatch, [steps])
+    result = agent.run_task("cut it", driver, gate, {"max_steps": 5})
+    rec = result.steps[0]
+    assert rec.verdict == "unverified"
+    assert result.state == "completed"
+    # step verify + final goal check only — no retry/replan/escalation ladder
+    assert len(gate.calls["verify"]) == 2
+    assert len(gate.calls["locate"]) == 0
+
+
+def test_verify_fail_on_changed_screen_still_fails(monkeypatch):
+    """Contrast: the screen DID change but the expectation is missing -> a
+    real failure that must still go down the ladder (retry, then replan)."""
+    driver = make_driver(
+        ["form.png", "thanks.png", "form.png", "thanks.png", "thanks.png", "thanks.png"],
+        elements=[],
+    )
+    gate = FakeGate()
+    gate.verify_results.append(VerifyResult(passed=False, yes=0.1, usage=_usage()))
+    steps = [agent.Step(action="key", keys="Return", expect="the thanks page is shown")]
+    patch_plan(monkeypatch, [steps])
+    result = agent.run_task("submit it", driver, gate, {"max_steps": 5})
+    rec = result.steps[0]
+    assert rec.verdict == "fail"  # visible change, expectation unmet: fail
+    assert len(gate.calls["verify"]) > 2  # the ladder ran (retry/replan)
+
+
+def test_flush_unverified_when_field_screen_unchanged(monkeypatch):
+    """Batched field checks: a failing Noul on a screen that did not change
+    since the typing is 'unverified', not a flush failure (no re-queue)."""
+    driver = make_driver(
+        ["form.png"] * 6,
+        elements=[{"token": "e1", "role": "entry", "label": "Name", "x": 10, "y": 20, "w": 300, "h": 30}],
+    )
+    gate = FakeGate()
+    gate.ask_noul = 0.1  # batched verify says the field does not show it
+    steps = [agent.Step(action="type", target="Name", text="Ada",
+                        expect="the Name field shows Ada")]
+    patch_plan(monkeypatch, [steps])
+    result = agent.run_task("type Ada", driver, gate, {"max_steps": 5})
+    rec = result.steps[0]
+    assert rec.verdict == "unverified"
+    assert result.state == "completed"  # no 'field verification kept failing'
+
+
+def test_pad_region_keeps_big_boxes_centered():
+    w, h = 1280, 800
+    box = (0.25, 0.25, 0.75, 0.75)
+    region = agent._pad_region(box, w, h)
+    x0, y0, x1, y1 = region
+    assert abs((x0 + x1) / 2 - w / 2) < w * 0.05
+    assert abs((y0 + y1) / 2 - h / 2) < h * 0.05
+
+
+def test_planner_prompt_has_no_task_specific_strings():
+    """src/ must stay generic: no bench task names or page names in the
+    planner prompt."""
+    prompt = agent._PLANNER_SYSTEM.lower()
+    for banned in ("fm-task", "mousepad-save", "thunar", "settings-gtk", "editor-task",
+                   "quickstart", "grace hopper", "notes.txt", "report.txt"):
+        assert banned not in prompt, f"task-specific string {banned!r} leaked into src/"
+
+
 def test_zoom_retry_uses_padded_region(monkeypatch):
     driver = make_driver(["form.png", "form.png", "thanks.png", "thanks.png"], elements=[])
     gate = FakeGate()
@@ -185,8 +354,10 @@ def test_zoom_retry_uses_padded_region(monkeypatch):
     rec = result.steps[0]
     assert rec.grounding == "zoom"
     assert len(gate.calls["locate"]) == 2
-    # 25% padding of the 128x80 box: (512,320,640,400) -> (480,300,672,420).
-    assert gate.calls["locate"][1]["region"] == (480, 300, 672, 420)
+    # 25% padding of the 128x80 box gives (480,300,672,420) = 192x120 px,
+    # which the zoom now GROWS to meet the TypeSafe minimums (>=256/side,
+    # >=78400 px): 354x256 centered on the same point -> (398,232,753,488).
+    assert gate.calls["locate"][1]["region"] == (398, 232, 753, 488)
 
 
 # --------------------------------------------------------------------- safety

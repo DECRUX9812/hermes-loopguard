@@ -238,6 +238,33 @@ Use Hermes's built-in cron monitor mode (`monitor_script` or `monitor_url`) if a
 of the entire command output is sufficient to detect change. Use LoopGuard when jobs process
 collections of items requiring per-item tracking, semantic triage, claim leases, and review queues.
 
+## Computer-use bench (Phase 2b)
+
+`examples/cu_bench/` holds the Xvfb benchmark that drives the computer with the cheap typed path
+(Jev + AT-SPI) and compares it against a big-model computer-use loop. Results and the verdict:
+[BENCH.md](BENCH.md).
+
+Run it with the **lg-venv interpreter** (it has `typesafe-sdk`, PyYAML and Pillow — the system
+python3 does not, and every Jev call would silently fall back to the CLIProxy model) and
+`PYTHONPATH=src`:
+
+```bash
+# stack + runs both hold the shared locks; never skip flock
+~/Code/ship-test/lg-venv/bin/python -c "import typesafe_sdk"   # interpreter check
+flock /tmp/lg-cu/stack.lock examples/cu_bench/stack.sh start    # Xvfb :97 stack (if down)
+
+cd examples/cu_bench
+flock /tmp/lg-cu/stack.lock env PYTHONPATH=src \
+  ~/Code/ship-test/lg-venv/bin/python run_bench.py --arm jev      --tasks all --repeat 1
+flock /tmp/lg-cu/stack.lock env PYTHONPATH=src \
+  ~/Code/ship-test/lg-venv/bin/python run_bench.py --arm baseline --tasks all --repeat 1
+env PYTHONPATH=src ~/Code/ship-test/lg-venv/bin/python run_bench.py --summary
+```
+
+`--arm jev` preflights the interpreter, the `TYPESAFE_API_KEY` and one tiny real `jev-1.14.0`
+call, and exits non-zero before any spend when they are missing; `--summary` flags any result
+row whose vision calls were served by a non-Jev model.
+
 ## Development
 
 Run unit tests:

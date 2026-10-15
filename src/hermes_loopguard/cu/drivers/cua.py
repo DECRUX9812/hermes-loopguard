@@ -249,10 +249,26 @@ class CuaDriver:
         return parse_action_result(result, ok=None if "_cua_error" not in result else False)
 
     def _act(self, tool: str, payload: dict, escalate: bool = True) -> ActionResult:
-        """One action call, auto-escalating background_unavailable to foreground."""
+        """One action call, auto-escalating to foreground when needed.
+
+        Two shapes mean the background attempt was NOT delivered:
+        - code "background_unavailable" (explicit refusal), and
+        - route "global_input" with background delivery: cua-driver 0.28.2
+          queues window-targeted global input in background mode and this
+          stack silently DROPS it (verified live: thunar clicks and chrome
+          <select> popup menu items change nothing on screen; route
+          "accessibility" clicks DO work in background).  No error code is
+          returned, so the route is the only signal.
+        """
         result = self._call(tool, payload)
         code = result.get("code") if isinstance(result, dict) else None
-        if escalate and code == "background_unavailable":
+        route = result.get("route") if isinstance(result, dict) else None
+        delivery_mode = ((result.get("delivery") or {}).get("mode")
+                         if isinstance(result, dict) else None)
+        if escalate and (
+            code == "background_unavailable"
+            or (route == "global_input" and delivery_mode == "background")
+        ):
             retry = dict(payload)
             retry["delivery_mode"] = "foreground"
             result = self._call(tool, retry)
@@ -291,16 +307,48 @@ class CuaDriver:
             payload["pid"] = window["pid"]
         return self._act("click", payload)
 
+    @staticmethod
+    def _z(window: dict | None) -> int:
+        z = (window or {}).get("z_index")
+        return z if isinstance(z, int) else -1
+
     def _app_window(self) -> dict | None:
+        """The app's TOPMOST window (a Save As dialog outranks its editor).
+
+        list_windows order is bottom-up (z_index 0 first), so the first match
+        can be a background window; typing into it would steal focus from the
+        dialog the user (or the agent) is actually working in.
+        """
         if not self.app:
             return None
-        for window in self._list_windows():
-            if self._app_matches(window.get("app_name", ""), self.app):
-                return window
-        return None
+        matches = [
+            w for w in self._list_windows()
+            if self._app_matches(w.get("app_name", ""), self.app)
+        ]
+        if not matches:
+            return None
+        return max(matches, key=self._z)
+
+    def _topmost_window(self) -> dict | None:
+        windows = [w for w in self._list_windows() if w.get("pid")]
+        if not windows:
+            return None
+        return max(windows, key=self._z)
+
+    def _target_window(self) -> dict | None:
+        """The window keyboard delivery should go to: the app's TOPMOST
+        window.  A modal dialog (Save As) outranks its editor; typing must
+        never activate the background window — that would STEAL focus from
+        the dialog the agent just opened."""
+        return self._app_window()
 
     def _activate(self, window: dict) -> None:
-        """Best-effort window activation so XTEST keyboard delivery lands."""
+        """Best-effort window activation so XTEST keyboard delivery lands.
+        Skipped when the window is already topmost (activating a background
+        window would STEAL focus from the dialog the agent just clicked)."""
+        top = self._topmost_window()
+        if top is not None and top.get("window_id") == window.get("window_id"):
+            return
         self._call(
             "bring_to_front",
             {"pid": window["pid"], "window_id": window["window_id"]},
@@ -308,10 +356,11 @@ class CuaDriver:
         time.sleep(0.3)
 
     def type_text(self, text: str) -> ActionResult:
-        # Keyboard delivery needs an active window (XTEST): activate, then
-        # type in the foreground.
+        # Keyboard delivery needs an active window (XTEST): target the app's
+        # topmost window (a modal dialog outranks its editor), activate it
+        # only when needed, then type in the foreground.
         payload: dict[str, Any] = {"text": str(text), "delivery_mode": "foreground"}
-        window = self._app_window()
+        window = self._target_window()
         if window is not None:
             payload["pid"] = window["pid"]
             payload["window_id"] = window["window_id"]
@@ -327,7 +376,7 @@ class CuaDriver:
         else:
             payload = {"key": parts[0] if parts else keys, "delivery_mode": "foreground"}
             tool = "press_key"
-        window = self._app_window()
+        window = self._target_window()
         if window is not None:
             payload["pid"] = window["pid"]
             payload["window_id"] = window["window_id"]

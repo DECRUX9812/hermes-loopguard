@@ -23,7 +23,7 @@ sys.path.insert(0, str(REPO / "src"))
 
 import baseline  # noqa: E402
 from hermes_loopguard.cu import pricing  # noqa: E402
-from run_bench import aggregate  # noqa: E402
+from run_bench import aggregate, flag_fallback_rows, non_jev_vision, preflight_jev  # noqa: E402
 
 
 # --- pricing -------------------------------------------------------------------
@@ -264,3 +264,169 @@ def test_aggregate_success_bar_math():
     ratio = agg["jev"]["usd"] / agg["baseline"]["usd"]
     assert ratio == pytest.approx(0.02)  # cheap enough
     assert agg["jev"]["successes"] < agg["baseline"]["successes"]  # ...but bar NOT met
+
+
+# --- Jev-arm preflight (silent fallback must be impossible) ---------------------
+
+
+def _ok_import():
+    return object()
+
+
+def _ok_ping(model="jev-1.14.0", timeout=45.0):
+    return model
+
+
+def test_preflight_jev_happy_path_does_not_exit():
+    # No SystemExit: sdk importable, key present, tiny call serves jev-1.14.0.
+    preflight_jev(_import_sdk=_ok_import, _ping=_ok_ping, _key="sk-test")
+
+
+def test_preflight_jev_fails_without_sdk():
+    def no_sdk():
+        raise ImportError("No module named 'typesafe_sdk'")
+
+    with pytest.raises(SystemExit) as exc:
+        preflight_jev(_import_sdk=no_sdk, _ping=_ok_ping, _key="sk-test")
+    assert "typesafe-sdk is not importable" in str(exc.value)
+    assert "lg-venv" in str(exc.value)  # names the fix (the venv recipe)
+
+
+def test_preflight_jev_fails_without_key():
+    with pytest.raises(SystemExit) as exc:
+        preflight_jev(_import_sdk=_ok_import, _ping=_ok_ping, _key="")
+    assert "TYPESAFE_API_KEY" in str(exc.value)
+
+
+def test_preflight_jev_fails_when_tiny_call_fails():
+    def broken_ping(model="jev-1.14.0", timeout=45.0):
+        raise RuntimeError("TypeSafe System One call failed: 401")
+
+    with pytest.raises(SystemExit) as exc:
+        preflight_jev(_import_sdk=_ok_import, _ping=broken_ping, _key="sk-test")
+    assert "jev-1.14.0 call did not succeed" in str(exc.value)
+
+
+def test_preflight_jev_fails_when_fallback_model_answers():
+    def fallback_ping(model="jev-1.14.0", timeout=45.0):
+        return "gemini-3.8-flash-high"  # the silent-fallback signature
+
+    with pytest.raises(SystemExit) as exc:
+        preflight_jev(_import_sdk=_ok_import, _ping=fallback_ping, _key="sk-test")
+    assert "served by" in str(exc.value)
+    assert "gemini-3.8-flash-high" in str(exc.value)
+
+
+def test_comm_match_is_case_insensitive():
+    """REAL failure: mousepad's /proc comm is 'mousepad', so a case-sensitive
+    startswith('Mousepad') never killed it — the editor and its modal Save As
+    dialog survived every task reset and haunted later tasks."""
+    from run_bench import _comm_matches
+
+    assert _comm_matches("mousepad", "Mousepad")
+    assert _comm_matches("Mousepad", "mousepad")
+    assert _comm_matches("MOUSEPAD", "mousepad")
+    assert not _comm_matches("chrome", "mousepad")
+
+
+# --- --summary fallback flags ----------------------------------------------------
+
+
+def test_non_jev_vision_only_counts_non_jev_models():
+    row = {
+        "vision_calls_by_model": {"jev-1.14.0": 7, "gemini-3.8-flash-high": 3},
+        "fallbacks": ["jev-1.14.0: 400 bad image"],
+    }
+    assert non_jev_vision(row) == {"gemini-3.8-flash-high": 3}
+
+
+def test_non_jev_vision_empty_for_baseline_rows():
+    # Baseline rows carry no vision_calls_by_model at all: nothing to flag.
+    assert non_jev_vision({"calls_per_model": {"claude-opus-4-6-thinking": 5}}) == {}
+
+
+def test_flag_fallback_rows_prints_and_counts():
+    rows = [
+        {
+            "arm": "jev",
+            "task": "contact-form-simple",
+            "repeat": 1,
+            "vision_calls_by_model": {"gemini-3.8-flash-high": 9},
+            "fallbacks": ["jev-1.14.0: 401 unauthorized"],
+            "big_model_calls": 0,
+        },
+        {
+            "arm": "jev",
+            "task": "form-widgets",
+            "repeat": 1,
+            "vision_calls_by_model": {"jev-1.14.0": 8},
+            "fallbacks": [],
+            "big_model_calls": 0,
+        },
+    ]
+    buf = io.StringIO()
+    old = sys.stdout
+    sys.stdout = buf
+    try:
+        flagged = flag_fallback_rows(rows)
+    finally:
+        sys.stdout = old
+    out = buf.getvalue()
+    assert flagged == 1
+    assert "NON-JEV vision call(s)" in out
+    assert "gemini-3.8-flash-high" in out
+    assert "silent fallback" in out
+    assert "contact-form-simple" in out
+    assert "form-widgets" not in out  # clean row is not flagged
+
+
+def test_flag_fallback_rows_clean_run_reports_zero():
+    rows = [
+        {
+            "arm": "jev",
+            "task": "t",
+            "repeat": 1,
+            "vision_calls_by_model": {"jev-1.14.0": 5},
+            "fallbacks": [],
+        }
+    ]
+    buf = io.StringIO()
+    old = sys.stdout
+    sys.stdout = buf
+    try:
+        assert flag_fallback_rows(rows) == 0
+    finally:
+        sys.stdout = old
+    assert buf.getvalue() == ""
+
+
+def test_agent_runresult_records_vision_calls_and_fallbacks():
+    """The jev arm's row fields come from RunResult: vision calls per model
+    (planner excluded) and fallback reasons from VisionUsage.fallbacks."""
+    from hermes_loopguard.cu.agent import _Totals
+    from hermes_loopguard.cu.vision import VisionUsage
+
+    totals = _Totals()
+    planner = VisionUsage(backend="openai", model="gemini-3.1-flash-lite", input_tokens=100, output_tokens=5)
+    gate = VisionUsage(backend="typesafe", model="jev-1.14.0", input_tokens=900, output_tokens=10)
+    fell_back = VisionUsage(
+        backend="typesafe",
+        model="gemini-3.8-flash-high",
+        input_tokens=200,
+        output_tokens=4,
+        fallbacks=["jev-1.14.0: 500 oops"],
+    )
+    totals.add(planner, vision=False)  # planner text call: not a vision call
+    totals.add(gate)
+    totals.add(fell_back)
+    assert totals.vision_calls == {"jev-1.14.0": 1, "gemini-3.8-flash-high": 1}
+    assert totals.calls == {
+        "gemini-3.1-flash-lite": 1,
+        "jev-1.14.0": 1,
+        "gemini-3.8-flash-high": 1,
+    }
+    assert totals.fallbacks == ["jev-1.14.0: 500 oops"]
+    failed = VisionUsage(backend="", model="", fallbacks=["jev-1.14.0: timeout"])
+    totals.add(failed)
+    assert totals.fallbacks[-1] == "jev-1.14.0: timeout"
+    assert "failed" not in totals.vision_calls  # no model answered: not a call

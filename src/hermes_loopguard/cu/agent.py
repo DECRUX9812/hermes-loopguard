@@ -62,7 +62,7 @@ TERMINAL_STATES = ("completed", "paused_for_approval", "stalled", "blocked", "bu
 PRE_AUTHORIZABLE = ("send_or_publish",)
 _SEND_OR_PUBLISH_RE = re.compile(
     r"\b(submit|sends?|publish|posts?|buy|buying|purchase|purchasing|checkout|order|share|"
-    r"save|apply|confirm)\b"
+    r"save|apply|confirm|join|register|signup|sign\s?up|enroll)\b"
 )
 PLANNER_MAX_STEPS = 12
 # Actions whose safety gate runs before the action (scroll is excluded: it
@@ -148,6 +148,7 @@ class StepRecord:
     usages: list[VisionUsage] = field(default_factory=list)
     frame_before: str | None = None
     frame_after: str | None = None
+    before_hash: int | None = None  # dhash of the pre-action frame (flush use)
 
 
 @dataclass
@@ -163,6 +164,13 @@ class RunResult:
     big_model_avoided: int = 0
     reason: str = ""
     done_check: float | None = None
+    # Reasons recorded when a cheaper model was skipped before a costlier one
+    # answered (VisionUsage.fallbacks across the whole run).  Empty on a clean
+    # cheap-path run; the bench flags rows that fell back off the Jev chain.
+    fallbacks: list[str] = field(default_factory=list)
+    # Vision-gate calls per model (planner text calls excluded).  A non-jev
+    # model here means the run did NOT drive on the cheap path alone.
+    vision_calls_by_model: dict[str, int] = field(default_factory=dict)
 
 
 class _Totals:
@@ -170,15 +178,21 @@ class _Totals:
 
     def __init__(self) -> None:
         self.calls: dict[str, int] = {}
+        self.vision_calls: dict[str, int] = {}  # gate/escalation calls only
+        self.fallbacks: list[str] = []
         self.input_tokens = 0
         self.output_tokens = 0
         self.usd = 0.0
 
-    def add(self, usage: VisionUsage | None) -> None:
+    def add(self, usage: VisionUsage | None, *, vision: bool = True) -> None:
         if usage is None:
             return
         model = usage.model or "failed"
         self.calls[model] = self.calls.get(model, 0) + 1
+        if vision and usage.model:
+            self.vision_calls[usage.model] = self.vision_calls.get(usage.model, 0) + 1
+        if usage.fallbacks:
+            self.fallbacks.extend(usage.fallbacks)
         self.input_tokens += int(usage.input_tokens or 0)
         self.output_tokens += int(usage.output_tokens or 0)
         self.usd += float(usage.usd or 0.0)
@@ -301,10 +315,18 @@ _PLANNER_SYSTEM = (
     f"Maximum {PLANNER_MAX_STEPS} steps. Rules: "
     "- To fill a text field use ONE step with action \"type\" (the agent clicks the field and "
     "types `text`); use \"click\" only for buttons, checkboxes, links and menus. "
+    "- In a window with one obvious text area and no field labels (e.g. a fresh text-editor "
+    "document), use ONE \"type\" step with an EMPTY target: the agent types into the focused "
+    "window. "
     "- `target` is the exact visible label text WITHOUT the role prefix (the element shown as "
     "`entry 'Name'` has target \"Name\"). "
     "- `expect` must be visible on a screenshot afterwards, e.g. \"the Name field shows Ada "
     "Lovelace\". Use action \"key\" with keys like \"Return\" or \"ctrl+a\". "
+    "- To move or copy a file in a file manager: click the file to select it, press key "
+    "\"ctrl+x\" (or \"ctrl+c\"), click the destination folder, then press key \"ctrl+v\"; set "
+    "the expect of that final paste to the file appearing in the destination. "
+    "- A step whose outcome shows no visible change (saving, selecting) must NOT claim one: "
+    "give it the smallest honestly-checkable expect or none. "
     "- Ignore window-manager panels, docks and browser toolbars; act only in the app window "
     "the task is about."
 )
@@ -454,18 +476,59 @@ def escalate(
 # --- grounding -------------------------------------------------------------------
 
 
+_ZOOM_MIN_SIDE = 256  # TypeSafe image minimum per side
+_ZOOM_MIN_PIXELS = 78_400  # TypeSafe image minimum total pixels
+
+
 def _pad_region(box: tuple[float, float, float, float], w: int, h: int, pad: float = 0.25):
+    """Padded desktop-px crop around a detected box, grown to the minimum
+    image size the vision API accepts.  A tiny detected box (e.g. a short
+    link) would otherwise produce a sub-minimum crop that prepare_image
+    rejects, killing the zoomed retry."""
     left, top, right, bottom = box
     bw, bh = (right - left) * w, (bottom - top) * h
-    region = (
-        int(max(0, left * w - bw * pad)),
-        int(max(0, top * h - bh * pad)),
-        int(min(w, right * w + bw * pad)),
-        int(min(h, bottom * h + bh * pad)),
-    )
+    x0 = max(0, left * w - bw * pad)
+    y0 = max(0, top * h - bh * pad)
+    x1 = min(w, right * w + bw * pad)
+    y1 = min(h, bottom * h + bh * pad)
+    cw, ch = x1 - x0, y1 - y0
+    if cw <= 0 or ch <= 0:
+        return None
+    # Grow (keeping the region's aspect) until the TypeSafe minimums hold.
+    need_w = max(cw, float(_ZOOM_MIN_SIDE), (_ZOOM_MIN_PIXELS * cw / ch) ** 0.5)
+    need_h = max(ch, float(_ZOOM_MIN_SIDE), (_ZOOM_MIN_PIXELS * ch / cw) ** 0.5)
+    if need_w > cw or need_h > ch:
+        cx, cy = (x0 + x1) / 2.0, (y0 + y1) / 2.0
+        x0, x1 = cx - need_w / 2.0, cx + need_w / 2.0
+        y0, y1 = cy - need_h / 2.0, cy + need_h / 2.0
+        # Slide, don't shrink, when the grown region overflows the frame.
+        if x0 < 0:
+            x0, x1 = 0.0, need_w
+        if y0 < 0:
+            y0, y1 = 0.0, need_h
+        if x1 > w:
+            x0, x1 = float(max(0, w - need_w)), float(w)
+        if y1 > h:
+            y0, y1 = float(max(0, h - need_h)), float(h)
+    region = (int(x0), int(y0), int(min(w, x1)), int(min(h, y1)))
     if region[2] - region[0] < 4 or region[3] - region[1] < 4:
         return None
     return region
+
+
+# AT-SPI roles that accept keyboard input, most specific first.  A `type`
+# step should prefer these over a same-named static label: clicking a label
+# ("Feedback" heading) never focuses the field under it.
+EDITABLE_ROLES = (
+    "entry",
+    "text box",
+    "textbox",
+    "text area",
+    "textarea",
+    "password text",
+    "spin button",
+    "combo box",
+)
 
 
 def ground(
@@ -473,6 +536,8 @@ def ground(
     gate: VisionGate,
     frame: Frame,
     target: str,
+    *,
+    prefer_editable: bool = False,
 ) -> tuple[
     str,
     tuple[float, float, float, float] | None,
@@ -480,13 +545,27 @@ def ground(
     Element | None,
     list[VisionUsage],
 ]:
-    """AT-SPI first (zero tokens), then Jev Box, then one zoomed retry."""
+    """AT-SPI first (zero tokens), then Jev Box, then one zoomed retry.
+
+    prefer_editable (type steps): try role-filtered AT-SPI lookups first so a
+    static label with the same text cannot shadow the editable field.
+    """
     usages: list[VisionUsage] = []
     if target:
-        try:
-            el = driver.find_element(target)
-        except Exception:
-            el = None
+        el = None
+        if prefer_editable:
+            for role in EDITABLE_ROLES:
+                try:
+                    el = driver.find_element(target, role=role)
+                except Exception:
+                    el = None
+                if el is not None:
+                    break
+        if el is None:
+            try:
+                el = driver.find_element(target)
+            except Exception:
+                el = None
         if el is not None:
             return "a11y", None, el.center, el, usages
     if not target:
@@ -605,6 +684,8 @@ def run_task(
             big_model_avoided=sum(1 for r in records if r.verdict in ("pass", "free")),
             reason=reason,
             done_check=done_check,
+            fallbacks=list(totals.fallbacks),
+            vision_calls_by_model=dict(totals.vision_calls),
         )
         if log is not None and run_id is not None:
             try:
@@ -644,11 +725,26 @@ def run_task(
             return []
         totals.add(usage)
         failed = []
+        now_hash = None
+        try:
+            now_hash = frames.dhash(frame_now.png)
+        except (RuntimeError, ValueError):
+            now_hash = None
         for i, (s, rec) in enumerate(batch):
             noul = float(getattr(answers.get(f"s{i}"), "noul", 0.0))
             rec.noul = noul
             if noul >= thresholds["verify"]:
                 rec.verdict = "pass"
+            elif (
+                now_hash is not None
+                and rec.before_hash is not None
+                and frames.hamming(rec.before_hash, now_hash)
+                <= detector.unchanged_max
+            ):
+                # Screen unchanged since the type happened: the field's state
+                # is not visible (e.g. typing behind a modal dialog), not a
+                # visible failure.  Don't fail, don't re-queue.
+                rec.verdict = "unverified"
             else:
                 rec.verdict = "fail"
                 failed.append((s, rec))
@@ -656,7 +752,7 @@ def run_task(
 
     # 1. Plan (one cheap text call, zero screenshots).
     steps, usage = plan(instruction, driver, cfg)
-    totals.add(usage)
+    totals.add(usage, vision=False)
     queue: list[Step] = list(steps)
     if not queue:
         return _finish("blocked", "planner returned no steps")
@@ -690,6 +786,8 @@ def run_task(
         elif kind == "type":
             driver.click(x, y)
             time.sleep(0.3)
+            driver.key("ctrl+a")  # replace, don't append (idempotent retry)
+            time.sleep(0.15)
             res = driver.type_text(str(action.get("text") or step.text or ""))
         else:
             res = driver.key(str(action.get("keys") or step.keys or ""))
@@ -726,7 +824,7 @@ def run_task(
                 f"(effect={rec.effect}, verdict={rec.verdict}, noul={rec.noul})"
             )
             new_steps, plan_usage = plan(instruction, driver, cfg, failure_evidence=evidence)
-            totals.add(plan_usage)
+            totals.add(plan_usage, vision=False)
             if new_steps:
                 queue[:] = new_steps
                 step_failures = 0
@@ -791,9 +889,18 @@ def run_task(
         # 2. Ground (AT-SPI free, then Jev Box, then one zoomed retry).
         el: Element | None = None
         point: tuple[int, int] | None = None
-        needs_point = step.action in ("click", "type") or (step.action == "scroll" and step.target)
+        # A type step WITHOUT a target types straight into the focused window
+        # (e.g. a freshly opened editor with its document focused): there is
+        # nothing to ground and clicking would only guess.
+        needs_point = step.action in ("click", "type") or (
+            step.action == "scroll" and step.target
+        )
+        if step.action == "type" and not step.target:
+            needs_point = False
         if needs_point:
-            grounding, box, point, el, usages = ground(driver, gate, frame, step.target)
+            grounding, box, point, el, usages = ground(
+                driver, gate, frame, step.target, prefer_editable=(step.action == "type")
+            )
             for u in usages:
                 totals.add(u)
                 rec.usages.append(u)
@@ -850,9 +957,15 @@ def run_task(
         elif step.action == "type":
             if el is not None:
                 driver.click_element(el)
-            else:
+            elif point is not None:
                 driver.click(point[0], point[1])
             time.sleep(0.3)
+            # Fill semantics: select whatever is in the field and replace it.
+            # Typing alone appends, so a retried step would duplicate text
+            # ("Grace HopperGrace Hopper"); select-all makes every attempt
+            # idempotent.  With no target this selects the focused document.
+            driver.key("ctrl+a")
+            time.sleep(0.15)
             res = driver.type_text(str(step.text or ""))
         elif step.action == "key":
             res = driver.key(str(step.keys or ""))
@@ -871,6 +984,11 @@ def run_task(
             break
         _save_frames(rec, frame, after)
 
+        # Frame hashes (needed by the verdict above AND the stall detector).
+        before_hash = frames.dhash(frame.png)
+        after_hash = frames.dhash(after.png)
+        rec.before_hash = before_hash
+
         # 5. Verdict: free path -> batched verify (type) -> Jev verify.
         ok = True
         if res.effect == "confirmed" and res.verified is True and step.expect:
@@ -886,8 +1004,17 @@ def run_task(
             rec.noul = verify.yes
             if verify.passed:
                 rec.verdict = "pass"
+            elif _usage_failed(verify.usage):
+                rec.verdict = "error"
+            elif frames.hamming(before_hash, after_hash) <= detector.unchanged_max:
+                # Verify said no, but the screen did not change AT ALL: the
+                # step's outcome is not visible (cut, save, submit behind a
+                # dialog).  That is an INVISIBLE outcome, not a visible
+                # failure — do not burn the retry ladder on it; the final
+                # goal check and the (code) judge stay authoritative.
+                rec.verdict = "unverified"
             else:
-                rec.verdict = "error" if _usage_failed(verify.usage) else "fail"
+                rec.verdict = "fail"
         else:
             rec.verdict = "unverified"
 
@@ -897,11 +1024,18 @@ def run_task(
         # 5b. Stall/loop detection (hash first, Jev only when ambiguous).
         # dhash cannot see small changes (typed text, focus rings), so when
         # the step already verified (or is pending its batched verify) the
-        # screen counts as changed; the verify is the authority.
-        before_hash = frames.dhash(frame.png)
-        after_hash = frames.dhash(after.png)
+        # screen counts as changed; the verify is the authority.  An
+        # "unverified" step (invisible outcome) also counts as progress: a
+        # commit step that legitimately shows nothing must not accumulate
+        # staleness.
         changed = None
-        if rec.verdict in ("pass", "free", "pending"):
+        # "unverified" with an `expect` means the verify ran, said no, and the
+        # screen did not change at all (an invisible outcome): progress, not
+        # staleness.  An expectation-LESS step with an unchanged screen is the
+        # classic no-op the detector exists to catch.
+        if rec.verdict in ("pass", "free", "pending") or (
+            rec.verdict == "unverified" and step.expect
+        ):
             changed = True
         else:
             dist = (before_hash ^ after_hash).bit_count()
