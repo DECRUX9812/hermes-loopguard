@@ -424,6 +424,21 @@ class Store:
                 (now, 1 if completed else 0, outcome, run_id),
             )
 
+    def bind_run(self, run_id: int, job_id: str | None) -> None:
+        with self._immediate_tx():
+            self.conn.execute("UPDATE runs SET job_id = ? WHERE id = ?", (job_id, run_id))
+
+    def run_items(self, run_id: int) -> list[str]:
+        cur = self.conn.cursor()
+        cur.execute("SELECT items FROM runs WHERE id = ?", (run_id,))
+        row = cur.fetchone()
+        if row is None or not row["items"]:
+            return []
+        try:
+            return [str(x) for x in json.loads(row["items"])]
+        except Exception:
+            return []
+
     def find_open_run(
         self,
         *,

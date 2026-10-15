@@ -7,7 +7,8 @@ from typing import Any
 try:
     from fastapi import APIRouter, HTTPException, Query, Request
 except ImportError:  # pragma: no cover
-    # Fallback mock for unit test environments where fastapi is not installed
+    # Import fallback so unit tests can import this module without fastapi
+    # installed; the real fastapi types above are used whenever importable.
     class APIRouter:  # type: ignore
         def __init__(self, *args: Any, **kwargs: Any) -> None:
             self.routes: list[tuple[str, str, Any]] = []

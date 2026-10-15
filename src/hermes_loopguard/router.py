@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import json
+import re
 import statistics
 import subprocess
 from typing import Any, Callable
@@ -40,6 +41,32 @@ class PollResult:
     est_tokens_avoided: int = 0
     est_usd_avoided: float = 0.0
     errors: list[str] = field(default_factory=list)
+
+
+_KANBAN_TASK_RE = re.compile(r"t_[A-Za-z0-9]+")
+_INT_RE = re.compile(r"\b(\d+)\b")
+
+
+def parse_kanban_task_id(output: str) -> str | None:
+    """Extract the created task id from `hermes kanban create` output."""
+    text = (output or "").strip()
+    if not text:
+        return None
+    try:
+        data = json.loads(text)
+    except Exception:
+        data = None
+    if isinstance(data, dict):
+        for key in ("id", "task_id"):
+            if data.get(key):
+                return str(data[key])
+    m = _KANBAN_TASK_RE.search(text)
+    if m:
+        return m.group(0)
+    m = _INT_RE.search(text)
+    if m:
+        return m.group(1)
+    return None
 
 
 def build_brief(spec: WatcherSpec, routed: list[RoutedItem], skipped: int, n_deferred: int = 0) -> str:
@@ -159,7 +186,26 @@ def poll(
     routed: list[RoutedItem] = []
 
     for delta in to_process:
-        if gate_spec is not None:
+        force_key = f"force_route:{spec.name}:{delta.item_id}"
+        forced = store.get_kv(force_key)
+        if forced:
+            route = str(forced)
+            rule = gate_spec.routes.get(route) if gate_spec else None
+            handler = rule.handler if rule is not None else "agent"
+            decision = None
+            prob = None
+            if not dry_run:
+                store.log_decision(
+                    watcher=spec.name,
+                    kind="route",
+                    item_id=delta.item_id,
+                    route=route,
+                    proposed_route=route,
+                    outcome="forced",
+                    note="forced by review",
+                )
+                store.set_kv(force_key, None)
+        elif gate_spec is not None:
             fields = spec.state_fields or spec.fingerprint_fields or list(delta.item.keys())
             state = {"title": delta.title, **{f: dotted_get(delta.item, f) for f in fields}}
             decision = evaluate(gate_spec, state, chain or [])
@@ -261,6 +307,9 @@ def poll(
                                     f"loopguard:{s.name}:{d.item_id}:{d.fingerprint}",
                                     "--created-by",
                                     "loopguard",
+                                    "--json",
+                                    "--max-retries",
+                                    str(s.max_attempts),
                                 ]
                                 if s.kanban.get("assignee"):
                                     cmd.extend(["--assignee", str(s.kanban["assignee"])])
@@ -269,6 +318,16 @@ def poll(
                                 proc = subprocess.run(cmd, capture_output=True, text=True)
                                 if proc.returncode != 0:
                                     raise RuntimeError(f"kanban create failed: {proc.stderr}")
+                                task_id = parse_kanban_task_id(proc.stdout)
+                                if task_id:
+                                    store.set_kv(
+                                        f"kanban_task:{task_id}",
+                                        {
+                                            "watcher": s.name,
+                                            "item_id": d.item_id,
+                                            "fingerprint": d.fingerprint,
+                                        },
+                                    )
 
                             kanban_runner = default_kanban_runner
 
