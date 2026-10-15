@@ -76,6 +76,17 @@ def setup_parser(parser: argparse.ArgumentParser) -> None:
     p.add_argument("--backend", default=None, choices=["auto", "typesafe", "openai", "hermes", "local"])
     p.add_argument("--json", action="store_true")
 
+    p = sub.add_parser("eval-cu", help="Run the computer-use reliability eval (P6)")
+    p.add_argument("--cases", default="examples/cu_eval/cases.jsonl",
+                   help="Cases dir or JSONL file (default: examples/cu_eval/cases.jsonl)")
+    p.add_argument("--repeat", type=int, default=3, help="Repeats per case (default 3)")
+    p.add_argument("--arms", default="jev,gemini,atspi",
+                   help="Comma-separated arms: jev,gemini,atspi")
+    p.add_argument("--out", default=None, help="Results dir (default: <cases>/results)")
+    p.add_argument("--driver-socket", default=None,
+                   help="cua-driver socket for the atspi arm (default from config)")
+    p.add_argument("--json", action="store_true", help="Emit the summary as JSON")
+
     sub.add_parser("doctor", help="Check the LoopGuard install")
 
     dash = sub.add_parser("dashboard", help="Dashboard plugin page")
@@ -565,6 +576,95 @@ def _cmd_eval(args) -> int:
     return 0
 
 
+# --- eval-cu (computer-use reliability eval, P6) -------------------------
+def _cmd_eval_cu(args) -> int:
+    from hermes_loopguard.config import DEFAULTS, load_config
+    from hermes_loopguard.cu import eval_cu
+
+    cases_path = Path(args.cases)
+    if cases_path.is_dir():
+        cases_path = cases_path / "cases.jsonl"
+    if not cases_path.is_file():
+        print(f"Cannot load cases '{args.cases}'", file=sys.stderr)
+        return 1
+    try:
+        from hermes_loopguard import paths as lg_paths
+
+        lg_paths.bootstrap_hermes_env()
+    except Exception:
+        pass
+
+    cfg = load_config()
+    cu_cfg = dict(DEFAULTS.get("computer_use", {}))
+    cu_cfg.update(cfg.get("computer_use") or {})
+
+    arms = [a.strip() for a in str(args.arms).split(",") if a.strip()]
+    unknown = [a for a in arms if a not in eval_cu.DEFAULT_ARMS]
+    if unknown:
+        print(f"Unknown arms: {unknown} (choose from {list(eval_cu.DEFAULT_ARMS)})", file=sys.stderr)
+        return 1
+
+    driver = None
+    if "atspi" in arms:
+        driver = _atspi_driver(cu_cfg, args.driver_socket)
+        if driver is None:
+            print("atspi arm: no cua-driver socket; the AT-SPI arm will be "
+                  "skipped (it only covers cases with an element-dump hint)",
+                  file=sys.stderr)
+
+    out_dir = Path(args.out) if args.out else cases_path.parent / "results"
+    if "jev" in arms:
+        answered = eval_cu.preflight_jev(cu_cfg)
+        print(f"preflight: jev-1.14.0 answered ({answered})", flush=True)
+    report = eval_cu.run_eval(
+        cases_path,
+        repeat=max(1, int(args.repeat)),
+        arms=arms,
+        out_dir=out_dir,
+        driver=driver,
+        cu_cfg=cu_cfg,
+    )
+    if driver is not None:
+        try:
+            driver.close()
+        except Exception:
+            pass
+    if args.json:
+        summary = {
+            "counts": report["counts"],
+            "locate": {a: b["aggregate"] for a, b in report["locate"].items()},
+            "verify": {a: b["aggregate"] for a, b in report["verify"].items()},
+            "safety": {a: b["aggregate"] for a, b in report["safety"].items()},
+            "sweep": report["sweep"],
+            "spend": report["spend"],
+            "thumbs": report["thumbs"],
+        }
+        _print_json(summary)
+    else:
+        print(eval_cu.format_report(report))
+        print(f"results: {out_dir}")
+    return 0
+
+
+def _atspi_driver(cu_cfg: dict, socket_override: str | None):
+    """CuaDriver for the atspi arm, or None when the socket is unavailable."""
+    drv_cfg = dict(cu_cfg.get("driver") or {})
+    sock = socket_override or drv_cfg.get("socket") or "/tmp/lg-cu/cua.sock"
+    if not Path(sock).exists():
+        return None
+    try:
+        from hermes_loopguard.cu.drivers.cua import CuaDriver
+
+        return CuaDriver(
+            socket=sock,
+            app=drv_cfg.get("app"),
+            cua_bin=drv_cfg.get("cua_bin", "cua-driver"),
+            timeout_s=int(drv_cfg.get("timeout_s", 20)),
+        )
+    except Exception:
+        return None
+
+
 # --- doctor -------------------------------------------------------------
 def _importable(module: str) -> bool:
     import importlib.util
@@ -714,6 +814,7 @@ _HANDLERS = {
     "review": _cmd_review,
     "check": _cmd_check,
     "eval": _cmd_eval,
+    "eval-cu": _cmd_eval_cu,
     "doctor": _cmd_doctor,
     "dashboard": _cmd_dashboard,
     "shadow": _cmd_shadow,

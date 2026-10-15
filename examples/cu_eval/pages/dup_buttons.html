@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Save changes?</title>
+<style>
+  body { font-family: sans-serif; background: #eef0f4; display: flex; justify-content: center; }
+  .dialog { background: #fff; margin-top: 140px; padding: 28px; border-radius: 10px;
+    box-shadow: 0 6px 24px #0003; width: 420px; }
+  .row { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
+  button { padding: 8px 18px; border-radius: 5px; border: 1px solid #999; background: #eee; margin: 0; }
+</style></head>
+<body data-page="dup_buttons.html">
+<div class="dialog" role="dialog" aria-modal="true">
+  <h3>Save changes to report-q3.txt?</h3>
+  <div class="row">
+    <button data-gt="dont-save">Don't save</button>
+    <button data-gt="save">Save</button>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  if (!location.search.includes('gt=1')) return;
+  var out = {};
+  document.querySelectorAll('[data-gt]').forEach(function (el) {
+    var r = el.getBoundingClientRect();
+    out[el.getAttribute('data-gt')] =
+      [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height)];
+  });
+  document.title = 'GT:' + JSON.stringify(out);
+});
+</script>
+</body></html>

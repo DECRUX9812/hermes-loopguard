@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Checkout — Aurora Tools</title>
+<style>
+  body { font-family: sans-serif; margin: 2rem; background: #fafafa; color: #111; }
+  form, .card { width: 420px; }
+  label { display: block; margin-top: 14px; font-weight: 600; }
+  input, textarea, select { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; }
+  .check input { width: auto; margin-right: 8px; }
+  button { margin-top: 18px; padding: 10px 22px; font-size: 16px; }
+
+  .summary { border: 1px solid #ccd; border-radius: 8px; padding: 18px; width: 380px; background: #fff; }
+  #overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none;
+    align-items: center; justify-content: center; }
+  #dialog { background: #fff; border-radius: 10px; padding: 24px; width: 380px;
+    box-shadow: 0 8px 40px rgba(0,0,0,.3); }
+  .row { display: flex; gap: 12px; margin-top: 18px; }
+  .row button { flex: 1; margin: 0; }
+  .danger { background: #c62831; color: #fff; }
+</style></head>
+<body data-page="checkout.html">
+<h1>Checkout</h1>
+<div class="summary">
+  <p><strong>Pro Toolkit</strong> — $49/month</p>
+  <button data-gt="pay">Pay $49</button>
+</div>
+<div id="overlay" role="dialog" aria-modal="true" aria-labelledby="dlg-title">
+  <div id="dialog">
+    <h2 id="dlg-title" data-gt="dialog-title">Confirm payment $49</h2>
+    <p>You are about to charge <strong>$49.00</strong> to your saved card ending in 4242.</p>
+    <div class="row">
+      <button id="cancel-btn" data-gt="cancel">Cancel</button>
+      <button id="confirm-pay-btn" class="danger" data-gt="confirm-pay">Pay</button>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var p = new URLSearchParams(location.search);
+  if (p.get('name')) { var e = document.getElementById('name'); if (e) e.value = p.get('name'); }
+  if (p.get('email')) { var e = document.getElementById('email'); if (e) e.value = p.get('email'); }
+  if (p.get('check')) { var e = document.querySelector('input[name=newsletter]'); if (e) e.checked = true; }
+  if (p.get('dialog')) { var e = document.getElementById('overlay'); if (e) e.style.display = 'flex'; }
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  if (!location.search.includes('gt=1')) return;
+  var out = {};
+  document.querySelectorAll('[data-gt]').forEach(function (el) {
+    var r = el.getBoundingClientRect();
+    out[el.getAttribute('data-gt')] =
+      [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height)];
+  });
+  document.title = 'GT:' + JSON.stringify(out);
+});
+</script>
+</body></html>

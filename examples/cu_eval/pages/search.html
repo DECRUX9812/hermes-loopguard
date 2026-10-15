@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Knowledge search</title>
+<style>
+  body { font-family: sans-serif; margin: 2rem; background: #fafafa; color: #111; }
+  form, .card { width: 420px; }
+  label { display: block; margin-top: 14px; font-weight: 600; }
+  input, textarea, select { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; }
+  .check input { width: auto; margin-right: 8px; }
+  button { margin-top: 18px; padding: 10px 22px; font-size: 16px; }
+
+  input { padding: 10px; width: 340px; font-size: 15px; }
+</style></head>
+<body data-page="search.html">
+<h1>Search the docs</h1>
+<form action="#" method="GET" onsubmit="return false">
+  <input id="q" name="q" data-gt="query" type="text" placeholder="Search…">
+  <button type="submit" data-gt="search">Search</button>
+</form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  if (!location.search.includes('gt=1')) return;
+  var out = {};
+  document.querySelectorAll('[data-gt]').forEach(function (el) {
+    var r = el.getBoundingClientRect();
+    out[el.getAttribute('data-gt')] =
+      [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height)];
+  });
+  document.title = 'GT:' + JSON.stringify(out);
+});
+</script>
+</body></html>

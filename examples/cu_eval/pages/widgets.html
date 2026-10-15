@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Signup form (widgets)</title>
+<style>
+  body { font-family: sans-serif; margin: 2rem; background: #fafafa; color: #111; }
+  form, .card { width: 420px; }
+  label { display: block; margin-top: 14px; font-weight: 600; }
+  input, textarea, select { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; }
+  .check input { width: auto; margin-right: 8px; }
+  button { margin-top: 18px; padding: 10px 22px; font-size: 16px; }
+
+  form { width: 460px; }
+  button { margin-top: 20px; }
+</style></head>
+<body data-page="widgets.html">
+<h1>Create your account</h1>
+<form action="#" method="GET" onsubmit="return false">
+  <label for="username">Username</label>
+  <input id="username" name="username" data-gt="username" type="text">
+  <label for="email">Email</label>
+  <input id="email" name="email" data-gt="email" type="email">
+  <label for="plan">Plan</label>
+  <select id="plan" name="plan" data-gt="plan">
+    <option value="">Choose a plan…</option>
+    <option value="free">Free</option>
+    <option value="pro">Pro</option>
+    <option value="team">Team</option>
+  </select>
+  <label class="check"><input type="checkbox" name="newsletter" data-gt="newsletter" value="yes"> Subscribe to the newsletter</label>
+  <button type="submit" data-gt="submit">Sign up</button>
+</form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var p = new URLSearchParams(location.search);
+  if (p.get('name')) { var e = document.getElementById('name'); if (e) e.value = p.get('name'); }
+  if (p.get('email')) { var e = document.getElementById('email'); if (e) e.value = p.get('email'); }
+  if (p.get('check')) { var e = document.querySelector('input[name=newsletter]'); if (e) e.checked = true; }
+  if (p.get('dialog')) { var e = document.getElementById('overlay'); if (e) e.style.display = 'flex'; }
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  if (!location.search.includes('gt=1')) return;
+  var out = {};
+  document.querySelectorAll('[data-gt]').forEach(function (el) {
+    var r = el.getBoundingClientRect();
+    out[el.getAttribute('data-gt')] =
+      [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height)];
+  });
+  document.title = 'GT:' + JSON.stringify(out);
+});
+</script>
+</body></html>
