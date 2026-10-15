@@ -50,6 +50,11 @@ head -1 "$(command -v hermes)"    # e.g. #!/path/to/hermes-venv/bin/python
 # or: uv pip install --python /path/to/hermes-venv/bin/python -e /path/to/hermes-loopguard
 ```
 
+The `-e` (editable) install matters: stock Hermes' PM rewires `sys.path` and drops every
+`site-packages` entry that is not its own, so a regular (non-editable) install is invisible to the
+in-process plugin loader. An editable install survives because its `.pth` adds the source directory
+instead. (The cron-script path works either way: the watcher shim embeds the install's site dirs.)
+
 LoopGuard has no runtime dependencies beyond what stock Hermes ships (pyyaml is optional; a
 built-in fallback covers YAML), so it loads cleanly inside the PM environment.
 
