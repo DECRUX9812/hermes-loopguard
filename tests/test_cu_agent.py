@@ -209,23 +209,89 @@ def test_click_step_still_grounds_without_role_preference(monkeypatch):
     assert clicked and clicked[0]["args"]["token"] == "btn"
 
 
-def test_type_step_selects_all_before_typing(monkeypatch):
+def test_type_step_retry_selects_all_before_typing(monkeypatch):
     """REAL failure: retried typing APPENDED ('Grace HopperThe fold is not a
-    bugThe fold is not a bug').  The agent must ctrl+a (replace) before typing
-    so every attempt is idempotent."""
+    bug').  A RETRY must ctrl+a (replace) so attempts are idempotent.  The
+    FIRST attempt must NOT: fields start empty (forms) or preselected (F2
+    inline rename), and the live probe showed the select-all DESTROYS the
+    rename preselection (GTK icon views swallow ctrl+a), so typing then
+    appends ('report.txtreport-final.txt' on disk)."""
     driver = make_driver(
-        ["form.png", "form.png", "thanks.png", "thanks.png"],
+        ["form.png"] * 6,
         elements=[{"token": "e1", "role": "entry", "label": "Name", "x": 10, "y": 20, "w": 300, "h": 30}],
     )
     gate = FakeGate()
-    steps = [agent.Step(action="type", target="Name", text="Ada", expect="the Name field shows Ada")]
+    gate.ask_noul = 0.9
+    steps = [
+        agent.Step(action="type", target="Name", text="Ada", expect="the Name field shows Ada"),
+        agent.Step(action="type", target="Name", text="Ada", expect="the Name field shows Ada"),
+    ]
     patch_plan(monkeypatch, [steps])
-    result = agent.run_task("type Ada", driver, gate, {"max_steps": 5})
+    result = agent.run_task("type Ada twice", driver, gate, {"max_steps": 5})
     assert result.state == "completed"
     methods = [c["method"] for c in driver.calls]
-    assert methods.index("key") < methods.index("type_text")
-    keys = [c["args"]["keys"] for c in driver.calls if c["method"] == "key"]
-    assert "ctrl+a" in keys
+    keys = [c["args"].get("keys") for c in driver.calls if c["method"] == "key"]
+    assert keys.count("ctrl+a") == 1  # only the repeat of the same field
+    assert methods.index("type_text") < methods.index("key")  # after the first attempt
+
+
+def test_type_step_after_key_step_skips_the_pre_click(monkeypatch):
+    """REAL failure (thunar rename): F2 opens an inline edit with the name
+    preselected; the type step re-clicked the entry (caret move / AT-SPI
+    activate) and the select-all was swallowed, so typing APPENDED.  A type
+    step that directly follows a key step must type into the already-focused
+    widget without clicking."""
+    driver = make_driver(
+        ["form.png"] * 6,
+        elements=[{"token": "e1", "role": "text", "label": "report.txt", "x": 10, "y": 20, "w": 300, "h": 30}],
+    )
+    gate = FakeGate()
+    gate.ask_noul = 0.9
+    steps = [
+        agent.Step(action="key", keys="F2", expect="the rename field is open"),
+        agent.Step(action="type", target="report.txt", text="renamed.txt",
+                   expect="the list shows renamed.txt"),
+    ]
+    patch_plan(monkeypatch, [steps])
+    gate.verify_results.append(VerifyResult(passed=True, yes=0.9, usage=_usage()))
+    result = agent.run_task("rename it", driver, gate, {"max_steps": 5})
+    assert result.state == "completed"
+    rec = result.steps[1]
+    assert rec.verdict in ("pass", "free")
+    methods = [c["method"] for c in driver.calls]
+    keys = [c["args"].get("keys") for c in driver.calls if c["method"] == "key"]
+    assert keys == ["F2"]  # no ctrl+a between F2 and typing
+    clicks = [c for c in driver.calls if c["method"] in ("click", "click_element")]
+    assert not clicks, "no re-click after the key step opened the inline edit"
+    typed = [c for c in driver.calls if c["method"] == "type_text"]
+    assert typed and typed[-1]["args"]["text"] == "renamed.txt"
+
+
+def test_box_type_step_grounds_to_nearest_editable(monkeypatch):
+    """REAL failure (mousepad-save): the Save-As Name entry has an EMPTY a11y
+    label; the Box locate finds the 'Name' LABEL and clicking it leaves the
+    focus on the search box, so the typed filename landed wherever focus was.
+    A type step must ground to the editable field next to the located label."""
+    driver = make_driver(
+        ["form.png", "form.png", "form.png", "form.png"],
+        elements=[
+            {"token": "lab", "role": "label", "label": "Name", "x": 10, "y": 60, "w": 50, "h": 30},
+            {"token": "ent", "role": "text", "label": "", "x": 70, "y": 60, "w": 400, "h": 30},
+        ],
+    )
+    gate = FakeGate()
+    gate.locate_results.append(
+        LocateResult(found=True, presence=0.9, confidence=0.9, box=(0.01, 0.07, 0.05, 0.12),
+                     center=(35, 75), grounding="box", usage=_usage())
+    )
+    steps = [agent.Step(action="type", target="Name", text="hello.txt",
+                        expect="the Name field shows hello.txt")]
+    patch_plan(monkeypatch, [steps])
+    result = agent.run_task("save it", driver, gate, {"max_steps": 5})
+    rec = result.steps[0]
+    assert rec.grounding == "a11y"
+    clicked = [c for c in driver.calls if c["method"] == "click_element"]
+    assert clicked and clicked[0]["args"]["token"] == "ent"
 
 
 def test_type_step_without_target_types_into_focus(monkeypatch):
@@ -247,7 +313,6 @@ def test_type_step_without_target_types_into_focus(monkeypatch):
     assert "click" not in methods and "click_element" not in methods
     typed = [c for c in driver.calls if c["method"] == "type_text"]
     assert typed and typed[0]["args"]["text"] == "Hello from LoopGuard"
-    assert "key" in methods  # ctrl+a before typing (idempotent)
 
 
 def test_pad_region_grows_tiny_box_to_typeafe_minimum():

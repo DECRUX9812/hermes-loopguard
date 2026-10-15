@@ -340,6 +340,10 @@ _PLANNER_SYSTEM = (
     "- To move or copy a file in a file manager: click the file to select it, press key "
     "\"ctrl+x\" (or \"ctrl+c\"), click the destination folder, then press key \"ctrl+v\"; set "
     "the expect of that final paste to the file appearing in the destination. "
+    "- To rename an item in a file manager: click the item, press key \"F2\", then ONE type "
+    "step with the NEW name (target = the item's current name; the field opens with the old "
+    "name preselected, so do not add select-all or extra clicks between F2 and typing), then "
+    "key \"Return\"; set the expect of the type step to the new name shown in the list."
     "- A step whose outcome shows no visible change (saving, selecting) must NOT claim one: "
     "give it the smallest honestly-checkable expect or none. "
     "- Ignore window-manager panels, docks and browser toolbars; act only in the app window "
@@ -533,17 +537,53 @@ def _pad_region(box: tuple[float, float, float, float], w: int, h: int, pad: flo
 
 # AT-SPI roles that accept keyboard input, most specific first.  A `type`
 # step should prefer these over a same-named static label: clicking a label
-# ("Feedback" heading) never focuses the field under it.
+# ("Feedback" heading) never focuses the field under it.  ("text" covers GTK
+# entries whose walk exposes an empty label, e.g. a Save-As name field.)
 EDITABLE_ROLES = (
     "entry",
     "text box",
     "textbox",
     "text area",
     "textarea",
+    "text",
     "password text",
     "spin button",
     "combo box",
 )
+
+
+def _rect_distance(el: Element, x: float, y: float) -> float:
+    """Distance from a desktop point to the element's rectangle (0 inside)."""
+    dx = max(el.x - x, 0, x - (el.x + el.w))
+    dy = max(el.y - y, 0, y - (el.y + el.h))
+    return (dx * dx + dy * dy) ** 0.5
+
+
+def _nearest_editable(driver: ComputerDriver, point: tuple[int, int]) -> Element | None:
+    """The editable a11y element closest to a Box-found point.
+
+    REAL failure (mousepad-save): the Save-As dialog's Name entry has an
+    EMPTY label in the walk, so a type step grounded by label can never find
+    it; the Box locate finds the 'Name' LABEL TEXT left of the entry, and
+    clicking that leaves the focus on the search box / list — the typed path
+    lands wherever focus was.  The editable field sits on the same row as the
+    label the planner meant; pick it.
+    """
+    try:
+        candidates = [
+            el for el in driver.elements()
+            if any(role in el.role.lower() for role in EDITABLE_ROLES) and el.w > 0 and el.h > 0
+        ]
+    except Exception:
+        return None
+    if not candidates:
+        return None
+    best = min(candidates, key=lambda el: _rect_distance(el, point[0], point[1]))
+    # Within one row height of the located point, else the box point was
+    # probably over something else entirely.
+    if _rect_distance(best, point[0], point[1]) > 80:
+        return None
+    return best
 
 
 def ground(
@@ -581,6 +621,13 @@ def ground(
                 el = driver.find_element(target)
             except Exception:
                 el = None
+            if el is not None and prefer_editable and not any(
+                role in el.role.lower() for role in EDITABLE_ROLES
+            ):
+                # A type step matched a STATIC element ("Name" label): clicking
+                # it never focuses the editable field it names.  Leave it to
+                # the Box locate + nearest-editable fallback below.
+                el = None
         if el is not None:
             return "a11y", None, el.center, el, usages
     if not target:
@@ -588,6 +635,13 @@ def ground(
     loc = gate.locate(frame, target)
     usages.append(loc.usage)
     if loc.found and loc.center:
+        # A type step's Box hit is often the field's LABEL ("Name:"); the
+        # editable it belongs to sits right next to it (same row).  Ground to
+        # the editable so the click focuses the FIELD, not the label.
+        if prefer_editable:
+            near = _nearest_editable(driver, loc.center)
+            if near is not None:
+                return "a11y", None, near.center, near, usages
         return "box", loc.box, loc.center, None, usages
     if loc.box:
         region = _pad_region(loc.box, frame.width, frame.height)
@@ -785,6 +839,7 @@ def run_task(
     goal_replanned = False
     escalations_used = 0
     flush_failures = 0
+    type_attempts: dict[str, int] = {}  # step.sig() -> attempts so far
 
     def _escalate_act(step: Step, rec: StepRecord, frame_before: Frame) -> bool:
         """Escalate THIS ONE failing step to the strong vision model and act."""
@@ -994,17 +1049,27 @@ def run_task(
         if step.action == "click":
             res = driver.click_element(el) if el is not None else driver.click(point[0], point[1])
         elif step.action == "type":
-            if el is not None:
-                driver.click_element(el)
-            elif point is not None:
-                driver.click(point[0], point[1])
-            time.sleep(0.3)
-            # Fill semantics: select whatever is in the field and replace it.
-            # Typing alone appends, so a retried step would duplicate text
-            # ("Grace HopperGrace Hopper"); select-all makes every attempt
-            # idempotent.  With no target this selects the focused document.
-            driver.key("ctrl+a")
-            time.sleep(0.15)
+            # The previous step was a KEY step (e.g. F2/rename opens an
+            # inline edit with the text preselected): the field is already
+            # focused and clicking it again only moves the caret / drops the
+            # selection — type straight into the focused widget.
+            after_key = len(records) >= 2 and records[-2].action == "key"
+            if not after_key:
+                if el is not None:
+                    driver.click_element(el)
+                elif point is not None:
+                    driver.click(point[0], point[1])
+                time.sleep(0.3)
+            # Fill semantics on RETRIES: select whatever is in the field and
+            # replace it (typing alone appends, so a retried step would
+            # duplicate text).  On the FIRST attempt the field starts empty
+            # (forms) or with the text preselected (inline rename), and the
+            # select-all is actively harmful there (GTK icon views swallow
+            # ctrl+a and the preselection is lost — typing then appends).
+            if type_attempts.get(step.sig(), 0) >= 1:
+                driver.key("ctrl+a")
+                time.sleep(0.15)
+            type_attempts[step.sig()] = type_attempts.get(step.sig(), 0) + 1
             res = driver.type_text(str(step.text or ""))
         elif step.action == "key":
             res = driver.key(str(step.keys or ""))
