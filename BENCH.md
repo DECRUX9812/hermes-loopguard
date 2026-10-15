@@ -5,8 +5,9 @@ baseline per task run (the bar is 10%) and succeeds on **13 of 22** runs against
 **19 of 22** (the bar is "at least as many"). It makes **97% fewer big-model calls** (5 vs 146).
 Details, failures and what would close the gap are below.
 
-A round-3 Jev rerun on newer code (`results/jev-x4b-final3.jsonl`) was in progress when this was
-written. It is not counted here; this file will be updated when it finishes.
+A round-3 run was stopped part-way when more fixes landed, and is not used. Round 4
+(`results/jev-x4b-final4.jsonl`, then a baseline rerun) was in progress when this was written;
+this file will be updated from it.
 
 ## Setup
 
@@ -46,7 +47,9 @@ dollar figures are list-price equivalents, not invoices.
 
 ## Data used
 
-All on the final code of round 2 (commit 0c0e5ef carries the code and these files):
+All on the round-2 code (the round-2 fixes listed in `.oc/x4b-bench.log` section 5, on top of
+1058e4a). Commit 0c0e5ef carries these files plus the first round-3 fixes, which landed while
+the baseline run was finishing and are not reflected in the Jev numbers below:
 
 - Jev: `examples/cu_bench/results/jev-x4b-final2.jsonl` (11 tasks x 2 repeats = 22 runs)
 - Baseline: `examples/cu_bench/results/baseline-x4b-final.jsonl` and
@@ -167,10 +170,10 @@ With 2 runs per task per arm, a one-task difference is within noise. The 6-run s
    window title) instead of the typed text.
 2. **Commit steps with no visible change** (settings-gtk Save). Treat a commit step as passed
    when the next screen check or the final goal check passes, instead of retrying and escalating.
-3. **Safety false pauses on instruction-authorized submits** (browser-flow r2). The instruction
-   says "join the beta", which `authorized_categories` matches, so `send_or_publish` should have
-   been pre-authorized; the run paused anyway. That is a bug in how the ambiguous-band decision
-   applies the authorization. Payment, deletion and account changes stay never pre-authorized.
+3. **Safety false pauses on instruction-authorized submits** (browser-flow r2). The round-2
+   authorization words did not include "join", so "join the beta" did not pre-authorize
+   `send_or_publish`. Fixed since (join, register, sign up, enroll added). Payment, deletion and
+   account changes stay never pre-authorized.
 4. **Jev image errors.** Two `400 Invalid image dimensions` responses came from crops that could
    not be padded to the TypeSafe minimum; those should be padded from the full frame or skipped,
    not sent.
