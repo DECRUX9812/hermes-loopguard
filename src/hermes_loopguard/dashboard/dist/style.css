@@ -12,6 +12,16 @@
   --lg-color-completion: #14b8a6;
   --lg-color-budget: #f97316;
   --lg-color-custom: #84cc16;
+  /* Custom route names pick a slot from this palette by a stable hash of the
+     name (index.js), so two different custom routes never share one swatch.
+     Theme-friendly: override these on .lg-root; each slot falls back to
+     --lg-color-custom for older stylesheets. */
+  --lg-color-custom-0: #84cc16;
+  --lg-color-custom-1: #eab308;
+  --lg-color-custom-2: #f43f5e;
+  --lg-color-custom-3: #a855f7;
+  --lg-color-custom-4: #0ea5e9;
+  --lg-color-custom-5: #f97316;
 
   /* Some host themes define --color-card(-foreground) but not --color-foreground
      or --color-background; chain the fallbacks so text stays readable either way. */
