@@ -40,6 +40,28 @@ DEFAULTS = {
         "semantic": False,
     },
     "completion": {"goal_file": "GOAL.md", "max_continuations": 3},
+    "computer_use": {
+        "enabled": False,
+        "shadow": False,
+        "driver": {
+            "name": "cua",
+            "socket": "/tmp/lg-cu/cua.sock",
+            "app": None,
+            "cua_bin": "cua-driver",
+            "timeout_s": 20,
+        },
+        "planner_model": "gemini-3.1-flash-lite",
+        "models": ["jev-1.14.0", "jev-1.13.0", "openai:gemini-3.8-flash-high"],
+        "openai": {"base_url": "http://127.0.0.1:8317/v1", "api_key_env": "CLIPROXY_API_KEY"},
+        "timeout_s": 30,
+        "thresholds": {"presence": 0.6, "box_confidence": 0.5, "verify": 0.7, "safety": 0.2},
+        "hash": {"unchanged_max": 3, "changed_min": 12},
+        "stall": {"stale_limit": 4},
+        "escalation": {"model": "openai:claude-opus-4-6-thinking", "after_failures": 2},
+        "max_steps": 12,
+        "budget_usd": 0.50,
+        "frames": {"retention": 20},
+    },
     "kanban": {"max_attempts": 3, "spend_cap_tokens": 400000},
 }
 

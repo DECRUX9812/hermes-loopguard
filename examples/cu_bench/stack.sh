@@ -97,7 +97,9 @@ cmd_start() {
     exit 0
   fi
   systemctl --user stop "$UNIT" 2>/dev/null || true
-  rm -f "$SOCKET" "$RUN/judge.jsonl"
+  # A socket left by a previous session makes the inner wait loop pass at
+  # once, before a11y_bus.py is up, and the run gets a dead AT-SPI bus.
+  rm -f "$SOCKET" "$RUN/judge.jsonl" "$RUN/a11y/bus" "$RUN/a11y/addr"
   mkdir -p "$RUN" "$RUN/state" "$RUN/files"
   write_inner
   systemd-run --user --unit="$UNIT" \

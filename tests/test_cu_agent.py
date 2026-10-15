@@ -1,0 +1,434 @@
+"""Unit tests for the jev_computer agent loop (X3).
+
+EVERYTHING here is a unit-test fake: a FakeDriver replaying recorded frames
+and a FakeGate answering canned typed results.  Where a REAL recorded Jev
+response is used (the safety-policy tests) it is loaded from
+tests/fixtures/cu/vision/cases/ and marked.  No live daemon, display or
+model is touched.
+
+FakeDriver hands out one frame per screenshot() call in list order (then
+repeats the last), so the frame lists below are sequenced shot-by-shot:
+each action step consumes a pre-shot and an after-shot, which must differ
+unless the test exercises the no-op path.
+"""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import pytest
+
+from hermes_loopguard.cu import agent
+from hermes_loopguard.cu.drivers.fake import FakeDriver
+from hermes_loopguard.cu.vision import (
+    ChangeResult,
+    LocateResult,
+    SafetyResult,
+    VerifyResult,
+    VisionUsage,
+)
+from hermes_loopguard.questions import NoulAnswer
+
+FIX = Path(__file__).parent / "fixtures" / "cu" / "vision"
+
+# REAL recorded Jev responses (see tests/fixtures/cu/vision/README.md).
+SAFETY_FORM = json.loads((FIX / "cases" / "safety_form_jev114.json").read_text())
+SAFETY_PAYMENT = json.loads((FIX / "cases" / "safety_payment_jev114.json").read_text())
+
+
+def _usage(model: str = "jev-1.14.0", usd: float = 0.0001) -> VisionUsage:
+    return VisionUsage(backend="typesafe", model=model, input_tokens=100, output_tokens=10, usd=usd)
+
+
+def _safety_from_case(case: dict) -> SafetyResult:
+    answers = case["answers"]
+    return SafetyResult(
+        category=answers["category"]["choice"],
+        probs=dict(answers["category"]["probabilities"]),
+        confirm_dialog=float(answers["confirm"]["noul"]),
+        pause=bool(case.get("pause")),
+        usage=_usage(),
+    )
+
+
+class FakeGate:
+    """FAKE gate: canned typed answers, every call recorded."""
+
+    def __init__(self):
+        self.thresholds = {"presence": 0.6, "box_confidence": 0.5, "verify": 0.7, "safety": 0.2}
+        self.calls = {"locate": [], "verify": [], "changed": [], "safety": [], "ask": []}
+        self.locate_results: list[LocateResult] = []
+        self.verify_results: list[VerifyResult] = []
+        self.safety_result = SafetyResult(
+            category="none", probs={"none": 0.99}, confirm_dialog=0.0, pause=False, usage=_usage()
+        )
+        self.changed_result = ChangeResult(changed=True, distance=20, path="hash", usage=None)
+        self.ask_noul = 0.9
+
+    @staticmethod
+    def _next(queue: list, default):
+        return queue.pop(0) if queue else default
+
+    def locate(self, frame, target, *, region=None):
+        self.calls["locate"].append({"target": target, "region": region})
+        return self._next(
+            self.locate_results,
+            LocateResult(found=False, presence=0.0, confidence=0.0, box=None, center=None,
+                         grounding="none", usage=_usage()),
+        )
+
+    def verify(self, after, expected, *, before=None):
+        self.calls["verify"].append({"expected": expected, "before": before is not None})
+        return self._next(self.verify_results, VerifyResult(passed=True, yes=0.9, usage=_usage()))
+
+    def changed(self, before, after):
+        self.calls["changed"].append({})
+        return self.changed_result
+
+    def safety(self, frame):
+        self.calls["safety"].append({})
+        return self.safety_result
+
+    def ask(self, images, state, questions):
+        self.calls["ask"].append({"questions": list(questions), "images": list(images)})
+        return {name: NoulAnswer(noul=self.ask_noul) for name in questions}, _usage()
+
+
+def make_driver(frames_spec: list[str], elements: list[dict] | None = None, actions: dict | None = None):
+    fixture = {
+        "frames": [{"file": f, "width": 1280, "height": 800} for f in frames_spec],
+        "elements": {"Google-chrome": elements or []},
+        "actions": actions or {},
+    }
+    return FakeDriver(fixture, base_dir=FIX)
+
+
+def patch_plan(monkeypatch, plans: list[list[agent.Step]]):
+    """Replace the planner with a queue of canned plans; records the
+    failure-evidence argument of every call."""
+    calls: list[str | None] = []
+
+    def fake(instruction, driver, cfg, *, model=None, failure_evidence=None):
+        calls.append(failure_evidence)
+        idx = min(len(calls) - 1, len(plans) - 1)
+        return list(plans[idx]), _usage(model="gemini-3.1-flash-lite", usd=0.0005)
+
+    monkeypatch.setattr(agent, "plan", fake)
+    return calls
+
+
+# --------------------------------------------------------------------- grounding
+
+
+def test_a11y_grounding_costs_zero_locate_calls(monkeypatch):
+    driver = make_driver(
+        ["form.png", "form.png", "thanks.png", "thanks.png"],
+        elements=[{"token": "e1", "role": "entry", "label": "Name", "x": 10, "y": 20, "w": 300, "h": 30}],
+    )
+    gate = FakeGate()
+    steps = [agent.Step(action="type", target="Name", text="Ada", expect="the Name field shows Ada")]
+    patch_plan(monkeypatch, [steps])
+    result = agent.run_task("type Ada", driver, gate, {"max_steps": 5})
+    assert result.state == "completed"
+    rec = result.steps[0]
+    assert rec.grounding == "a11y"
+    assert gate.calls["locate"] == []  # free path: zero-token grounding
+    typed = [c for c in driver.calls if c["method"] == "type_text"]
+    assert typed and typed[0]["args"]["text"] == "Ada"
+
+
+def test_box_grounding_when_a11y_missing(monkeypatch):
+    driver = make_driver(["form.png", "form.png", "thanks.png", "thanks.png"], elements=[])
+    gate = FakeGate()
+    gate.locate_results.append(
+        LocateResult(found=True, presence=0.9, confidence=0.9, box=(0.1, 0.2, 0.3, 0.4),
+                     center=(200, 300), grounding="box", usage=_usage())
+    )
+    steps = [agent.Step(action="click", target="Submit", expect="the thanks page is shown")]
+    patch_plan(monkeypatch, [steps])
+    result = agent.run_task("submit", driver, gate, {"max_steps": 5})
+    rec = result.steps[0]
+    assert rec.grounding == "box"
+    assert rec.point == (200, 300)
+    clicks = [c for c in driver.calls if c["method"] == "click"]
+    assert clicks and clicks[0]["args"]["x"] == 200 and clicks[0]["args"]["y"] == 300
+
+
+def test_zoom_retry_uses_padded_region(monkeypatch):
+    driver = make_driver(["form.png", "form.png", "thanks.png", "thanks.png"], elements=[])
+    gate = FakeGate()
+    box = (0.4, 0.4, 0.5, 0.5)  # 128x80 px at 1280x800
+    gate.locate_results.append(
+        LocateResult(found=False, presence=0.9, confidence=0.3, box=box, center=None,
+                     grounding="box", usage=_usage())
+    )
+    gate.locate_results.append(
+        LocateResult(found=True, presence=0.9, confidence=0.9, box=box, center=(576, 360),
+                     grounding="box", usage=_usage())
+    )
+    steps = [agent.Step(action="click", target="Save", expect="saved")]
+    patch_plan(monkeypatch, [steps])
+    result = agent.run_task("save", driver, gate, {"max_steps": 5})
+    rec = result.steps[0]
+    assert rec.grounding == "zoom"
+    assert len(gate.calls["locate"]) == 2
+    # 25% padding of the 128x80 box: (512,320,640,400) -> (480,300,672,420).
+    assert gate.calls["locate"][1]["region"] == (480, 300, 672, 420)
+
+
+# --------------------------------------------------------------------- safety
+
+
+def test_safety_pause_stops_before_the_click(monkeypatch):
+    driver = make_driver(["form.png", "form.png", "payment.png", "payment.png"], elements=[])
+    gate = FakeGate()
+    gate.locate_results.append(
+        LocateResult(found=True, presence=0.9, confidence=0.9, box=None, center=(100, 200),
+                     grounding="box", usage=_usage())
+    )
+    # REAL recorded Jev answer for a payment dialog: pause (payment 1.0).
+    gate.safety_result = _safety_from_case(SAFETY_PAYMENT)
+    steps = [agent.Step(action="click", target="Pay $49", expect="paid")]
+    patch_plan(monkeypatch, [steps])
+    result = agent.run_task("buy thing", driver, gate, {"max_steps": 5})
+    assert result.state == "paused_for_approval"
+    assert "payment" in result.reason
+    assert not [c for c in driver.calls if c["method"] == "click"], "must never click through a pause"
+    rec = result.steps[0]
+    assert rec.verdict == "paused" and rec.safety == "payment"
+
+
+def test_safety_policy_on_recorded_form_fixture():
+    """REAL recorded Jev response: a plain form puts 0.41 on send_or_publish."""
+    result = _safety_from_case(SAFETY_FORM)
+    # Unauthorized ("fill the fields") -> pause (bias to ask).
+    d = agent.safety_decision(result, agent.authorized_categories("Fill in the fields with Ada"))
+    assert d.pause and "send_or_publish" in d.reason
+    # Authorized ("submit the form") -> no pause (nothing else is risky).
+    d = agent.safety_decision(result, agent.authorized_categories("Fill the form and submit it"))
+    assert not d.pause
+
+
+def test_payment_is_never_pre_authorized():
+    result = _safety_from_case(SAFETY_PAYMENT)
+    d = agent.safety_decision(result, {"send_or_publish"})
+    assert d.pause and "payment" in d.reason
+
+
+def test_safety_error_pauses():
+    result = SafetyResult(category="none", probs={}, confirm_dialog=0.0, pause=False,
+                          usage=None, error="all models failed")
+    d = agent.safety_decision(result, {"send_or_publish"})
+    assert d.pause
+
+
+def test_authorized_send_or_publish_does_not_pause(monkeypatch):
+    driver = make_driver(["form.png", "form.png", "thanks.png", "thanks.png"], elements=[])
+    gate = FakeGate()
+    gate.locate_results.append(
+        LocateResult(found=True, presence=0.9, confidence=0.9, box=None, center=(100, 200),
+                     grounding="box", usage=_usage())
+    )
+    # REAL recorded form answer: send_or_publish 0.41 on a plain form.
+    gate.safety_result = _safety_from_case(SAFETY_FORM)
+    steps = [agent.Step(action="click", target="Submit", expect="the thanks page is shown")]
+    patch_plan(monkeypatch, [steps])
+    result = agent.run_task("Fill the form and click Submit", driver, gate, {"max_steps": 5})
+    assert result.state == "completed"
+
+
+# --------------------------------------------------------------------- verdicts
+
+
+def test_free_path_when_driver_confirms(monkeypatch):
+    driver = make_driver(
+        ["form.png", "form.png", "thanks.png", "thanks.png"],
+        elements=[{"token": "e1", "role": "button", "label": "Submit", "x": 10, "y": 20, "w": 30, "h": 10}],
+        actions={"click_element": [{"ok": True, "effect": "confirmed", "verified": True}]},
+    )
+    gate = FakeGate()
+    steps = [agent.Step(action="click", target="Submit", expect="the thanks page is shown")]
+    patch_plan(monkeypatch, [steps])
+    result = agent.run_task("submit", driver, gate, {"max_steps": 5})
+    rec = result.steps[0]
+    assert rec.verdict == "free"
+    # Only the final done-check used a verify call.
+    assert len(gate.calls["verify"]) == 1
+
+
+def test_type_fields_verified_in_one_batched_request(monkeypatch):
+    driver = make_driver(["form.png"] * 2 + ["settings.png", "payment.png", "thanks.png",
+                                             "form.png", "settings.png", "payment.png"],
+                         elements=[
+        {"token": "e1", "role": "entry", "label": "Name", "x": 10, "y": 20, "w": 300, "h": 30},
+        {"token": "e2", "role": "entry", "label": "Email", "x": 10, "y": 60, "w": 300, "h": 30},
+    ])
+    gate = FakeGate()
+    gate.locate_results.append(
+        LocateResult(found=True, presence=0.9, confidence=0.9, box=None, center=(400, 400),
+                     grounding="box", usage=_usage())
+    )
+    steps = [
+        agent.Step(action="type", target="Name", text="Ada", expect="the Name field shows Ada"),
+        agent.Step(action="type", target="Email", text="ada@x.io", expect="the Email field shows ada@x.io"),
+        agent.Step(action="click", target="Submit", expect="the thanks page is shown"),
+    ]
+    patch_plan(monkeypatch, [steps])
+    result = agent.run_task("fill form", driver, gate, {"max_steps": 8})
+    assert result.state == "completed"
+    assert len(gate.calls["ask"]) == 1, "both field checks must share ONE request"
+    assert len(gate.calls["ask"][0]["questions"]) == 2
+    # Field steps recorded the batch verdicts (flushed BEFORE the Submit click).
+    assert [r.verdict for r in result.steps[:2]] == ["pass", "pass"]
+    assert all(r.noul == pytest.approx(0.9) for r in result.steps[:2])
+    assert result.steps[2].verdict == "pass"
+
+
+# --------------------------------------------------------------------- recovery
+
+
+def test_replan_once_after_two_failures(monkeypatch):
+    driver = make_driver(["form.png", "thanks.png"] * 4, elements=[])
+    gate = FakeGate()
+    for _ in range(3):  # two attempts of the failing step + one of the new step
+        gate.locate_results.append(
+            LocateResult(found=True, presence=0.9, confidence=0.9, box=None, center=(100, 200),
+                         grounding="box", usage=_usage())
+        )
+    gate.verify_results.append(VerifyResult(passed=False, yes=0.1, usage=_usage()))
+    gate.verify_results.append(VerifyResult(passed=False, yes=0.1, usage=_usage()))
+    steps = [agent.Step(action="click", target="Submit", expect="the thanks page is shown")]
+    plan_calls = patch_plan(monkeypatch, [
+        steps,
+        [agent.Step(action="click", target="Submit button", expect="the thanks page is shown")],
+    ])
+    result = agent.run_task("submit", driver, gate, {"max_steps": 8})
+    assert result.state == "completed"
+    assert len(plan_calls) == 2 and plan_calls[1], "replan must carry the failure evidence"
+
+
+def test_escalation_only_after_replan_and_only_for_that_step(monkeypatch):
+    driver = make_driver(
+        ["form.png", "form.png", "thanks.png", "payment.png", "settings.png", "thanks.png",
+         "form.png", "thanks.png", "form.png"],
+        elements=[],
+    )
+    gate = FakeGate()
+    for center in (None, None, (500, 500)):  # c1 fails to ground twice, c2 grounds
+        gate.locate_results.append(
+            LocateResult(found=center is not None, presence=0.9, confidence=0.9, box=None,
+                         center=center, grounding="box" if center else "none", usage=_usage())
+        )
+
+    def fake_escalate(frame, instruction, step, cfg, *, model=None):
+        return {"action": "click", "x": 42, "y": 24}, _usage(model="claude-opus-4-6-thinking", usd=0.02)
+
+    monkeypatch.setattr(agent, "escalate", fake_escalate)
+    # Steps: a click whose target can't be grounded (fails twice), then an
+    # easy click.  Replan returns nothing -> the failing step is escalated,
+    # the next step runs on the cheap path again.
+    steps = [
+        agent.Step(action="click", target="Invisible button", expect="pressed"),
+        agent.Step(action="click", target="Easy button", expect="pressed"),
+    ]
+    plan_calls = patch_plan(monkeypatch, [steps, []])
+    result = agent.run_task("do it", driver, gate, {"max_steps": 10})
+    escalated = [r for r in result.steps if r.grounding == "escalated"]
+    assert len(escalated) == 1 and escalated[0].target == "Invisible button"
+    assert result.calls_per_model.get("claude-opus-4-6-thinking") == 1
+    assert result.big_model_calls == 1
+    assert len(plan_calls) == 2  # initial + one replan; escalation is not a replan
+    assert result.state == "completed"
+
+
+def test_escalation_capped_at_two_per_task(monkeypatch):
+    driver = make_driver(
+        ["form.png", "thanks.png", "payment.png", "settings.png", "thanks.png",
+         "form.png", "payment.png", "thanks.png", "form.png"],
+        elements=[],
+    )
+    gate = FakeGate()
+    steps = [agent.Step(action="click", target="Invisible", expect="pressed") for _ in range(3)]
+    patch_plan(monkeypatch, [steps, [], []])
+
+    count = {"n": 0}
+
+    def fake_escalate(frame, instruction, step, cfg, *, model=None):
+        count["n"] += 1
+        return {"action": "click", "x": 1, "y": 2}, _usage(model="claude-opus-4-6-thinking", usd=0.02)
+
+    monkeypatch.setattr(agent, "escalate", fake_escalate)
+    result = agent.run_task("do it", driver, gate, {"max_steps": 12})
+    assert count["n"] == 2, "at most 2 escalations per task"
+    assert result.state == "blocked"
+
+
+# --------------------------------------------------------------------- caps / stall
+
+
+def test_budget_cap(monkeypatch):
+    driver = make_driver(["form.png", "form.png", "thanks.png", "thanks.png"], elements=[])
+    gate = FakeGate()
+    gate.locate_results.append(
+        LocateResult(found=True, presence=0.9, confidence=0.9, box=None, center=(100, 200),
+                     grounding="box", usage=_usage(usd=0.01))
+    )
+    steps = [
+        agent.Step(action="click", target="A", expect="a"),
+        agent.Step(action="click", target="B", expect="b"),
+    ]
+    patch_plan(monkeypatch, [steps])
+    result = agent.run_task("two clicks", driver, gate, {"max_steps": 5, "budget_usd": 0.005})
+    assert result.state == "budget_exhausted"
+    assert result.usd >= 0.005
+
+
+def test_stall_terminates_when_screen_never_changes(monkeypatch):
+    # Steps WITHOUT an expectation (nothing to verify): the hash path is the
+    # only signal, so 4 unchanged screens in a row must go terminal stalled.
+    driver = make_driver(["form.png"] * 12, elements=[
+        {"token": "e1", "role": "button", "label": "nothing", "x": 10, "y": 20, "w": 30, "h": 10},
+    ])
+    gate = FakeGate()
+    steps = [agent.Step(action="click", target="nothing") for _ in range(4)]
+    patch_plan(monkeypatch, [steps, [agent.Step(action="click", target="nothing")]])
+    result = agent.run_task("stuck task", driver, gate, {"max_steps": 12, "stall": {"stale_limit": 4}})
+    assert result.state == "stalled"
+    assert "no screen change" in result.reason
+    assert any(r.stall for r in result.steps)
+
+
+def test_stall_trusting_verify_over_hash(monkeypatch):
+    # dhash cannot see a focus ring / typed text: when the (batched) verify
+    # passes, unchanged-looking screens must NOT count as no-ops.
+    driver = make_driver(["form.png"] * 8, elements=[
+        {"token": "e1", "role": "entry", "label": "Name", "x": 10, "y": 20, "w": 300, "h": 30},
+    ])
+    gate = FakeGate()
+    gate.verify_results.append(VerifyResult(passed=True, yes=0.98, usage=_usage()))
+    steps = [
+        agent.Step(action="type", target="Name", text="Ada", expect="the Name field shows Ada"),
+        agent.Step(action="type", target="Name", text="Ada", expect="the Name field shows Ada"),
+    ]
+    patch_plan(monkeypatch, [steps])
+    result = agent.run_task("type Ada", driver, gate, {"max_steps": 6, "stall": {"stale_limit": 2}})
+    assert result.state == "completed"
+    assert all(r.verdict == "pass" and not r.stall for r in result.steps)
+
+
+def test_aba_loop_detected(monkeypatch):
+    # Screenshot sequence s0..s8.  After-shots s2/s4/s6/s8 alternate
+    # form/thanks/form/thanks while each pre-shot differs from its after-shot,
+    # so the click alternates between two screens: A-B-A-B.
+    frames = ["form.png", "thanks.png", "form.png", "form.png", "thanks.png",
+              "thanks.png", "form.png", "form.png", "thanks.png"]
+    driver = make_driver(frames, elements=[
+        {"token": "e1", "role": "button", "label": "toggle", "x": 10, "y": 20, "w": 30, "h": 10},
+    ])
+    gate = FakeGate()
+    steps = [agent.Step(action="click", target="toggle", expect="toggled") for _ in range(4)]
+    patch_plan(monkeypatch, [steps])
+    result = agent.run_task("loop task", driver, gate, {"max_steps": 10})
+    assert result.state == "stalled"
+    assert "A-B-A-B" in result.reason

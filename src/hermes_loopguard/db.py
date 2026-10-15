@@ -151,6 +151,55 @@ class Store:
                 );
                 """
             )
+        self._migrate_cu()
+
+    def _migrate_cu(self) -> None:
+        """Migration: computer-use run log (X3). Idempotent."""
+        self.conn.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS cu_runs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                created_at REAL,
+                finished_at REAL,
+                task TEXT,
+                instruction TEXT,
+                state TEXT DEFAULT 'running',
+                steps INTEGER DEFAULT 0,
+                tokens_in INTEGER DEFAULT 0,
+                tokens_out INTEGER DEFAULT 0,
+                usd REAL DEFAULT 0.0,
+                wall_s REAL DEFAULT 0.0,
+                big_model_calls INTEGER DEFAULT 0,
+                big_model_avoided INTEGER DEFAULT 0,
+                reason TEXT,
+                done_check REAL,
+                shadow INTEGER DEFAULT 1
+            );
+
+            CREATE TABLE IF NOT EXISTS cu_steps (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                run_id INTEGER,
+                idx INTEGER,
+                action TEXT,
+                target TEXT,
+                grounding TEXT,
+                box TEXT,
+                point TEXT,
+                verdict TEXT,
+                noul REAL,
+                effect TEXT,
+                stall TEXT,
+                safety TEXT,
+                model TEXT,
+                tokens_in INTEGER DEFAULT 0,
+                tokens_out INTEGER DEFAULT 0,
+                usd REAL DEFAULT 0.0,
+                frame_before TEXT,
+                frame_after TEXT,
+                created_at REAL
+            );
+            """
+        )
 
     # items: state in {"new","claimed","completed","blocked","budget_exhausted","dropped","review","failed"}
     def get_item(self, watcher: str, item_id: str) -> dict | None:

@@ -212,6 +212,14 @@ def _register(ctx) -> None:
     )
     _register_hook(ctx, "pre_verify", verify_hook)
 
+    # X3: jev_computer tools + stock computer_use hooks (never raises).
+    try:
+        from hermes_loopguard.cu.hermes_tool import register_cu
+
+        register_cu(ctx, get_cfg, store_factory=store_factory)
+    except Exception:
+        log.warning("LoopGuard: computer-use registration failed", exc_info=True)
+
 
 def _register_hook(ctx, name: str, handler) -> None:
     if not _hook_exists(name):
