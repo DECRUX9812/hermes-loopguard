@@ -35,27 +35,63 @@ cron tick -> loopguard_<watcher>.py shim
 When every item is unchanged or filtered out, the runner emits `{"wakeAgent": false}`.
 Hermes terminates the job immediately without building a prompt or dispatching an LLM turn.
 
-## Quickstart
+## Install
 
-Install into the same Python environment as Hermes:
+LoopGuard is a local package, not on PyPI. Install it from a checkout into the **same Python
+environment the `hermes` command runs from** — plugins load inside Hermes' own PM-managed
+environment, so an install into some other venv is invisible to Hermes:
 
 ```bash
-# From git or a local clone (the package is not on PyPI)
-pip install "hermes-loopguard[typesafe] @ git+https://github.com/your-org/hermes-loopguard.git"
-# Or in editable mode from a local checkout:
-pip install -e /path/to/hermes-loopguard
+# Find the interpreter behind your `hermes` command:
+head -1 "$(command -v hermes)"    # e.g. #!/path/to/hermes-venv/bin/python
 
-# Enable plugin in Hermes
+# Install from a local checkout into that environment:
+/path/to/hermes-venv/bin/pip install -e /path/to/hermes-loopguard
+# or: uv pip install --python /path/to/hermes-venv/bin/python -e /path/to/hermes-loopguard
+```
+
+LoopGuard has no runtime dependencies beyond what stock Hermes ships (pyyaml is optional; a
+built-in fallback covers YAML), so it loads cleanly inside the PM environment.
+
+## Quickstart
+
+```bash
+# 1. Enable the plugin (opt-in; writes plugins.enabled in $HERMES_HOME/config.yaml)
 hermes plugins enable loopguard
 
-# Install watcher, schedule cron, and verify
+# 2. Optional: route gate questions through a cheap model instead of local
+#    heuristics — any OpenAI-compatible provider. Add to $HERMES_HOME/config.yaml
+#    (the API key goes in $HERMES_HOME/.env, never in config.yaml):
+```
+
+```yaml
+providers:
+  my-provider:
+    api: http://127.0.0.1:8317/v1   # any OpenAI-compatible endpoint
+    name: OpenAI-compatible
+    key_env: MY_PROVIDER_API_KEY
+    transport: chat_completions
+auxiliary:
+  loopguard_gate:
+    provider: my-provider
+    model: a-cheap-fast-model
+```
+
+```bash
+# 3. Install a watcher (creates $HERMES_HOME/scripts/loopguard_<name>.py
+#    and a cron job named lg-<name>)
 hermes loopguard watch install examples/issue_triage.yaml --schedule "every 15m"
+
+# 4. Trigger one run, then check what the gate did
 hermes cron run lg-issue-triage
 hermes loopguard stats
 
-# Optional: install dashboard plugin
+# 5. Optional: dashboard page in the Hermes web UI
 hermes loopguard dashboard install
 ```
+
+A full scripted walkthrough against a real Hermes cron job lives in
+[examples/demo/](examples/demo/) (`run_demo.sh`, with a recorded `sample-output.txt`).
 
 ## Backends
 
