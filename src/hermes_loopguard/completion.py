@@ -75,6 +75,12 @@ class Verdict:
     semantic_prob: float | None
     results: list[CheckResult] = field(default_factory=list)
     reasons: list[str] = field(default_factory=list)
+    # provenance of the semantic judge (None when it never ran)
+    semantic_backend: str | None = None
+    semantic_model: str | None = None
+    semantic_tokens_in: int = 0
+    semantic_tokens_out: int = 0
+    semantic_cost_usd: float = 0.0
 
 
 def _parse_check(line: str) -> Check:
@@ -211,6 +217,7 @@ def judge(goal: Goal, results: list[CheckResult], *, chain=None, extra_evidence:
     reasons = [f"{r.check.raw}: {r.detail}" for r in results if not r.ok]
     semantic_ok: bool | None = None
     semantic_prob: float | None = None
+    prov: dict = {}
     if code_ok and chain is not None:
         state = {"requirement": goal.requirement,
                  "checks": [r.detail for r in results],
@@ -223,6 +230,10 @@ def judge(goal: Goal, results: list[CheckResult], *, chain=None, extra_evidence:
                 criteria={"true": "the evidence shows the requirement is satisfied",
                           "false": "the evidence does not show it is satisfied"})}
             result = ask_with_fallback(chain, state, questions)
+            prov = {"semantic_backend": result.backend, "semantic_model": result.model,
+                    "semantic_tokens_in": result.usage.input_tokens,
+                    "semantic_tokens_out": result.usage.output_tokens,
+                    "semantic_cost_usd": result.usage.cost_usd}
             answer = result.answers.get("met")
             if answer is None or getattr(result, "error", None):
                 semantic_ok = False
@@ -238,7 +249,7 @@ def judge(goal: Goal, results: list[CheckResult], *, chain=None, extra_evidence:
             reasons.append(f"semantic check failed: {exc}")
     met = code_ok and semantic_ok is not False
     return Verdict(met=met, code_ok=code_ok, semantic_ok=semantic_ok,
-                   semantic_prob=semantic_prob, results=results, reasons=reasons)
+                   semantic_prob=semantic_prob, results=results, reasons=reasons, **prov)
 
 
 def check_goal(path, *, cwd: str | None = None, chain=None, extra_evidence: str = "",
@@ -252,13 +263,15 @@ def check_goal(path, *, cwd: str | None = None, chain=None, extra_evidence: str 
 def make_pre_verify_hook(get_cfg, *, store_factory, chain_factory=None, cwd_fn=os.getcwd):
     """pre_verify hook with a continuation cap; never raises."""
 
-    def hook(session_id="", final_response=None, attempt=0, **kwargs):
+    def hook(session_id="", final_response=None, attempt=0, changed_paths=None, **kwargs):
         try:
             cfg = (get_cfg() or {}).get("completion") or {}
-            goal_path = os.path.join(cwd_fn(), cfg.get("goal_file", "GOAL.md"))
-            if not os.path.isfile(goal_path):
+            goal_name = cfg.get("goal_file", "GOAL.md")
+            goal_path = _resolve_goal_file(goal_name, cwd_fn(), changed_paths)
+            if goal_path is None:
                 return None
             goal = load_goal(goal_path)
+            goal_dir = os.path.dirname(goal_path)
             cap = goal.max_continuations or cfg.get("max_continuations", 3)
             key = f"completion:{session_id}"
             store = store_factory()
@@ -267,18 +280,24 @@ def make_pre_verify_hook(get_cfg, *, store_factory, chain_factory=None, cwd_fn=o
                                    note=f"{key} at {store.get_counter(key)}/{cap}")
                 return None
             chain = chain_factory() if chain_factory is not None else None
-            verdict = check_goal(goal_path, cwd=cwd_fn(), chain=chain,
+            verdict = check_goal(goal_path, cwd=goal_dir, chain=chain,
                                  extra_evidence=str(final_response or ""))
+            usage_kw = {}
+            if verdict.semantic_ok is not None:
+                usage_kw = {"backend": verdict.semantic_backend, "model": verdict.semantic_model,
+                            "tokens_in": verdict.semantic_tokens_in,
+                            "tokens_out": verdict.semantic_tokens_out,
+                            "cost_usd": verdict.semantic_cost_usd}
             if verdict.met:
                 store.reset_counter(key)
                 store.log_decision(watcher="completion", kind="completion", outcome="met",
-                                   note=goal_path)
+                                   note=goal_path, **usage_kw)
                 return None
             store.bump_counter(key)
             count = store.get_counter(key)
             reasons = "; ".join(verdict.reasons) or "checks failed"
             store.log_decision(watcher="completion", kind="completion", outcome="continue",
-                               note=f"{count}/{cap}: {reasons[:300]}")
+                               note=f"{count}/{cap}: {reasons[:300]}", **usage_kw)
             return {"action": "continue",
                     "message": (f"LoopGuard: GOAL.md is not met yet ({count}/{cap}): {reasons}. "
                                 "Fix this, re-run the checks, then finish.")}
@@ -287,3 +306,30 @@ def make_pre_verify_hook(get_cfg, *, store_factory, chain_factory=None, cwd_fn=o
             return None
 
     return hook
+
+
+def _resolve_goal_file(name: str, cwd: str, changed_paths, max_up: int = 6) -> str | None:
+    """Locate the goal file: the process cwd first, then next to the turn's changed
+    files. Gateway-relayed turns execute in the gateway process, whose cwd is not the
+    session's working directory — upstream hands us the landed ``changed_paths``, and
+    the goal lives "next to the work" (an ancestor of the mutated file, bounded walk).
+    """
+    local = os.path.join(cwd, name)
+    if os.path.isfile(local):
+        return local
+    for raw in changed_paths or ():
+        path = str(raw)
+        if not path:
+            continue
+        if not os.path.isabs(path):
+            path = os.path.abspath(os.path.join(cwd, path))
+        directory = os.path.dirname(path)
+        for _ in range(max_up):
+            candidate = os.path.join(directory, name)
+            if os.path.isfile(candidate):
+                return candidate
+            parent = os.path.dirname(directory)
+            if parent == directory:
+                break
+            directory = parent
+    return None

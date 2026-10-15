@@ -459,6 +459,44 @@ def evaluate_tool_call(tool_name: str, args: dict, gate_cfg: dict, *,
     return ToolVerdict("read", ["not a shell tool"], None)
 
 
+_SEMANTIC_CRITERIA = {
+    "read": "the command only reads or prints state; it creates, changes and deletes nothing",
+    "modify_allowed": "the command creates or updates files, but only inside the current "
+                      "project/working directory, in an ordinary reversible way",
+    "modify_other": "the command creates or updates files or state outside the current "
+                    "project/working directory",
+    "network": "the command talks to the network (downloads, uploads, remote APIs, SSH)",
+    "destructive": "the command deletes, overwrites, truncates or irreversibly alters data, "
+                   "terminates processes, or runs arbitrary code that could do any of these",
+    "unclear": "the effect cannot be determined from the command text alone",
+}
+
+
+def make_semantic_classifier(chain_factory):
+    """Build the ``semantic(command) -> (category, prob)`` callable the pre_tool_call
+    hook uses, backed by the LoopGuard backend chain. Raises on backend failure or an
+    unknown category; the hook treats that as "stay unclear" (fail closed)."""
+
+    def semantic(command: str) -> tuple[str, float]:
+        from hermes_loopguard.backends import ask_with_fallback
+        from hermes_loopguard.questions import Choice
+
+        question = Choice(
+            instructions=("Classify the most severe side effect this shell command would "
+                          "have if it were run right now. Reply with exactly one category."),
+            criteria=dict(_SEMANTIC_CRITERIA),
+        )
+        result = ask_with_fallback(chain_factory(), command, {"effect": question})
+        answer = result.answers.get("effect")
+        if answer is None or getattr(result, "error", None):
+            raise ValueError(f"semantic classifier returned no answer: {getattr(result, 'error', None)}")
+        if answer.choice not in CATEGORIES:
+            raise ValueError(f"semantic classifier returned an unknown category: {answer.choice!r}")
+        return (answer.choice, float(answer.probabilities.get(answer.choice, 0.0)))
+
+    return semantic
+
+
 def make_pre_tool_call_hook(get_cfg, *, in_automation, store_factory=None, semantic=None):
     """Build a pre_tool_call hook. Never raises; never returns an allow directive."""
 
@@ -471,6 +509,7 @@ def make_pre_tool_call_hook(get_cfg, *, in_automation, store_factory=None, seman
                 return None
             verdict = evaluate_tool_call(tool_name, args, cfg)
             command = args.get("command") if isinstance(args, dict) else None
+            reclassified = False
             if (verdict.category == "unclear" and cfg.get("semantic") and semantic
                     and isinstance(command, str)):
                 try:
@@ -478,15 +517,20 @@ def make_pre_tool_call_hook(get_cfg, *, in_automation, store_factory=None, seman
                     if prob >= 0.8 and cat in CATEGORIES and cat != "unclear":
                         reasons = [f"semantic gate reclassified as {cat} (p={prob:.2f})"]
                         verdict = ToolVerdict(cat, reasons, directive_for(cat, reasons, cfg))
+                        reclassified = True
                 except Exception:
                     log.debug("tool gate semantic reclassification failed", exc_info=True)
             directive = verdict.directive
-            if directive is not None and store_factory is not None:
+            if (reclassified or directive is not None) and store_factory is not None:
                 try:
+                    note = command or ""
+                    if reclassified:
+                        note = f"{note} [{'; '.join(verdict.reasons)}]"
                     store_factory().log_decision(watcher="tool_gate", kind="tool",
-                                                 outcome=directive.get("action"),
+                                                 outcome=(directive.get("action") if directive
+                                                          else "pass"),
                                                  route=verdict.category,
-                                                 note=(command or "")[:300])
+                                                 note=note[:300])
                 except Exception:
                     log.debug("tool gate decision log failed", exc_info=True)
             return directive

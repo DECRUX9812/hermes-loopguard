@@ -171,8 +171,11 @@ def _register(ctx) -> None:
     for name, handler in ledger_hooks.items():
         _register_hook(ctx, name, handler)
 
+    from hermes_loopguard import backends, tool_gate
+
     tool_hook = tool_gate.make_pre_tool_call_hook(
-        get_cfg, in_automation=in_automation, store_factory=store_factory
+        get_cfg, in_automation=in_automation, store_factory=store_factory,
+        semantic=tool_gate.make_semantic_classifier(lambda: backends.backend_chain(get_cfg())),
     )
 
     def pre_tool_call(tool_name=None, args=None, **kwargs):
@@ -200,7 +203,7 @@ def _register(ctx) -> None:
 
     _register_hook(ctx, "pre_tool_call", pre_tool_call)
 
-    from hermes_loopguard import backends, completion
+    from hermes_loopguard import completion
 
     verify_hook = completion.make_pre_verify_hook(
         get_cfg,

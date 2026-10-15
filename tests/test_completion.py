@@ -224,3 +224,79 @@ def test_pre_verify_hook_never_raises():
 
     hook = completion.make_pre_verify_hook(boom, store_factory=lambda: None, cwd_fn=lambda: "/")
     assert hook(session_id="s") is None
+
+
+def test_decision_rows_carry_semantic_provenance(tmp_path):
+    # The semantic judge's backend/model/usage land on the met/continue rows
+    # (model-usage evidence), and never on code-only failure rows.
+    from hermes_loopguard.backends.base import GateResult, Usage
+    from hermes_loopguard.questions import NoulAnswer
+
+    class ProvenanceChain:  # FAKE BACKEND (unit test only)
+        def __init__(self):
+            self.calls = 0
+
+        def available(self):
+            return True
+
+        def ask(self, state, questions):
+            self.calls += 1
+            return GateResult(answers={k: NoulAnswer(noul=0.95) for k in questions},
+                              backend="openai", model="gemini-3.1-flash-lite",
+                              usage=Usage(input_tokens=120, output_tokens=8, cost_usd=0.001))
+
+    (tmp_path / "GOAL.md").write_text(
+        "# Goal: demo\n\n## Requirement\nWrite the file.\n\n## Checks\n- file: out.txt exists\n")
+    store = FakeStore()
+    chain = ProvenanceChain()
+    cfg = {"completion": {"goal_file": "GOAL.md", "max_continuations": 2}}
+    hook = completion.make_pre_verify_hook(lambda: cfg, store_factory=lambda: store,
+                                           chain_factory=lambda: [chain],
+                                           cwd_fn=lambda: str(tmp_path))
+
+    # code-only failure: no semantic call, no provenance
+    directive = hook(session_id="s1", final_response="nothing yet")
+    assert directive is not None and directive["action"] == "continue"
+    row = [d for d in store.decisions if d["outcome"] == "continue"][0]
+    assert row.get("backend") is None and row.get("model") is None and row.get("tokens_in", 0) == 0
+    assert chain.calls == 0
+
+    # semantic ran: provenance on the row
+    (tmp_path / "out.txt").write_text("x")
+    hook(session_id="s1", final_response="done")
+    met_row = [d for d in store.decisions if d["outcome"] == "met"][0]
+    assert met_row["backend"] == "openai" and met_row["model"] == "gemini-3.1-flash-lite"
+    assert met_row["tokens_in"] == 120 and met_row["tokens_out"] == 8
+    assert met_row["cost_usd"] == pytest.approx(0.001)
+
+
+def test_pre_verify_finds_goal_next_to_changed_paths(tmp_path):
+    # Regression: gateway-relayed turns run in the gateway process, whose cwd is NOT
+    # the session's working directory. The hook must resolve GOAL.md next to the turn's
+    # landed changed_paths (upstream pre_verify kwargs), else it silently no-ops.
+    (tmp_path / "GOAL.md").write_text(
+        "# Goal: demo\n\n## Requirement\nWrite the file.\n\n## Checks\n- file: out.txt exists\n")
+    store = FakeStore()
+    cfg = {"completion": {"goal_file": "GOAL.md", "max_continuations": 2}}
+    chain = FakeChain(noul=0.1)  # code check passes (file written), semantic says not met -> continue
+    hook = completion.make_pre_verify_hook(lambda: cfg, store_factory=lambda: store,
+                                           chain_factory=lambda: [chain],
+                                           cwd_fn=lambda: "/")  # gateway cwd: no GOAL.md here
+    (tmp_path / "out.txt").write_text("x")
+    directive = hook(session_id="gw1", final_response="done",
+                     changed_paths=[str(tmp_path / "out.txt")])
+    assert directive is not None and directive["action"] == "continue"
+    assert "(1/2)" in directive["message"]
+    assert store.get_counter("completion:gw1") == 1
+
+
+def test_resolve_goal_file_prefers_cwd_then_walks_up(tmp_path):
+    from hermes_loopguard.completion import _resolve_goal_file
+    work = tmp_path / "work"
+    (work / "deep" / "nest").mkdir(parents=True)
+    (work / "GOAL.md").write_text("# Goal: t\n")
+    assert _resolve_goal_file("GOAL.md", str(tmp_path), []) is None
+    assert _resolve_goal_file("GOAL.md", str(work), []) == str(work / "GOAL.md")
+    found = _resolve_goal_file("GOAL.md", str(tmp_path), [str(work / "deep" / "nest" / "f.txt")])
+    assert found == str(work / "GOAL.md")
+    assert _resolve_goal_file("GOAL.md", str(tmp_path), None) is None

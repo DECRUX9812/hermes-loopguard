@@ -8,6 +8,7 @@ from hermes_loopguard.tool_gate import (
     directive_for,
     evaluate_tool_call,
     make_pre_tool_call_hook,
+    make_semantic_classifier,
 )
 
 # (command, expected category). cwd defaults to the process cwd, which only
@@ -374,3 +375,77 @@ def test_hook_semantic_not_called_for_clear_category():
                                    in_automation=lambda: True, semantic=semantic)
     hook("terminal", {"command": "curl https://x"})
     assert calls == []
+
+
+# make_semantic_classifier — the callable the plugin wires into the hook
+class FakeBackend:
+    name = "fake"
+
+    def __init__(self, choice, prob, error=None):
+        self._choice = choice
+        self._prob = prob
+        self._error = error
+
+    def available(self):
+        return True
+
+    def ask(self, state, questions):
+        from hermes_loopguard.backends.base import GateResult, Usage
+        from hermes_loopguard.questions import ChoiceAnswer
+
+        return GateResult(
+            answers={"effect": ChoiceAnswer(choice=self._choice, confidence=self._prob,
+                                            probabilities={self._choice: self._prob})},
+            backend=self.name, model="fake-model", usage=Usage(), error=self._error)
+
+
+def test_semantic_classifier_returns_choice_and_prob():
+    semantic = make_semantic_classifier(lambda: [FakeBackend("read", 0.93)])
+    cat, prob = semantic("frobnicate --list")
+    assert cat == "read" and prob == pytest.approx(0.93)
+
+
+def test_semantic_classifier_raises_on_backend_error():
+    semantic = make_semantic_classifier(lambda: [FakeBackend("", 0.0, error="backend down")])
+    with pytest.raises(ValueError, match="no answer"):
+        semantic("frobnicate")
+
+
+def test_semantic_classifier_raises_on_unknown_category():
+    semantic = make_semantic_classifier(lambda: [FakeBackend("annihilate", 0.99)])
+    with pytest.raises(ValueError, match="unknown category"):
+        semantic("frobnicate")
+
+
+def test_hook_semantic_reclassified_read_logs_pass_row():
+    def semantic(command):  # FAKE BACKEND (unit test only)
+        return ("read", 0.9)
+
+    store = FakeStore()
+    hook = make_pre_tool_call_hook(cfg_fn({"enabled": True, "semantic": True}),
+                                   in_automation=lambda: True, store_factory=lambda: store,
+                                   semantic=semantic)
+    # unclear -> read: no friction directive, but the reclassification is logged
+    assert hook("terminal", {"command": "frobnicate --list"}) is None
+    assert len(store.decisions) == 1
+    row = store.decisions[0]
+    assert row["outcome"] == "pass"
+    assert row["route"] == "read"
+    assert "semantic gate reclassified as read" in row["note"]
+
+
+def test_hook_semantic_reclassified_destructive_logs_block_row():
+    def semantic(command):  # FAKE BACKEND (unit test only)
+        return ("destructive", 0.95)
+
+    store = FakeStore()
+    hook = make_pre_tool_call_hook(cfg_fn({"enabled": True, "semantic": True}),
+                                   in_automation=lambda: True, store_factory=lambda: store,
+                                   semantic=semantic)
+    directive = hook("terminal", {"command": 'bash -c "rm -rf /tmp/canary"'})
+    assert directive is not None and directive["action"] == "block"
+    assert len(store.decisions) == 1  # one row, not two
+    row = store.decisions[0]
+    assert row["outcome"] == "block"
+    assert row["route"] == "destructive"
+    assert "semantic gate reclassified as destructive" in row["note"]
