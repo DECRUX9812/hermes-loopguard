@@ -21,7 +21,47 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parents[1] / "src"))
 
 TYPED = "loopground eval typed text"
-CHROME_NEEDLE = "user-data-dir=/tmp/lg-cu/chrome-profile"
+BENCH_DISPLAY = ":97"
+
+
+def _display(pid: str) -> str | None:
+    """DISPLAY of a pid, or None when unreadable (another user's process:
+    never touch those) or unset."""
+    try:
+        raw = Path(f"/proc/{pid}/environ").read_bytes()
+    except OSError:
+        return None
+    for kv in raw.split(b"\0"):
+        if kv.startswith(b"DISPLAY="):
+            return kv.decode(errors="replace").split("=", 1)[1]
+    return None
+
+
+def _bench_pids() -> list[str]:
+    """Bench apps = DISPLAY=:97 + a bench-app comm (case-insensitive: a
+    daemonized mousepad reports comm 'mousepad', not 'Mousepad') — or the
+    bench settings app, whose comm is just 'python3' (cmdline match)."""
+    pids = subprocess.run(
+        ["pgrep", "-f", "thunar|mousepad|settings_app|google-chrome"],
+        capture_output=True, text=True,
+    ).stdout.split()
+    out = []
+    for pid in pids:
+        try:
+            comm = Path(f"/proc/{pid}/comm").read_text().strip().lower()
+            cmd = Path(f"/proc/{pid}/cmdline").read_bytes().replace(b"\0", b" ").decode(
+                errors="replace")
+        except OSError:
+            continue
+        if "settings_app.py" in cmd:
+            if _display(pid) == BENCH_DISPLAY:
+                out.append(pid)
+            continue
+        if _display(pid) != BENCH_DISPLAY:
+            continue
+        if comm in ("thunar", "mousepad", "chrome", "chrome_crashpad"):
+            out.append(pid)
+    return out
 
 
 def launch(argv: list[str]) -> None:
@@ -37,27 +77,16 @@ def launch(argv: list[str]) -> None:
 
 
 def kill_scoped() -> None:
-    for needle, comm in [
-        (CHROME_NEEDLE, "chrome"),
-        ("mousepad", "Mousepad"),
-        ("thunar /tmp/lg-cu/files", "thunar"),
-        ("settings_app.py", "python3"),
-    ]:
-        out = subprocess.run(["pgrep", "-f", needle], capture_output=True, text=True).stdout.split()
-        for pid in out:
-            try:
-                if Path(f"/proc/{pid}/comm").read_text().startswith(comm):
-                    subprocess.run(["kill", pid], capture_output=True)
-            except OSError:
-                continue
+    """Kill bench apps on the bench display ONLY (DISPLAY=:97 + comm match).
+    Never touches the user's desktop, other displays, or other users."""
+    for pid in _bench_pids():
+        try:
+            subprocess.run(["kill", pid], capture_output=True)
+        except OSError:
+            continue
     # wait until they are REALLY gone (chrome writes its profile on exit)
     for _ in range(60):
-        alive = subprocess.run(
-            ["pgrep", "-f",
-             f"{CHROME_NEEDLE}|mousepad|thunar /tmp/lg-cu/files|settings_app.py"],
-            capture_output=True
-        ).returncode
-        if alive != 0:
+        if not _bench_pids():
             break
         time.sleep(1)
     time.sleep(2)
@@ -67,7 +96,9 @@ def main() -> int:
     from hermes_loopguard.cu.drivers.cua import CuaDriver
 
     kill_scoped()
-    driver = CuaDriver(socket="/tmp/lg-cu/cua.sock", app=None)
+    # app="Mousepad" so type_text targets + activates the app's own window
+    # (with app=None the typed input has no target window and lands nowhere)
+    driver = CuaDriver(socket="/tmp/lg-cu/cua.sock", app="Mousepad")
     launch(["mousepad"])
     time.sleep(4)
     frame = driver.screenshot()

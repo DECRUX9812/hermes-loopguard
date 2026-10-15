@@ -42,20 +42,59 @@ def launch(argv: list[str]) -> None:
     s.close()
 
 
+BENCH_DISPLAY = ":97"
+
+
+def _display(pid: str) -> str | None:
+    """DISPLAY of a pid, or None when unreadable (another user's process:
+    never touch those) or unset."""
+    try:
+        raw = Path(f"/proc/{pid}/environ").read_bytes()
+    except OSError:
+        return None
+    for kv in raw.split(b"\0"):
+        if kv.startswith(b"DISPLAY="):
+            return kv.decode(errors="replace").split("=", 1)[1]
+    return None
+
+
+def _is_bench_app(pid: str) -> bool:
+    """Bench app = bench DISPLAY + a bench-app comm (case-insensitive: the
+    daemonized mousepad reports comm 'mousepad', not 'Mousepad') — or the
+    bench settings app, whose comm is just 'python3' (cmdline match)."""
+    try:
+        comm = Path(f"/proc/{pid}/comm").read_text().strip().lower()
+        cmd = Path(f"/proc/{pid}/cmdline").read_bytes().replace(b"\0", b" ").decode(
+            errors="replace")
+    except OSError:
+        return False
+    if "settings_app.py" in cmd:
+        return _display(pid) == BENCH_DISPLAY
+    if _display(pid) != BENCH_DISPLAY:
+        return False
+    return comm in ("thunar", "mousepad", "chrome", "chrome_crashpad")
+
+
 def kill_scoped() -> None:
-    """Kill ONLY the apps this capture launched (never pkill -f broad)."""
-    for needle, comm in [
-        ("mousepad", "Mousepad"),
-        ("thunar /tmp/lg-cu/files/lg-eval", "thunar"),
-        ("settings_app.py", "python3"),
-    ]:
-        out = subprocess.run(["pgrep", "-f", needle], capture_output=True, text=True).stdout.split()
-        for pid in out:
+    """Kill bench apps on the bench display ONLY (DISPLAY=:97 + comm match).
+    Never touches the user's desktop, other displays, or other users."""
+    out = subprocess.run(
+        ["pgrep", "-f", "thunar|mousepad|settings_app|google-chrome"],
+        capture_output=True, text=True,
+    ).stdout.split()
+    for pid in out:
+        if _is_bench_app(pid):
             try:
-                if Path(f"/proc/{pid}/comm").read_text().startswith(comm):
-                    subprocess.run(["kill", pid], capture_output=True)
+                subprocess.run(["kill", pid], capture_output=True)
             except OSError:
                 continue
+    for _ in range(15):  # wait until really gone (chrome writes its profile)
+        alive = [p for p in subprocess.run(
+            ["pgrep", "-f", "thunar|mousepad|settings_app|google-chrome"],
+            capture_output=True, text=True).stdout.split() if _is_bench_app(p)]
+        if not alive:
+            break
+        time.sleep(1)
     time.sleep(2)
 
 
@@ -100,12 +139,17 @@ def main() -> int:
     save("thunar")
     gt["thunar"] = {"elements": dump_elements(driver, "thunar")}
 
-    # mousepad: empty, then typed
+    # mousepad: empty, then typed (click the text area first: type_text goes
+    # into the focused element, and a fresh window is not focused)
     launch(["mousepad"])
     time.sleep(3)
     save("mousepad")
     gt["mousepad"] = {"elements": dump_elements(driver, "Mousepad")}
-    driver.type_text(TYPED_TEXT)
+    # type via a TARGETED driver: with app=None type_text has no target
+    # window and the keystrokes land nowhere (verified 2026-10-15)
+    mp = CuaDriver(socket=SOCKET, app="Mousepad")
+    mp.type_text(TYPED_TEXT)
+    mp.close()
     time.sleep(1)
     save("mousepad_typed")
 

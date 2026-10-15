@@ -1,0 +1,590 @@
+{
+  "mousepad": {
+    "elements": [
+      {
+        "app": "Org.xfce.mousepad",
+        "h": 27,
+        "label": "File",
+        "role": "menu",
+        "w": 37,
+        "x": 635,
+        "y": 29
+      },
+      {
+        "app": "Org.xfce.mousepad",
+        "h": 27,
+        "label": "Edit",
+        "role": "menu",
+        "w": 39,
+        "x": 672,
+        "y": 29
+      },
+      {
+        "app": "Org.xfce.mousepad",
+        "h": 27,
+        "label": "Search",
+        "role": "menu",
+        "w": 57,
+        "x": 711,
+        "y": 29
+      },
+      {
+        "app": "Org.xfce.mousepad",
+        "h": 27,
+        "label": "View",
+        "role": "menu",
+        "w": 44,
+        "x": 768,
+        "y": 29
+      },
+      {
+        "app": "Org.xfce.mousepad",
+        "h": 27,
+        "label": "Document",
+        "role": "menu",
+        "w": 81,
+        "x": 812,
+        "y": 29
+      },
+      {
+        "app": "Org.xfce.mousepad",
+        "h": 27,
+        "label": "Help",
+        "role": "menu",
+        "w": 45,
+        "x": 893,
+        "y": 29
+      },
+      {
+        "app": "Org.xfce.mousepad",
+        "h": 447,
+        "label": "",
+        "role": "text",
+        "w": 638,
+        "x": 636,
+        "y": 59
+      }
+    ]
+  },
+  "settings_gtk": {
+    "elements": [
+      {
+        "app": "Settings_app.py",
+        "h": 23,
+        "label": "Dark mode",
+        "role": "check box",
+        "w": 384,
+        "x": 448,
+        "y": 310
+      },
+      {
+        "app": "Settings_app.py",
+        "h": 23,
+        "label": "Notifications",
+        "role": "check box",
+        "w": 384,
+        "x": 448,
+        "y": 345
+      },
+      {
+        "app": "Settings_app.py",
+        "h": 34,
+        "label": "English",
+        "role": "combo box",
+        "w": 91,
+        "x": 517,
+        "y": 380
+      },
+      {
+        "app": "Settings_app.py",
+        "h": 34,
+        "label": "Save",
+        "role": "button",
+        "w": 384,
+        "x": 448,
+        "y": 426
+      }
+    ]
+  },
+  "thunar": {
+    "elements": [
+      {
+        "app": "Thunar",
+        "h": 35,
+        "label": "Open Parent",
+        "role": "button",
+        "w": 37,
+        "x": 88,
+        "y": 89
+      },
+      {
+        "app": "Thunar",
+        "h": 35,
+        "label": "Home",
+        "role": "button",
+        "w": 37,
+        "x": 125,
+        "y": 89
+      },
+      {
+        "app": "Thunar",
+        "h": 35,
+        "label": "/tmp/lg-cu/files/lg-eval/",
+        "role": "text",
+        "w": 748,
+        "x": 167,
+        "y": 89
+      },
+      {
+        "app": "Thunar",
+        "h": 35,
+        "label": "Search for Files...",
+        "role": "toggle button",
+        "w": 37,
+        "x": 920,
+        "y": 89
+      },
+      {
+        "app": "Thunar",
+        "h": 27,
+        "label": "File",
+        "role": "menu",
+        "w": 37,
+        "x": 10,
+        "y": 58
+      },
+      {
+        "app": "Thunar",
+        "h": 27,
+        "label": "Edit",
+        "role": "menu",
+        "w": 39,
+        "x": 47,
+        "y": 58
+      },
+      {
+        "app": "Thunar",
+        "h": 27,
+        "label": "View",
+        "role": "menu",
+        "w": 44,
+        "x": 86,
+        "y": 58
+      },
+      {
+        "app": "Thunar",
+        "h": 27,
+        "label": "Go",
+        "role": "menu",
+        "w": 34,
+        "x": 130,
+        "y": 58
+      },
+      {
+        "app": "Thunar",
+        "h": 27,
+        "label": "Bookmarks",
+        "role": "menu",
+        "w": 86,
+        "x": 164,
+        "y": 58
+      },
+      {
+        "app": "Thunar",
+        "h": 27,
+        "label": "Help",
+        "role": "menu",
+        "w": 45,
+        "x": 250,
+        "y": 58
+      },
+      {
+        "app": "Thunar",
+        "h": 961,
+        "label": "170.0",
+        "role": "split pane",
+        "w": 950,
+        "x": 10,
+        "y": 127
+      },
+      {
+        "app": "Thunar",
+        "h": 27,
+        "label": "",
+        "role": "table cell",
+        "w": 166,
+        "x": 12,
+        "y": 129
+      },
+      {
+        "app": "Thunar",
+        "h": 27,
+        "label": "",
+        "role": "table cell",
+        "w": 12,
+        "x": 12,
+        "y": 129
+      },
+      {
+        "app": "Thunar",
+        "h": 27,
+        "label": "",
+        "role": "table cell",
+        "w": 24,
+        "x": 26,
+        "y": 129
+      },
+      {
+        "app": "Thunar",
+        "h": 27,
+        "label": "Places",
+        "role": "table cell",
+        "w": 130,
+        "x": 52,
+        "y": 129
+      },
+      {
+        "app": "Thunar",
+        "h": 24,
+        "label": "",
+        "role": "table cell",
+        "w": 166,
+        "x": 12,
+        "y": 158
+      },
+      {
+        "app": "Thunar",
+        "h": 24,
+        "label": "",
+        "role": "table cell",
+        "w": 12,
+        "x": 12,
+        "y": 158
+      },
+      {
+        "app": "Thunar",
+        "h": 24,
+        "label": "",
+        "role": "table cell",
+        "w": 24,
+        "x": 26,
+        "y": 158
+      },
+      {
+        "app": "Thunar",
+        "h": 24,
+        "label": "Computer",
+        "role": "table cell",
+        "w": 130,
+        "x": 52,
+        "y": 158
+      },
+      {
+        "app": "Thunar",
+        "h": 24,
+        "label": "",
+        "role": "table cell",
+        "w": 166,
+        "x": 12,
+        "y": 184
+      },
+      {
+        "app": "Thunar",
+        "h": 24,
+        "label": "",
+        "role": "table cell",
+        "w": 12,
+        "x": 12,
+        "y": 184
+      },
+      {
+        "app": "Thunar",
+        "h": 24,
+        "label": "",
+        "role": "table cell",
+        "w": 24,
+        "x": 26,
+        "y": 184
+      },
+      {
+        "app": "Thunar",
+        "h": 24,
+        "label": "home",
+        "role": "table cell",
+        "w": 130,
+        "x": 52,
+        "y": 184
+      },
+      {
+        "app": "Thunar",
+        "h": 24,
+        "label": "",
+        "role": "table cell",
+        "w": 166,
+        "x": 12,
+        "y": 210
+      },
+      {
+        "app": "Thunar",
+        "h": 24,
+        "label": "",
+        "role": "table cell",
+        "w": 12,
+        "x": 12,
+        "y": 210
+      },
+      {
+        "app": "Thunar",
+        "h": 24,
+        "label": "",
+        "role": "table cell",
+        "w": 24,
+        "x": 26,
+        "y": 210
+      },
+      {
+        "app": "Thunar",
+        "h": 24,
+        "label": "Recent",
+        "role": "table cell",
+        "w": 130,
+        "x": 52,
+        "y": 210
+      },
+      {
+        "app": "Thunar",
+        "h": 24,
+        "label": "",
+        "role": "table cell",
+        "w": 166,
+        "x": 12,
+        "y": 236
+      },
+      {
+        "app": "Thunar",
+        "h": 24,
+        "label": "",
+        "role": "table cell",
+        "w": 12,
+        "x": 12,
+        "y": 236
+      },
+      {
+        "app": "Thunar",
+        "h": 24,
+        "label": "",
+        "role": "table cell",
+        "w": 24,
+        "x": 26,
+        "y": 236
+      },
+      {
+        "app": "Thunar",
+        "h": 24,
+        "label": "Trash",
+        "role": "table cell",
+        "w": 130,
+        "x": 52,
+        "y": 236
+      },
+      {
+        "app": "Thunar",
+        "h": 27,
+        "label": "",
+        "role": "table cell",
+        "w": 166,
+        "x": 12,
+        "y": 262
+      },
+      {
+        "app": "Thunar",
+        "h": 27,
+        "label": "",
+        "role": "table cell",
+        "w": 12,
+        "x": 12,
+        "y": 262
+      },
+      {
+        "app": "Thunar",
+        "h": 27,
+        "label": "",
+        "role": "table cell",
+        "w": 24,
+        "x": 26,
+        "y": 262
+      },
+      {
+        "app": "Thunar",
+        "h": 27,
+        "label": "Devices",
+        "role": "table cell",
+        "w": 130,
+        "x": 52,
+        "y": 262
+      },
+      {
+        "app": "Thunar",
+        "h": 24,
+        "label": "",
+        "role": "table cell",
+        "w": 166,
+        "x": 12,
+        "y": 291
+      },
+      {
+        "app": "Thunar",
+        "h": 24,
+        "label": "",
+        "role": "table cell",
+        "w": 12,
+        "x": 12,
+        "y": 291
+      },
+      {
+        "app": "Thunar",
+        "h": 24,
+        "label": "",
+        "role": "table cell",
+        "w": 24,
+        "x": 26,
+        "y": 291
+      },
+      {
+        "app": "Thunar",
+        "h": 24,
+        "label": "File System",
+        "role": "table cell",
+        "w": 130,
+        "x": 52,
+        "y": 291
+      },
+      {
+        "app": "Thunar",
+        "h": 24,
+        "label": "",
+        "role": "table cell",
+        "w": 166,
+        "x": 12,
+        "y": 317
+      },
+      {
+        "app": "Thunar",
+        "h": 24,
+        "label": "",
+        "role": "table cell",
+        "w": 12,
+        "x": 12,
+        "y": 317
+      },
+      {
+        "app": "Thunar",
+        "h": 24,
+        "label": "",
+        "role": "table cell",
+        "w": 24,
+        "x": 26,
+        "y": 317
+      },
+      {
+        "app": "Thunar",
+        "h": 24,
+        "label": "Ubuntu 26.04 amd64",
+        "role": "table cell",
+        "w": 130,
+        "x": 52,
+        "y": 317
+      },
+      {
+        "app": "Thunar",
+        "h": 27,
+        "label": "",
+        "role": "table cell",
+        "w": 166,
+        "x": 12,
+        "y": 343
+      },
+      {
+        "app": "Thunar",
+        "h": 27,
+        "label": "",
+        "role": "table cell",
+        "w": 12,
+        "x": 12,
+        "y": 343
+      },
+      {
+        "app": "Thunar",
+        "h": 27,
+        "label": "",
+        "role": "table cell",
+        "w": 24,
+        "x": 26,
+        "y": 343
+      },
+      {
+        "app": "Thunar",
+        "h": 27,
+        "label": "Network",
+        "role": "table cell",
+        "w": 130,
+        "x": 52,
+        "y": 343
+      },
+      {
+        "app": "Thunar",
+        "h": 24,
+        "label": "",
+        "role": "table cell",
+        "w": 166,
+        "x": 12,
+        "y": 372
+      },
+      {
+        "app": "Thunar",
+        "h": 24,
+        "label": "",
+        "role": "table cell",
+        "w": 12,
+        "x": 12,
+        "y": 372
+      },
+      {
+        "app": "Thunar",
+        "h": 24,
+        "label": "",
+        "role": "table cell",
+        "w": 24,
+        "x": 26,
+        "y": 372
+      },
+      {
+        "app": "Thunar",
+        "h": 24,
+        "label": "Browse Network",
+        "role": "table cell",
+        "w": 130,
+        "x": 52,
+        "y": 372
+      },
+      {
+        "app": "Thunar",
+        "h": 961,
+        "label": "2147483647.0",
+        "role": "split pane",
+        "w": 779,
+        "x": 181,
+        "y": 127
+      },
+      {
+        "app": "Thunar",
+        "h": 934,
+        "label": "0.0",
+        "role": "split pane",
+        "w": 779,
+        "x": 181,
+        "y": 127
+      }
+    ]
+  }
+}
