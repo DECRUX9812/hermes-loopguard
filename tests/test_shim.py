@@ -49,7 +49,7 @@ def test_shim_wakes_then_skips_without_external_path(tmp_path: Path):
     (watchers / "shimdemo.yaml").write_text(WATCHER_YAML.format(issues=str(issues)), encoding="utf-8")
 
     shim = tmp_path / "loopguard_shimdemo.py"
-    shim.write_text(SHIM_TEMPLATE.format(name="shimdemo", pkg_root=PKG_ROOT), encoding="utf-8")
+    shim.write_text(SHIM_TEMPLATE.format(name="shimdemo", pkg_root=repr(PKG_ROOT)), encoding="utf-8")
 
     db = tmp_path / "lg.db"
 
@@ -76,10 +76,36 @@ def test_shim_honours_per_watcher_config_override(tmp_path: Path):
     )
 
     shim = tmp_path / "loopguard_shimdemo.py"
-    shim.write_text(SHIM_TEMPLATE.format(name="shimdemo", pkg_root=PKG_ROOT), encoding="utf-8")
+    shim.write_text(SHIM_TEMPLATE.format(name="shimdemo", pkg_root=repr(PKG_ROOT)), encoding="utf-8")
 
     # Shadow mode comes from the watcher's config override: the brief is empty
     # (routes logged, agent woken exactly as before) even on the first run.
     first = _run_shim(shim, home, tmp_path / "lg.db")
     assert first.returncode == 0, first.stderr
     assert first.stdout == '{"wakeAgent": true}\n'
+
+
+def test_shim_pkg_root_containing_quote(tmp_path: Path):
+    """A package root with `"` in its path must still yield a runnable shim."""
+    root = tmp_path / 'we"ird"root'
+    pkg = root / "hermes_loopguard"
+    pkg.mkdir(parents=True)
+    (pkg / "__init__.py").write_text("", encoding="utf-8")
+    (pkg / "cron.py").write_text(
+        "def main(argv):\n    print('stub ' + argv[0])\n    return 0\n",
+        encoding="utf-8",
+    )
+
+    shim = tmp_path / "loopguard_shimdemo.py"
+    shim.write_text(SHIM_TEMPLATE.format(name="shimdemo", pkg_root=repr(str(root))), encoding="utf-8")
+
+    # -I again: hermes_loopguard is not importable, so the shim must rescue
+    # itself via the embedded (quoted) path and reach the stub package.
+    proc = subprocess.run(
+        [sys.executable, "-I", str(shim)],
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    assert proc.returncode == 0, proc.stderr
+    assert proc.stdout.strip() == "stub shimdemo"

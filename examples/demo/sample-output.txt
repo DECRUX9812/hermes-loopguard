@@ -1,0 +1,120 @@
+
+==== 0. Reset demo state (idempotent) ====
+demo home: /path/to/lg-demo-home
+config.yaml merged (model/provider/auxiliary.loopguard_gate)
+
+==== 1. Plugin enable + CLI (proves the plugin loads inside stock Hermes) ====
+Plugin 'loopguard' is already enabled.
+usage: hermes loopguard [-h] COMMAND ...
+
+positional arguments:
+  COMMAND
+    stats      Show savings and activity
+    decisions  Show the decision log
+    poll       Run one watcher poll now
+    watch      Manage watchers
+    review     Operator review queue
+    check      Check GOAL.md completion
+    eval       Run the gate eval harness
+    doctor     Check the LoopGuard install
+    dashboard  Dashboard plugin page
+    shadow     Turn shadow mode on or off
+    reset      Forget item state so items are re-evaluated
+
+options:
+  -h, --help   show this help message and exit
+
+==== 2. Install the watcher and its cron job ====
+Installed watcher 'demo-issues'
+  spec: /path/to/lg-demo-home/loopguard/watchers/demo-issues.yaml
+  shim: /path/to/lg-demo-home/scripts/loopguard_demo-issues.py
+  cron: hermes cron add 'every 15m' 'You are woken by LoopGuard only when items need work. Handle each item in the LoopGuard brief above, then report each one as DONE <id> or BLOCKED <id>: <reason>.' --name lg-demo-issues --script loopguard_demo-issues.py --deliver local
+Created job: 04fdb75a3f95
+  Name: lg-demo-issues
+  Schedule: every 15m
+  Script: loopguard_demo-issues.py
+  Next run: 2026-10-15T01:20:20.733777-06:00
+  ⚠  Scheduler is not ready for profile 'default': no gateway serves it and no fresh ticker heartbeat.
+     If no gateway is running: hermes gateway install
+                    sudo hermes gateway install --system  # Linux servers
+     Check status:  hermes cron status
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         Scheduled Jobs (profile: default)               │
+└─────────────────────────────────────────────────────────────────────────┘
+
+  04fdb75a3f95 [active]
+    Name:      lg-demo-issues
+    Schedule:  every 15m
+    Repeat:    ∞
+    Next run:  2026-10-15T01:20:20.733777-06:00
+    Deliver:   local
+    Script:    loopguard_demo-issues.py
+
+  ⚠  Scheduler is not ready for profile 'default': no gateway serves it and no fresh ticker heartbeat.
+     If no gateway is running: hermes gateway install
+                    sudo hermes gateway install --system  # Linux servers
+     Check status:  hermes cron status
+job id: 04fdb75a3f95
+
+==== 3. Poll 1: two new issues -> gate + routes + agent wake ====
+Triggered job: lg-demo-issues (04fdb75a3f95)
+  Next run: 2026-10-15T01:20:38.732227-06:00
+  Ran now: succeeded.
+--- routes from the decision log:
+10-15 01:05  demo-issues        route       ISS-101                   done         
+10-15 01:05  demo-issues        route       ISS-102        duplicate_ dropped      
+10-15 01:05  demo-issues        semantic    ISS-102        duplicate_              
+10-15 01:05  demo-issues        route       ISS-101        bug        admitted     
+10-15 01:05  demo-issues        semantic    ISS-101        bug                     
+
+==== 4. Polls 2 and 3: nothing changed -> no wake, zero model calls ====
+  state.db:            sessions=5 model_usage_rows=3 model_tokens=138364
+  loopguard decisions: rows_with_tokens=2
+Triggered job: lg-demo-issues (04fdb75a3f95)
+  Next run: 2026-10-15T01:20:42.866853-06:00
+  Ran now: succeeded.
+Triggered job: lg-demo-issues (04fdb75a3f95)
+  Next run: 2026-10-15T01:20:45.561230-06:00
+  Ran now: succeeded.
+--- metrics after polls 2 and 3 (model_usage_rows and model_tokens must be unchanged):
+  state.db:            sessions=7 model_usage_rows=3 model_tokens=138364
+  loopguard decisions: rows_with_tokens=2
+--- LoopGuard poll ledger (woke column: 1=woken, 0=skipped):
+  poll 1: changed=2 admitted=1 woke=1 gate_tokens=926
+  poll 2: changed=0 admitted=0 woke=0 gate_tokens=0
+  poll 3: changed=0 admitted=0 woke=0 gate_tokens=0
+
+==== 5. Poll 4: append evidence to ISS-101 -> only that item re-gated ====
+ISS-101 body updated
+Triggered job: lg-demo-issues (04fdb75a3f95)
+  Next run: 2026-10-15T01:20:52.718313-06:00
+  Ran now: succeeded.
+--- routes from the decision log:
+10-15 01:05  demo-issues        route       ISS-101                   done         
+10-15 01:05  demo-issues        route       ISS-101        bug        admitted     
+10-15 01:05  demo-issues        semantic    ISS-101        bug                     
+10-15 01:05  demo-issues        change_gate -                         skip         1 unchanged, 0 other
+10-15 01:05  demo-issues        change_gate -                         skip         2 unchanged, 0 other
+10-15 01:05  demo-issues        change_gate -                         skip         2 unchanged, 0 other
+
+==== 6. Savings stats ====
+LoopGuard: 2 runs skipped (50%), ~25.9k tokens / $0.08 avoided, gate cost $0.00, $0.05 per completed task
+
+Watcher                 Polls  Skipped  Woken   Avoided   Gate $    Net $
+demo-issues                 4        2      2     25.9k    $0.00    $0.07
+
+Routes: bug 2, duplicate_or_spam 1
+
+Polls 4 (shadow 0), items gated 3, gate tokens 1.4k, agent tokens 15.7k, completed 1, open reviews 0, errors 0
+--- standalone CLI:
+LoopGuard: 2 runs skipped (50%), ~25.9k tokens / $0.08 avoided, gate cost $0.00, $0.05 per completed task
+
+Watcher                 Polls  Skipped  Woken   Avoided   Gate $    Net $
+demo-issues                 4        2      2     25.9k    $0.00    $0.07
+
+Routes: bug 2, duplicate_or_spam 1
+
+Polls 4 (shadow 0), items gated 3, gate tokens 1.4k, agent tokens 15.7k, completed 1, open reviews 0, errors 0
+
+==== Demo complete ====

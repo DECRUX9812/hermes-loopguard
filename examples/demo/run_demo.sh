@@ -13,31 +13,46 @@
 #   export HERMES_HOME=/path/to/fresh/demo-home   # NEVER ~/.hermes
 #   bash examples/demo/run_demo.sh
 #
-# Requires the `hermes` binary (default: ~/Code/ship-test/lg-venv/bin/hermes)
-# and a CLIProxy endpoint at http://127.0.0.1:8317/v1. The CLIPROXY_API_KEY
-# is read from ~/.hermes/.env and never printed.
+# The `hermes` binary on PATH is used unless HERMES_BIN is set; whichever is
+# used must have the loopguard plugin installed. Endpoint/model defaults can
+# be overridden per environment:
+#   LG_DEMO_BASE_URL    (default http://127.0.0.1:8317/v1)
+#   LG_DEMO_PROVIDER    (default cliproxy-antigravity)
+#   LG_DEMO_MODEL       (default gemini-3.1-flash-lite)
+#   LG_DEMO_KEY_ENV     (default CLIPROXY_API_KEY)
+# The key for LG_DEMO_KEY_ENV is read from ~/.hermes/.env only when the env
+# var is unset and that file exists; it is never printed.
 set -euo pipefail
 
 DEMO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HERMES_HOME="${HERMES_HOME:?Set HERMES_HOME to a fresh demo directory (never ~/.hermes)}"
 case "$HERMES_HOME" in
-  "$HOME/.hermes"|/path/to/home)
+  "$HOME/.hermes")
     echo "Refusing to run against $HERMES_HOME" >&2; exit 1;;
 esac
 export HERMES_HOME
-mkdir -p $HERMES_HOME
+mkdir -p "$HERMES_HOME"
 
-# Pin the hermes that has the loopguard plugin installed (lg-venv). The user's
-# ~/.local/bin/hermes is a different install without the plugin on its path.
-HERMES_BIN="${HERMES_BIN:-$HOME/Code/ship-test/lg-venv/bin/hermes}"
-[ -x "$HERMES_BIN" ] || HERMES_BIN="$(command -v hermes)"
+LG_DEMO_BASE_URL="${LG_DEMO_BASE_URL:-http://127.0.0.1:8317/v1}"
+LG_DEMO_PROVIDER="${LG_DEMO_PROVIDER:-cliproxy-antigravity}"
+LG_DEMO_MODEL="${LG_DEMO_MODEL:-gemini-3.1-flash-lite}"
+LG_DEMO_KEY_ENV="${LG_DEMO_KEY_ENV:-CLIPROXY_API_KEY}"
+export LG_DEMO_BASE_URL LG_DEMO_PROVIDER LG_DEMO_MODEL LG_DEMO_KEY_ENV
+
+HERMES_BIN="${HERMES_BIN:-$(command -v hermes)}"
+if [ -z "$HERMES_BIN" ]; then
+  echo "error: no hermes binary found on PATH; set HERMES_BIN to a hermes that has the loopguard plugin installed" >&2
+  exit 1
+fi
 PYBIN="$(dirname "$HERMES_BIN")/python"
 JOB_NAME="lg-demo-issues"
 WATCHER="demo-issues"
 
-if [ -z "${CLIPROXY_API_KEY:-}" ]; then
-  CLIPROXY_API_KEY="$(grep -E '^CLIPROXY_API_KEY=' "$HOME/.hermes/.env" | head -1 | cut -d= -f2- | tr -d '"')"
-  export CLIPROXY_API_KEY
+if [ -z "${!LG_DEMO_KEY_ENV:-}" ] && [ -f "$HOME/.hermes/.env" ]; then
+  key="$(grep -E "^${LG_DEMO_KEY_ENV}=" "$HOME/.hermes/.env" | head -1 | cut -d= -f2- | tr -d '"')" || true
+  if [ -n "$key" ]; then
+    export "${LG_DEMO_KEY_ENV}=$key"
+  fi
 fi
 
 section() { echo; echo "==== $* ===="; }
@@ -72,24 +87,25 @@ mkdir -p "$HERMES_HOME/demo"
 cp "$DEMO_DIR/issues.json" "$HERMES_HOME/demo/issues.json"
 echo "demo home: $HERMES_HOME"
 
-# Merge the demo model config (direct file write on purpose: `hermes config
-# set` ignores HERMES_HOME and would write the default profile's home).
+# This script writes the demo home's config.yaml directly, so it can never
+# touch another Hermes home.
 "$PYBIN" - <<'PYEOF'
 import os, yaml
 p = os.path.join(os.environ["HERMES_HOME"], "config.yaml")
 cfg = (yaml.safe_load(open(p)) or {}) if os.path.exists(p) else {}
+provider = os.environ["LG_DEMO_PROVIDER"]
 cfg.setdefault("model", {})
-cfg["model"]["provider"] = "cliproxy-antigravity"
-cfg["model"]["default"] = "gemini-3.1-flash-lite"
-cfg.setdefault("providers", {})["cliproxy-antigravity"] = {
-    "api": "http://127.0.0.1:8317/v1",
+cfg["model"]["provider"] = provider
+cfg["model"]["default"] = os.environ["LG_DEMO_MODEL"]
+cfg.setdefault("providers", {})[provider] = {
+    "api": os.environ["LG_DEMO_BASE_URL"],
     "name": "CLIProxyAPI",
-    "key_env": "CLIPROXY_API_KEY",
+    "key_env": os.environ["LG_DEMO_KEY_ENV"],
     "transport": "chat_completions",
 }
 cfg.setdefault("auxiliary", {})["loopguard_gate"] = {
-    "provider": "cliproxy-antigravity",
-    "model": "gemini-3.1-flash-lite",
+    "provider": provider,
+    "model": os.environ["LG_DEMO_MODEL"],
 }
 yaml.safe_dump(cfg, open(p, "w"), sort_keys=False)
 print("config.yaml merged (model/provider/auxiliary.loopguard_gate)")
@@ -101,7 +117,11 @@ section "1. Plugin enable + CLI (proves the plugin loads inside stock Hermes)"
 
 section "2. Install the watcher and its cron job"
 RESOLVED="$(mktemp /tmp/lg-demo-watcher.XXXX.yaml)"
-sed "s|@ISSUES_JSON@|$HERMES_HOME/demo/issues.json|" "$DEMO_DIR/issue_watcher.yaml" > "$RESOLVED"
+sed -e "s|@ISSUES_JSON@|$HERMES_HOME/demo/issues.json|" \
+    -e "s|@BASE_URL@|$LG_DEMO_BASE_URL|" \
+    -e "s|@MODEL@|$LG_DEMO_MODEL|" \
+    -e "s|@KEY_ENV@|$LG_DEMO_KEY_ENV|" \
+    "$DEMO_DIR/issue_watcher.yaml" > "$RESOLVED"
 "$HERMES_BIN" loopguard watch install "$RESOLVED" --schedule "every 15m"
 rm -f "$RESOLVED"
 "$HERMES_BIN" cron list
@@ -146,7 +166,10 @@ echo "--- routes from the decision log:"
 
 section "6. Savings stats"
 "$HERMES_BIN" loopguard stats
-echo "--- standalone CLI (lg-venv):"
-"$(dirname "$PYBIN")/hermes-loopguard" stats
+STANDALONE="$(dirname "$PYBIN")/hermes-loopguard"
+if [ -x "$STANDALONE" ]; then
+  echo "--- standalone CLI:"
+  "$STANDALONE" stats
+fi
 
 section "Demo complete"

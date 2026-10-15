@@ -151,12 +151,15 @@ def poll(
     n_other = len(non_actionable) - n_unchanged
 
     if not dry_run:
-        store.log_decision(
-            watcher=spec.name,
-            kind="change_gate",
-            outcome="skip",
-            note=f"{n_unchanged} unchanged, {n_other} other",
-        )
+        # Summary row only when there is something non-actionable; a poll
+        # that admitted everything logs no skip rows at all.
+        if non_actionable:
+            store.log_decision(
+                watcher=spec.name,
+                kind="change_gate",
+                outcome="skip",
+                note=f"{n_unchanged} unchanged, {n_other} other",
+            )
         for d in non_actionable:
             if d.status != "unchanged":
                 store.log_decision(

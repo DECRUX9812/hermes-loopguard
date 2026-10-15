@@ -281,7 +281,7 @@ def _cmd_watch_install(args) -> int:
     sdir.mkdir(parents=True, exist_ok=True)
     shim = sdir / f"loopguard_{spec.name}.py"
     pkg_root = Path(hermes_loopguard.__file__).resolve().parent.parent
-    shim.write_text(SHIM_TEMPLATE.format(name=spec.name, pkg_root=str(pkg_root)), encoding="utf-8")
+    shim.write_text(SHIM_TEMPLATE.format(name=spec.name, pkg_root=repr(str(pkg_root))), encoding="utf-8")
 
     cmd = [
         "hermes",

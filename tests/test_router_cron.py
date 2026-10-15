@@ -194,3 +194,26 @@ def test_claimed_item_not_admitted_twice(tmp_path: Path):
     res2 = poll(spec, store=store, cfg=cfg, owner="owner-2")
     assert res2.wake is False
     assert len(res2.routed) == 0  # item status is 'unchanged' in change_gate since fp same
+
+
+def test_skip_summary_row_only_logged_when_non_actionable(tmp_path: Path):
+    source_file = tmp_path / "skip_rows_items.json"
+    source_file.write_text(json.dumps([{"id": "1", "title": "Bug A"}]), encoding="utf-8")
+    spec = WatcherSpec(name="skip_rows", source={"file": str(source_file)})
+    store = Store(tmp_path / "skip_rows.db")
+
+    def skip_rows():
+        rows = store.decisions(watcher="skip_rows", limit=100)
+        return [r for r in rows if r.get("kind") == "change_gate" and r.get("outcome") == "skip"]
+
+    # Poll 1: the new item is admitted -> no change_gate/skip row at all.
+    res1 = poll(spec, store=store, cfg={}, owner="o1")
+    assert res1.wake is True
+    assert skip_rows() == []
+
+    # Poll 2: the item is unchanged -> exactly one summary row with counts.
+    res2 = poll(spec, store=store, cfg={}, owner="o2")
+    assert res2.wake is False
+    rows = skip_rows()
+    assert len(rows) == 1
+    assert rows[0].get("note") == "1 unchanged, 0 other"
