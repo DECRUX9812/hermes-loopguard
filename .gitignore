@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+!src/hermes_loopguard/dashboard/dist/
+.venv/
+venv/
+*.db
+*.sqlite3
+.env
+.oc/*.log
