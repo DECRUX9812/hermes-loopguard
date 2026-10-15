@@ -138,3 +138,79 @@ def test_plugin_api_review_approve_and_drop_local(tmp_path):
         assert len(open_reviews) == 0
     finally:
         store.close()
+
+
+def test_dist_index_js_route_mix_handles_custom_route_names():
+    """Watchers define custom route names ("bug", "duplicate_or_spam"); the route mix
+    cards must render whatever stats.routes actually contains, not just the five
+    standard handler names, and the cron:top banner must link the path-routed tab."""
+    js_path = Path("src/hermes_loopguard/dashboard/dist/index.js")
+    text = js_path.read_text(encoding="utf-8")
+    assert "function routeEntries(" in text, "route mix must derive entries from stats.routes"
+    assert "lg-color-custom" in text, "custom route names need the fallback colour"
+    # The dashboard is a path-routed SPA; a hash href would not navigate.
+    assert "'#/loopguard'" not in text
+    assert "href: '/loopguard'" in text
+
+    css_path = Path("src/hermes_loopguard/dashboard/dist/style.css")
+    css = css_path.read_text(encoding="utf-8")
+    assert "--lg-color-custom:" in css, "style.css must define the custom route colour"
+
+
+def test_plugin_api_endpoints_round_trip(tmp_path, monkeypatch):
+    """GET handlers against a temp store: custom route names pass through verbatim
+    and review actions resolve through the module-level functions."""
+    monkeypatch.setenv("LOOPGUARD_DB", str(tmp_path / "api.db"))
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path / "home"))
+    from hermes_loopguard.dashboard import plugin_api
+    from hermes_loopguard.db import Store
+
+    db_file = tmp_path / "api.db"
+    store = Store(db_file)
+    try:
+        store.upsert_item("demo-issues", "ISS-1", fingerprint="fp1", title="Bug")
+        store.log_poll(
+            watcher="demo-issues", n_items=2, n_changed=1, n_admitted=1,
+            woke=True, shadow=False, est_tokens_avoided=1200, est_usd_avoided=0.006,
+            gate_tokens=100, gate_usd=0.0005,
+        )
+        store.log_decision(
+            watcher="demo-issues", kind="route", item_id="ISS-1", route="bug",
+            backend="typesafe", model="jev-1.13.0", outcome="done",
+        )
+        rev_id = store.enqueue_review(
+            "demo-issues", "ISS-1", title="Bug", reason="low confidence", payload={},
+        )
+    finally:
+        store.close()
+
+    stats = plugin_api.get_stats()
+    assert stats["polls"] == 1
+    assert stats["routes"] == {"bug": 1}, "route names must pass through verbatim"
+
+    decisions = plugin_api.get_decisions(limit=10)
+    assert len(decisions) == 1
+    assert decisions[0]["kind"] == "route"
+    assert decisions[0]["route"] == "bug"
+
+    watchers = plugin_api.get_watchers()
+    assert watchers == []  # no watcher specs under the temp home
+
+    review = plugin_api.get_review()
+    assert len(review) == 1 and review[0]["id"] == rev_id
+
+    result = plugin_api.post_review(rev_id, {"action": "approve"})
+    assert result == {"ok": True, "action": "approve", "review_id": rev_id}
+    store = Store(db_file)
+    try:
+        assert store.review_queue(status="open") == []
+    finally:
+        store.close()
+
+    # Unknown review and bad action fail with HTTP-style errors
+    with pytest.raises(Exception) as exc:
+        plugin_api.post_review(rev_id + 999, {"action": "approve"})
+    assert "not found" in str(exc.value)
+    with pytest.raises(Exception) as exc:
+        plugin_api.post_review(rev_id, {"action": "nonsense"})
+    assert "approve" in str(exc.value)

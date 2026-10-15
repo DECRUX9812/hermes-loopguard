@@ -27,3 +27,12 @@ printed.
 State is reset each run, so it is safe to repeat. The semantic gate calls the
 configured model through the openai-compatible endpoint, falling back to
 local heuristics if that fails.
+
+## Dashboard
+
+Install the page into the demo home and open it against its real data
+(`[screenshot](dashboard.png)` shows the tab for the run above: 4 polls,
+2 skipped, 25.8K tokens avoided):
+
+    HERMES_HOME=$HERMES_HOME hermes loopguard dashboard install
+    HERMES_HOME=$HERMES_HOME hermes dashboard --no-open

@@ -11,10 +11,16 @@
   --lg-color-tool: #ec4899;
   --lg-color-completion: #14b8a6;
   --lg-color-budget: #f97316;
+  --lg-color-custom: #84cc16;
+
+  /* Some host themes define --color-card(-foreground) but not --color-foreground
+     or --color-background; chain the fallbacks so text stays readable either way. */
+  --lg-foreground: var(--color-foreground, var(--color-card-foreground, #111827));
+  --lg-background: var(--color-background, var(--color-card, #0b1220));
 
   font-family: inherit;
-  color: var(--color-foreground, #111827);
-  background-color: var(--color-background, #ffffff);
+  color: var(--lg-foreground);
+  background-color: var(--lg-background);
   box-sizing: border-box;
   padding: 24px;
   display: flex;
@@ -63,7 +69,7 @@
   font-weight: 700;
   line-height: 32px;
   margin: 0;
-  color: var(--color-foreground, #111827);
+  color: var(--lg-foreground);
 }
 
 .lg-subtitle {
@@ -100,8 +106,8 @@
 }
 
 .lg-range-btn-active {
-  background-color: var(--color-background, #ffffff);
-  color: var(--color-foreground, #111827);
+  background-color: var(--lg-background);
+  color: var(--lg-foreground);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
@@ -110,8 +116,8 @@
   border-radius: var(--radius, 6px);
   padding: 6px 12px;
   font-size: 13px;
-  background-color: var(--color-background, #ffffff);
-  color: var(--color-foreground, #111827);
+  background-color: var(--lg-background);
+  color: var(--lg-foreground);
   cursor: pointer;
 }
 
@@ -141,7 +147,7 @@
   border-radius: var(--radius, 6px);
   border: 1px solid var(--color-border, #e5e7eb);
   background-color: var(--color-card, #ffffff);
-  color: var(--color-foreground, #111827);
+  color: var(--lg-foreground);
   cursor: pointer;
   transition: background-color 0.15s ease, border-color 0.15s ease;
 }
@@ -189,8 +195,8 @@
   padding: 12px 16px;
   border-radius: var(--radius, 6px);
   border: 1px solid var(--lg-color-error);
-  background-color: color-mix(in srgb, var(--lg-color-error) 10%, var(--color-background, #ffffff));
-  color: var(--color-foreground, #111827);
+  background-color: color-mix(in srgb, var(--lg-color-error) 10%, var(--lg-background));
+  color: var(--lg-foreground);
 }
 
 .lg-slot-banner {
@@ -201,9 +207,9 @@
   padding: 8px 16px;
   border-radius: var(--radius, 6px);
   border: 1px solid color-mix(in srgb, var(--lg-color-skip) 40%, transparent);
-  background-color: color-mix(in srgb, var(--lg-color-skip) 8%, var(--color-background, #ffffff));
+  background-color: color-mix(in srgb, var(--lg-color-skip) 8%, var(--lg-background));
   font-size: 13px;
-  color: var(--color-foreground, #111827);
+  color: var(--lg-foreground);
 }
 
 .lg-slot-banner-link {
@@ -249,7 +255,7 @@
   font-size: 28px;
   font-weight: 700;
   line-height: 36px;
-  color: var(--color-foreground, #111827);
+  color: var(--lg-foreground);
 }
 
 .lg-kpi-footer {
@@ -293,7 +299,7 @@
   font-size: 16px;
   font-weight: 600;
   margin: 0;
-  color: var(--color-foreground, #111827);
+  color: var(--lg-foreground);
 }
 
 .lg-chart-legend {
@@ -375,7 +381,7 @@
 .lg-table td {
   padding: 10px 12px;
   border-bottom: 1px solid color-mix(in srgb, var(--color-border, #e5e7eb) 50%, transparent);
-  color: var(--color-foreground, #111827);
+  color: var(--lg-foreground);
   vertical-align: middle;
 }
 
@@ -385,7 +391,7 @@
   padding: 2px 6px;
   border-radius: 4px;
   background-color: color-mix(in srgb, var(--color-muted-foreground, #6b7280) 12%, transparent);
-  color: var(--color-foreground, #111827);
+  color: var(--lg-foreground);
 }
 
 .lg-segmented-bar-small {
@@ -566,7 +572,7 @@
 .lg-feed-item-id {
   font-family: monospace;
   font-size: 13px;
-  color: var(--color-foreground, #111827);
+  color: var(--lg-foreground);
   white-space: nowrap;
 }
 
@@ -607,13 +613,13 @@
 .lg-json-block {
   padding: 12px 16px;
   margin: 0;
-  background-color: color-mix(in srgb, var(--color-muted-foreground, #6b7280) 8%, var(--color-background, #ffffff));
+  background-color: color-mix(in srgb, var(--color-muted-foreground, #6b7280) 8%, var(--lg-background));
   border-bottom: 1px solid var(--color-border, #e5e7eb);
   font-family: monospace;
   font-size: 12px;
   line-height: 18px;
   overflow-x: auto;
-  color: var(--color-foreground, #111827);
+  color: var(--lg-foreground);
 }
 
 /* Review Queue */
@@ -637,7 +643,7 @@
   border: 1px solid var(--color-border, #e5e7eb);
   border-radius: var(--radius, 6px);
   padding: 16px;
-  background-color: var(--color-background, #ffffff);
+  background-color: var(--lg-background);
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -654,7 +660,7 @@
   font-size: 14px;
   font-weight: 600;
   margin: 0;
-  color: var(--color-foreground, #111827);
+  color: var(--lg-foreground);
 }
 
 .lg-review-item-reason {
@@ -688,7 +694,7 @@
   font-size: 18px;
   font-weight: 600;
   margin: 0;
-  color: var(--color-foreground, #111827);
+  color: var(--lg-foreground);
 }
 
 .lg-empty-desc {
@@ -700,7 +706,7 @@
 }
 
 .lg-quickstart-box {
-  background-color: color-mix(in srgb, var(--color-muted-foreground, #6b7280) 10%, var(--color-background, #ffffff));
+  background-color: color-mix(in srgb, var(--color-muted-foreground, #6b7280) 10%, var(--lg-background));
   border: 1px solid var(--color-border, #e5e7eb);
   border-radius: var(--radius, 6px);
   padding: 16px;
@@ -708,7 +714,7 @@
   font-family: monospace;
   font-size: 13px;
   line-height: 24px;
-  color: var(--color-foreground, #111827);
+  color: var(--lg-foreground);
   width: 100%;
   max-width: 540px;
 }
@@ -718,7 +724,7 @@
 .lg-select:focus-visible,
 .lg-range-btn:focus-visible,
 .lg-feed-row:focus-visible {
-  outline: 2px solid var(--color-ring, #3b82f6);
+  outline: 2px solid var(--color-ring, var(--color-primary, #3b82f6));
   outline-offset: 2px;
 }
 

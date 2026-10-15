@@ -67,6 +67,38 @@
     return Math.round(Number(n) * 100) + '%';
   }
 
+  /* Route mix: stats.routes keys are the watcher's actual route names, which are
+     usually custom ("bug", "duplicate_or_spam"), so never assume the five standard ones. */
+  var KNOWN_ROUTES = ['agent', 'kanban', 'review', 'drop', 'shadow'];
+
+  function routeEntries(routesMap) {
+    var map = routesMap || {};
+    var entries = [];
+    for (var i = 0; i < KNOWN_ROUTES.length; i++) {
+      if ((map[KNOWN_ROUTES[i]] || 0) > 0) {
+        entries.push({ name: KNOWN_ROUTES[i], count: map[KNOWN_ROUTES[i]] });
+      }
+    }
+    for (var rk in map) {
+      if (KNOWN_ROUTES.indexOf(rk) === -1 && (map[rk] || 0) > 0) {
+        entries.push({ name: rk, count: map[rk] });
+      }
+    }
+    return entries;
+  }
+
+  function routeColor(name) {
+    return KNOWN_ROUTES.indexOf(name) !== -1
+      ? 'var(--lg-color-' + name + ')'
+      : 'var(--lg-color-custom)';
+  }
+
+  function routeLabel(name) {
+    return KNOWN_ROUTES.indexOf(name) !== -1
+      ? name.charAt(0).toUpperCase() + name.slice(1)
+      : name;
+  }
+
   /* Icons */
   function ShieldIcon(props) {
     return h('svg', {
@@ -354,13 +386,10 @@
         )
       ),
       h('a', {
-        href: '#/loopguard',
-        className: 'lg-slot-banner-link',
-        onClick: function (e) {
-          if (window.location.hash !== '#/loopguard') {
-            window.location.hash = '#/loopguard';
-          }
-        }
+        // The dashboard is a path-routed SPA: a hash href would not navigate.
+        // Keep the current query (profile preselect) on the hop.
+        href: '/loopguard' + (window.location.search || ''),
+        className: 'lg-slot-banner-link'
       }, 'View LoopGuard')
     );
   }
@@ -672,9 +701,9 @@
                   )
                 ) : watchers.map(function (w) {
                   var wStats = (stats && stats.per_watcher && stats.per_watcher[w.name]) || {};
-                  var wRoutes = wStats.routes || {};
+                  var wEntries = routeEntries(wStats.routes);
                   var totalRoutes = 0;
-                  for (var rk in wRoutes) totalRoutes += wRoutes[rk];
+                  for (var wi = 0; wi < wEntries.length; wi++) totalRoutes += wEntries[wi].count;
 
                   return h('tr', { key: w.name },
                     h('td', null,
@@ -686,18 +715,16 @@
                     h('td', { className: 'lg-tabular' }, formatTokens(wStats.tokens_avoided || 0)),
                     h('td', null,
                       h('div', { className: 'lg-segmented-bar-small' },
-                        totalRoutes > 0 ? ['agent', 'kanban', 'review', 'drop', 'shadow'].map(function (rk) {
-                          var cnt = wRoutes[rk] || 0;
-                          if (cnt === 0) return null;
-                          var pct = (cnt / totalRoutes) * 100;
+                        totalRoutes > 0 ? wEntries.map(function (ent) {
+                          var pct = (ent.count / totalRoutes) * 100;
                           return h('div', {
-                            key: rk,
+                            key: ent.name,
                             className: 'lg-seg-slice',
                             style: {
                               width: pct + '%',
-                              backgroundColor: 'var(--lg-color-' + rk + ')'
+                              backgroundColor: routeColor(ent.name)
                             },
-                            title: rk + ': ' + cnt
+                            title: ent.name + ': ' + ent.count
                           });
                         }) : h('div', { className: 'lg-seg-slice', style: { width: '100%', opacity: 0.2 } })
                       )
@@ -713,46 +740,51 @@
         h('div', { className: 'lg-subcard' },
           h('h3', { className: 'lg-card-heading' }, 'Route Mix'),
           (function () {
-            var routesMap = (stats && stats.routes) ? stats.routes : {};
-            var allRoutes = ['agent', 'kanban', 'review', 'drop', 'shadow'];
+            var entries = routeEntries(stats && stats.routes);
             var totalCount = 0;
-            for (var i = 0; i < allRoutes.length; i++) {
-              totalCount += (routesMap[allRoutes[i]] || 0);
+            for (var i = 0; i < entries.length; i++) totalCount += entries[i].count;
+
+            if (totalCount === 0) {
+              return h('div', { className: 'lg-route-breakdown' },
+                h('div', { className: 'lg-segmented-bar-large' },
+                  h('div', { className: 'lg-seg-slice', style: { width: '100%', opacity: 0.15 } })
+                ),
+                h('div', { style: { color: 'var(--color-muted-foreground)', fontSize: '13px' } },
+                  'No routed runs in this range'
+                )
+              );
             }
 
             return h('div', { className: 'lg-route-breakdown' },
               // Large segmented bar
               h('div', { className: 'lg-segmented-bar-large' },
-                totalCount > 0 ? allRoutes.map(function (rk) {
-                  var count = routesMap[rk] || 0;
-                  if (count === 0) return null;
-                  var pct = (count / totalCount) * 100;
+                entries.map(function (ent) {
+                  var pct = (ent.count / totalCount) * 100;
                   return h('div', {
-                    key: rk,
+                    key: ent.name,
                     className: 'lg-seg-slice',
                     style: {
                       width: pct + '%',
-                      backgroundColor: 'var(--lg-color-' + rk + ')'
+                      backgroundColor: routeColor(ent.name)
                     },
-                    title: rk + ': ' + count + ' (' + Math.round(pct) + '%)'
+                    title: ent.name + ': ' + ent.count + ' (' + Math.round(pct) + '%)'
                   });
-                }) : h('div', { className: 'lg-seg-slice', style: { width: '100%', opacity: 0.15 } })
+                })
               ),
               // Route list
               h('div', { className: 'lg-route-list' },
-                allRoutes.map(function (rk) {
-                  var count = routesMap[rk] || 0;
-                  var pct = totalCount > 0 ? Math.round((count / totalCount) * 100) : 0;
-                  return h('div', { key: rk, className: 'lg-route-row' },
+                entries.map(function (ent) {
+                  var pct = Math.round((ent.count / totalCount) * 100);
+                  return h('div', { key: ent.name, className: 'lg-route-row' },
                     h('div', { className: 'lg-route-name-group' },
                       h('span', {
                         className: 'lg-legend-swatch',
-                        style: { backgroundColor: 'var(--lg-color-' + rk + ')' }
+                        style: { backgroundColor: routeColor(ent.name) }
                       }),
-                      h('span', null, rk.charAt(0).toUpperCase() + rk.slice(1))
+                      h('span', null, routeLabel(ent.name))
                     ),
                     h('div', { className: 'lg-tabular', style: { display: 'flex', gap: '12px' } },
-                      h('span', null, String(count)),
+                      h('span', null, String(ent.count)),
                       h('span', { style: { color: 'var(--color-muted-foreground)', minWidth: '36px', textAlign: 'right' } },
                         pct + '%'
                       )
