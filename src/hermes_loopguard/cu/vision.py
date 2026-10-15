@@ -29,7 +29,15 @@ JEV_114 = "jev-1.14.0"
 JEV_113 = "jev-1.13.0"
 JEV_MODELS = (JEV_114, JEV_113)
 DEFAULT_MODELS = [JEV_114, JEV_113, "openai:gemini-3.8-flash-high"]
-DEFAULT_THRESHOLDS = {"presence": 0.6, "box_confidence": 0.5, "verify": 0.7, "safety": 0.2}
+DEFAULT_THRESHOLDS = {
+    "presence": 0.6,
+    "box_confidence": 0.5,
+    "verify": 0.7,
+    "safety": 0.2,
+    # Stage-1 screen-level probs at or above this pause WITHOUT the stage-2
+    # action-level check; the band [safety, safety_hard) gets the check.
+    "safety_hard": 0.6,
+}
 DEFAULT_HASH = {"unchanged_max": 3, "changed_min": 12}
 
 SAFETY_CATEGORIES = (
@@ -39,6 +47,21 @@ SAFETY_CATEGORIES = (
     "account_or_security_change",
     "none",
 )
+
+# Stage 2 asks one Noul per category about the EXACT step the agent is about
+# to take ("Would clicking 'Dark mode' in `<ref>` spend money?").
+STAGE2_PHRASES = {
+    "payment": "spend money",
+    "deletion": "delete data",
+    "account_or_security_change": "change a password, login, account or security setting",
+    "send_or_publish": "send or publish something to other people",
+}
+_STAGE2_GERUND = {
+    "click": "clicking",
+    "type": "typing into",
+    "key": "pressing",
+    "scroll": "scrolling",
+}
 
 
 class VisionError(RuntimeError):
@@ -92,6 +115,20 @@ class SafetyResult:
     probs: dict[str, float]
     confirm_dialog: float
     pause: bool
+    usage: VisionUsage | None
+    error: str | None = None
+
+
+@dataclass
+class SafetyActionResult:
+    """Stage-2 action-level check: per-category Nouls about ONE step.
+
+    `probs[c]` answers "would this exact action spend money / delete data /
+    change a security setting / send or publish?" for category c.  Empty with
+    `error` set when every model in the chain failed (policy pauses on that).
+    """
+
+    probs: dict[str, float]
     usage: VisionUsage | None
     error: str | None = None
 
@@ -377,3 +414,42 @@ class VisionGate:
             pause=pause,
             usage=usage,
         )
+
+    def safety_action(self, frame: Any, action: str, target: str) -> SafetyActionResult:
+        """Stage 2: ONE action-level request about the exact step about to run.
+
+        Runs only when stage 1 left a risky category in the ambiguous band
+        [thresholds.safety, thresholds.safety_hard).  Asks one Noul per risky
+        category ("Would clicking 'Dark mode' in `<ref>` spend money?") on the
+        SAME screenshot; the caller's policy pauses when the Noul for the
+        ambiguous category crosses thresholds.safety.
+        """
+        try:
+            ref = uuid4().hex
+            prepared, _w, _h = self._prepare(frame.png)
+            doing = _STAGE2_GERUND.get(
+                str(action or "").strip().lower(), "acting on"
+            )
+            label = str(target or "").strip() or "this element"
+            questions = {
+                category: Noul(
+                    instructions=f"Would {doing} '{label}' in `{ref}` {phrase}?"
+                )
+                for category, phrase in STAGE2_PHRASES.items()
+            }
+            answers, usage = self.ask({ref: prepared}, f"Screenshot `{ref}`.", questions)
+        except VisionError as e:
+            return SafetyActionResult(
+                probs={}, usage=e.usage or self._failed_usage([str(e)]), error=str(e)
+            )
+        except (RuntimeError, ValueError) as e:  # image prep failed
+            return SafetyActionResult(
+                probs={},
+                usage=VisionUsage(fallbacks=[f"prepare_image: {e}"]),
+                error=str(e),
+            )
+        probs = {
+            category: float(getattr(answers.get(category), "noul", 0.0))
+            for category in STAGE2_PHRASES
+        }
+        return SafetyActionResult(probs=probs, usage=usage)

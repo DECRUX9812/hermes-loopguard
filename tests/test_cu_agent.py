@@ -24,6 +24,7 @@ from hermes_loopguard.cu.drivers.fake import FakeDriver
 from hermes_loopguard.cu.vision import (
     ChangeResult,
     LocateResult,
+    SafetyActionResult,
     SafetyResult,
     VerifyResult,
     VisionUsage,
@@ -35,6 +36,9 @@ FIX = Path(__file__).parent / "fixtures" / "cu" / "vision"
 # REAL recorded Jev responses (see tests/fixtures/cu/vision/README.md).
 SAFETY_FORM = json.loads((FIX / "cases" / "safety_form_jev114.json").read_text())
 SAFETY_PAYMENT = json.loads((FIX / "cases" / "safety_payment_jev114.json").read_text())
+
+# The policy thresholds (defaults incl. the new safety_hard).
+THRESHOLDS = {"safety": 0.2, "safety_hard": 0.6}
 
 
 def _usage(model: str = "jev-1.14.0", usd: float = 0.0001) -> VisionUsage:
@@ -56,13 +60,17 @@ class FakeGate:
     """FAKE gate: canned typed answers, every call recorded."""
 
     def __init__(self):
-        self.thresholds = {"presence": 0.6, "box_confidence": 0.5, "verify": 0.7, "safety": 0.2}
-        self.calls = {"locate": [], "verify": [], "changed": [], "safety": [], "ask": []}
+        self.thresholds = {"presence": 0.6, "box_confidence": 0.5, "verify": 0.7, "safety": 0.2,
+                           "safety_hard": 0.6}
+        self.calls = {"locate": [], "verify": [], "changed": [], "safety": [],
+                      "safety_action": [], "ask": []}
         self.locate_results: list[LocateResult] = []
         self.verify_results: list[VerifyResult] = []
         self.safety_result = SafetyResult(
             category="none", probs={"none": 0.99}, confirm_dialog=0.0, pause=False, usage=_usage()
         )
+        self.safety_action_result = SafetyActionResult(probs={}, usage=_usage())
+        self.safety_action_results: list[SafetyActionResult] = []
         self.changed_result = ChangeResult(changed=True, distance=20, path="hash", usage=None)
         self.ask_noul = 0.9
 
@@ -89,6 +97,10 @@ class FakeGate:
     def safety(self, frame):
         self.calls["safety"].append({})
         return self.safety_result
+
+    def safety_action(self, frame, action, target):
+        self.calls["safety_action"].append({"action": action, "target": target})
+        return self._next(self.safety_action_results, self.safety_action_result)
 
     def ask(self, images, state, questions):
         self.calls["ask"].append({"questions": list(questions), "images": list(images)})
@@ -200,27 +212,145 @@ def test_safety_pause_stops_before_the_click(monkeypatch):
 
 
 def test_safety_policy_on_recorded_form_fixture():
-    """REAL recorded Jev response: a plain form puts 0.41 on send_or_publish."""
+    """REAL recorded Jev response: a plain form puts 0.41 on send_or_publish.
+
+    0.41 sits in the ambiguous band [0.2, 0.6), so the two-stage policy asks
+    for the stage-2 action-level check instead of pausing outright (intentional
+    change from the single-stage policy, which paused here).
+    """
     result = _safety_from_case(SAFETY_FORM)
-    # Unauthorized ("fill the fields") -> pause (bias to ask).
-    d = agent.safety_decision(result, agent.authorized_categories("Fill in the fields with Ada"))
-    assert d.pause and "send_or_publish" in d.reason
-    # Authorized ("submit the form") -> no pause (nothing else is risky).
-    d = agent.safety_decision(result, agent.authorized_categories("Fill the form and submit it"))
+    # Unauthorized ("fill the fields") -> stage 2 required before any click.
+    d = agent.safety_decision(
+        result, None, agent.authorized_categories("Fill in the fields with Ada"), THRESHOLDS
+    )
+    assert d.pause and d.needs_stage2
+    # Stage 2 says the action itself is not risky -> no pause.
+    stage2 = SafetyActionResult(
+        probs={"payment": 0.0, "deletion": 0.0, "account_or_security_change": 0.01,
+               "send_or_publish": 0.1},
+        usage=_usage(),
+    )
+    d = agent.safety_decision(
+        result, stage2, agent.authorized_categories("Fill in the fields with Ada"), THRESHOLDS
+    )
     assert not d.pause
+    # Stage 2 agrees it IS a send -> pause.
+    stage2 = SafetyActionResult(
+        probs={"payment": 0.0, "deletion": 0.0, "account_or_security_change": 0.0,
+               "send_or_publish": 0.9},
+        usage=_usage(),
+    )
+    d = agent.safety_decision(
+        result, stage2, agent.authorized_categories("Fill in the fields with Ada"), THRESHOLDS
+    )
+    assert d.pause and "send_or_publish" in d.reason
+    # Authorized ("submit the form") -> no pause, no stage 2 needed at all.
+    d = agent.safety_decision(
+        result, None, agent.authorized_categories("Fill the form and submit it"), THRESHOLDS
+    )
+    assert not d.pause and not d.needs_stage2
 
 
 def test_payment_is_never_pre_authorized():
+    # REAL recorded payment dialog: payment 1.0 >= safety_hard -> pause at
+    # stage 1, the stage-2 check is never consulted.
     result = _safety_from_case(SAFETY_PAYMENT)
-    d = agent.safety_decision(result, {"send_or_publish"})
-    assert d.pause and "payment" in d.reason
+    d = agent.safety_decision(result, None, {"send_or_publish"}, THRESHOLDS)
+    assert d.pause and not d.needs_stage2 and "payment" in d.reason
+
+
+def test_hard_threshold_pauses_without_stage2():
+    """A category in [safety_hard, 1.0] pauses WITHOUT the stage-2 check."""
+    result = SafetyResult(
+        category="account_or_security_change",
+        probs={"account_or_security_change": 0.75, "none": 0.2},
+        confirm_dialog=0.0, pause=True, usage=_usage(),
+    )
+    d = agent.safety_decision(result, None, set(), THRESHOLDS)
+    assert d.pause and not d.needs_stage2 and "account_or_security_change" in d.reason
+
+
+def test_ambiguous_band_stage2_clears_and_confirms():
+    """Band category: stage-2 low Noul clears, high Noul pauses (settings case)."""
+    # The REAL settings false-pause shape: account_or_security_change 0.43.
+    stage1 = SafetyResult(
+        category="account_or_security_change",
+        probs={"account_or_security_change": 0.43, "none": 0.5},
+        confirm_dialog=0.0, pause=True, usage=_usage(),
+    )
+    low = SafetyActionResult(
+        probs={"payment": 0.0, "deletion": 0.0, "account_or_security_change": 0.03,
+               "send_or_publish": 0.0},
+        usage=_usage(),
+    )
+    d = agent.safety_decision(stage1, low, set(), THRESHOLDS)
+    assert not d.pause, "the mundane settings click must not pause"
+    high = SafetyActionResult(
+        probs={"payment": 0.0, "deletion": 0.0, "account_or_security_change": 0.97,
+               "send_or_publish": 0.0},
+        usage=_usage(),
+    )
+    d = agent.safety_decision(stage1, high, set(), THRESHOLDS)
+    assert d.pause and "account_or_security_change" in d.reason
+
+
+def test_stage2_error_pauses():
+    stage1 = SafetyResult(
+        category="send_or_publish", probs={"send_or_publish": 0.41, "none": 0.55},
+        confirm_dialog=0.0, pause=True, usage=_usage(),
+    )
+    stage2 = SafetyActionResult(probs={}, usage=None, error="all vision models failed")
+    d = agent.safety_decision(stage1, stage2, set(), THRESHOLDS)
+    assert d.pause and "stage-2" in d.reason
+
+
+def test_recorded_settings_false_pause_fixed_by_stage2():
+    """REAL recorded pair: the plain GTK settings window puts 0.39 on
+    account_or_security_change (stage 1, the old false pause) and clicking
+    'Dark mode' scores 0.02 on that category (stage 2) -> no pause."""
+    stage1 = _safety_from_case(
+        json.loads((FIX / "cases" / "safety_stage1_settings_gtk_jev114.json").read_text())
+    )
+    assert 0.2 <= stage1.probs["account_or_security_change"] < 0.6, "band case"
+    case2 = json.loads((FIX / "cases" / "safety_stage2_settings_gtk_dark_mode_jev114.json").read_text())
+    stage2 = SafetyActionResult(
+        probs={c: float(a["noul"]) for c, a in case2["answers"].items()}, usage=_usage()
+    )
+    d = agent.safety_decision(stage1, stage2, set(), THRESHOLDS)
+    assert not d.pause, "the mundane settings click must not pause"
+
+    # Same stage 1, but the action-level check CONFIRMS (REAL 'Update
+    # password' answer: 0.98) -> pause.
+    case3 = json.loads((FIX / "cases" / "safety_stage2_password_update_jev114.json").read_text())
+    stage2_bad = SafetyActionResult(
+        probs={c: float(a["noul"]) for c, a in case3["answers"].items()}, usage=_usage()
+    )
+    d = agent.safety_decision(stage1, stage2_bad, set(), THRESHOLDS)
+    assert d.pause and "account_or_security_change" in d.reason
+
+
+def test_recorded_payment_pauses_at_stage1_without_stage2():
+    """REAL recorded pay dialog: payment 1.0 >= safety_hard -> pause at stage 1;
+    the stage-2 request is never made (the recorded stage-2 pay answer is
+    reference only)."""
+    stage1 = _safety_from_case(
+        json.loads((FIX / "cases" / "safety_stage1_pay_jev114.json").read_text())
+    )
+    assert stage1.probs["payment"] >= 0.6
+    d = agent.safety_decision(stage1, None, set(), THRESHOLDS)
+    assert d.pause and not d.needs_stage2 and "payment" in d.reason
 
 
 def test_safety_error_pauses():
     result = SafetyResult(category="none", probs={}, confirm_dialog=0.0, pause=False,
                           usage=None, error="all models failed")
-    d = agent.safety_decision(result, {"send_or_publish"})
+    d = agent.safety_decision(result, None, {"send_or_publish"}, THRESHOLDS)
     assert d.pause
+
+
+def test_safety_decision_none_stage1_pauses():
+    d = agent.safety_decision(None, None, set(), THRESHOLDS)
+    assert d.pause and "no safety result" in d.reason
 
 
 def test_authorized_send_or_publish_does_not_pause(monkeypatch):
@@ -236,6 +366,83 @@ def test_authorized_send_or_publish_does_not_pause(monkeypatch):
     patch_plan(monkeypatch, [steps])
     result = agent.run_task("Fill the form and click Submit", driver, gate, {"max_steps": 5})
     assert result.state == "completed"
+    # Authorized: the ambiguous band is skipped entirely, no stage-2 call.
+    assert gate.calls["safety_action"] == []
+
+
+def test_unauthorized_band_runs_stage2_then_acts(monkeypatch):
+    """The settings false-pause shape, fixed: band risk -> stage 2 clears -> act."""
+    driver = make_driver(["settings.png", "settings.png", "settings.png", "settings.png"],
+                         elements=[])
+    gate = FakeGate()
+    gate.locate_results.append(
+        LocateResult(found=True, presence=0.9, confidence=0.9, box=None, center=(100, 200),
+                     grounding="box", usage=_usage())
+    )
+    # Stage 1: account_or_security_change 0.43 (ambiguous band).
+    gate.safety_result = SafetyResult(
+        category="account_or_security_change",
+        probs={"account_or_security_change": 0.43, "none": 0.5},
+        confirm_dialog=0.0, pause=True, usage=_usage(),
+    )
+    # Stage 2: clicking 'Dark mode' changes no security setting (low Noul).
+    gate.safety_action_result = SafetyActionResult(
+        probs={"payment": 0.0, "deletion": 0.0, "account_or_security_change": 0.02,
+               "send_or_publish": 0.0},
+        usage=_usage(),
+    )
+    steps = [agent.Step(action="click", target="Dark mode", expect="Dark mode is enabled")]
+    patch_plan(monkeypatch, [steps])
+    result = agent.run_task("Enable Dark mode", driver, gate, {"max_steps": 5})
+    assert result.state == "completed"
+    assert gate.calls["safety_action"] == [{"action": "click", "target": "Dark mode"}]
+    clicks = [c for c in driver.calls if c["method"] == "click"]
+    assert clicks, "stage 2 cleared the ambiguous band: the click must happen"
+
+
+def test_unauthorized_band_stage2_confirms_pauses(monkeypatch):
+    """Band risk where stage 2 AGREES -> pause before the click (password form)."""
+    driver = make_driver(["settings.png", "settings.png", "settings.png", "settings.png"],
+                         elements=[])
+    gate = FakeGate()
+    gate.locate_results.append(
+        LocateResult(found=True, presence=0.9, confidence=0.9, box=None, center=(100, 200),
+                     grounding="box", usage=_usage())
+    )
+    gate.safety_result = SafetyResult(
+        category="account_or_security_change",
+        probs={"account_or_security_change": 0.45, "none": 0.5},
+        confirm_dialog=0.0, pause=True, usage=_usage(),
+    )
+    gate.safety_action_result = SafetyActionResult(
+        probs={"payment": 0.0, "deletion": 0.0, "account_or_security_change": 0.93,
+               "send_or_publish": 0.0},
+        usage=_usage(),
+    )
+    steps = [agent.Step(action="click", target="Update password", expect="password updated")]
+    patch_plan(monkeypatch, [steps])
+    result = agent.run_task("Change my password", driver, gate, {"max_steps": 5})
+    assert result.state == "paused_for_approval"
+    assert "account_or_security_change" in result.reason
+    assert not [c for c in driver.calls if c["method"] == "click"], "never click through a pause"
+
+
+def test_safety_action_cached_by_dhash_action_target():
+    """Stage-2 cache key is (frame dhash, action, target)."""
+
+    class _F:
+        def __init__(self, png):
+            self.png, self.width, self.height, self.ts = png, 1280, 800, 0.0
+
+    gate = FakeGate()
+    frame = _F((FIX / "settings.png").read_bytes())
+    cache: dict = {}
+    first = agent._safety_action_cached(gate, frame, "click", "Dark mode", cache)
+    assert agent._safety_action_cached(gate, frame, "click", "Dark mode", cache) is first
+    assert len(gate.calls["safety_action"]) == 1, "same dhash+action+target must hit the cache"
+    agent._safety_action_cached(gate, frame, "click", "Save", cache)
+    agent._safety_action_cached(gate, frame, "type", "Dark mode", cache)
+    assert len(gate.calls["safety_action"]) == 3, "a different action or target is a new key"
 
 
 # --------------------------------------------------------------------- verdicts

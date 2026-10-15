@@ -5,9 +5,12 @@ Cheapest first, escalate only when needed:
 1. ONE cheap text call plans the task into steps (no screenshot).
 2. Ground each target on the free AT-SPI tree first, then a Jev Box locate
    (one zoomed retry at low confidence).
-3. Safety gate before mutating actions (cached by frame dhash), with a pure
-   authorization policy: only `send_or_publish` can be pre-authorized by the
-   instruction; payment / deletion / account changes always pause.
+3. Safety gate before mutating actions, TWO-STAGE and still biased to ask:
+   a screen-level Choice + confirm-dialog Noul (cached by frame dhash), then
+   ONE action-level check on the same screenshot only when a risky category
+   sits in the ambiguous band [safety, safety_hard).  A pure authorization
+   policy (`safety_decision`): only `send_or_publish` can be pre-authorized
+   by the instruction; payment / deletion / account changes always pause.
 4. Act through the driver; the free pass fires only on
    ``effect=="confirmed" and verified`` (the driver checked the expectation
    itself over a11y — rare on the real stack, where every cua click reports
@@ -53,10 +56,10 @@ __all__ = [
 
 TERMINAL_STATES = ("completed", "paused_for_approval", "stalled", "blocked", "budget_exhausted")
 
-# Safety policy: categories the user's instruction may pre-authorize, and the
-# ones that ALWAYS pause at the low threshold (bias to ask).
+# Safety policy: categories the user's instruction may pre-authorize (all
+# other risky categories — payment, deletion, account/security changes — are
+# ALWAYS asked about, never pre-authorized).
 PRE_AUTHORIZABLE = ("send_or_publish",)
-NEVER_PRE_AUTHORIZED = ("payment", "deletion", "account_or_security_change")
 _SEND_OR_PUBLISH_RE = re.compile(
     r"\b(submit|sends?|publish|posts?|buy|buying|purchase|purchasing|checkout|order|share|"
     r"save|apply|confirm)\b"
@@ -191,6 +194,10 @@ class _Totals:
 class SafetyDecision:
     pause: bool
     reason: str = ""
+    # True when stage 1 left a risky category in the ambiguous band and the
+    # caller must run the stage-2 action-level check and re-decide.  `pause`
+    # is ALSO True in that case: ignoring needs_stage2 must fail safe.
+    needs_stage2: bool = False
 
 
 def authorized_categories(instruction: str) -> set[str]:
@@ -207,33 +214,77 @@ def authorized_categories(instruction: str) -> set[str]:
     return set()
 
 
-def safety_decision(result: Any, authorized: set[str], threshold: float = 0.2) -> SafetyDecision:
-    """Pure policy on top of a gate.safety result (or None on gate failure).
+def _pre_authorized(category: str, authorized: set[str]) -> bool:
+    return category in PRE_AUTHORIZABLE and category in authorized
 
-    Pauses when any risky category crosses the threshold, unless it is
-    `send_or_publish` AND the instruction explicitly asked for it.  Gate
-    errors always pause (bias to ask).
+
+def safety_decision(
+    stage1: Any,
+    stage2: Any,
+    authorized: set[str],
+    thresholds: dict,
+) -> SafetyDecision:
+    """Pure two-stage safety policy, still biased to ask.
+
+    stage1: gate.safety result (screen-level Choice + confirm-dialog Noul),
+    or None when the gate totally failed.  stage2: gate.safety_action result
+    (per-category action-level Nouls), or None when it has not run yet.
+    thresholds needs "safety" (the low pause bar) and "safety_hard".
+
+    - Gate errors at either stage pause.
+    - A risky category at or above safety_hard pauses WITHOUT stage 2.
+    - A risky category in the ambiguous band [safety, safety_hard) needs the
+      stage-2 action-level check: pause when the Noul for THAT category is
+      >= safety; with stage 2 not run yet, return pause + needs_stage2 so the
+      caller fetches it and re-decides (skipping stage 2 must fail safe).
+    - `send_or_publish` in the band is skipped when the instruction explicitly
+      asked for it; payment / deletion / account_or_security_change are never
+      pre-authorized.
     """
-    if result is None or getattr(result, "error", None):
-        error = getattr(result, "error", None) or "no safety result"
+    safety = float((thresholds or {}).get("safety", 0.2))
+    hard = float((thresholds or {}).get("safety_hard", 0.6))
+    if stage1 is None or getattr(stage1, "error", None):
+        error = getattr(stage1, "error", None) or "no safety result"
         return SafetyDecision(pause=True, reason=f"safety gate error, asking a human: {error}")
-    probs = getattr(result, "probs", {}) or {}
+    probs = getattr(stage1, "probs", {}) or {}
     risky = sorted(
-        ((c, float(p)) for c, p in probs.items() if c != "none" and float(p) >= threshold),
+        ((c, float(p)) for c, p in probs.items() if c != "none" and float(p) >= safety),
         key=lambda cp: -cp[1],
     )
     for category, prob in risky:
-        if category in NEVER_PRE_AUTHORIZED:
-            return SafetyDecision(
-                pause=True,
-                reason=f"{category} risk {prob:.2f} on this screen; never pre-authorized",
-            )
-        if category in PRE_AUTHORIZABLE and category not in authorized:
+        if prob >= hard and not _pre_authorized(category, authorized):
             return SafetyDecision(
                 pause=True,
                 reason=(
-                    f"send_or_publish risk {prob:.2f} and the instruction does not "
-                    "explicitly ask to send, submit or publish"
+                    f"{category} risk {prob:.2f} >= hard threshold {hard:.2f} "
+                    "on this screen; pausing without a second opinion"
+                ),
+            )
+    band = [
+        (c, p) for c, p in risky if p < hard and not _pre_authorized(c, authorized)
+    ]
+    if not band:
+        return SafetyDecision(pause=False)
+    if stage2 is None:
+        return SafetyDecision(
+            pause=True,
+            reason="stage-1 risk is ambiguous; the action-level check has not run yet",
+            needs_stage2=True,
+        )
+    if getattr(stage2, "error", None):
+        return SafetyDecision(
+            pause=True,
+            reason=f"stage-2 action gate error, asking a human: {stage2.error}",
+        )
+    action_probs = getattr(stage2, "probs", {}) or {}
+    for category, prob in band:
+        action_prob = float(action_probs.get(category, 0.0))
+        if action_prob >= safety:
+            return SafetyDecision(
+                pause=True,
+                reason=(
+                    f"{category} screen-level risk {prob:.2f} is ambiguous and the "
+                    f"action-level check agrees ({action_prob:.2f} >= {safety:.2f})"
                 ),
             )
     return SafetyDecision(pause=False)
@@ -475,6 +526,26 @@ def _safety_cached(gate: VisionGate, frame: Frame, cache: dict[int, Any]):
     return result
 
 
+def _safety_action_cached(
+    gate: VisionGate, frame: Frame, action: str, target: str, cache: dict[tuple, Any]
+):
+    """Stage-2 gate.safety_action memoized by (frame dhash, action, target):
+    the same check on the same screen for the same step is not re-asked."""
+    try:
+        frame_key: int | None = frames.dhash(frame.png)
+    except (RuntimeError, ValueError):
+        frame_key = None
+    key = (frame_key, action, target)
+    if frame_key is not None and key in cache:
+        return cache[key]
+    result = gate.safety_action(frame, action, target)
+    if frame_key is not None:
+        cache[key] = result
+        if len(cache) > 32:
+            cache.pop(next(iter(cache)))
+    return result
+
+
 # --- the agent loop ----------------------------------------------------------------
 
 
@@ -496,6 +567,7 @@ def run_task(
     thresholds = gate.thresholds
     detector = StallDetector(**{k: v for k, v in (cfg.get("stall") or {}).items()})
     safety_cache: dict[int, Any] = {}
+    safety_action_cache: dict[tuple, Any] = {}
     records: list[StepRecord] = []
     pending: list[tuple[Step, StepRecord]] = []  # type steps awaiting one batched verify
 
@@ -735,14 +807,23 @@ def run_task(
         else:
             rec.grounding = "none"
 
-        # 3. Safety gate before mutating actions (cached by frame dhash).
+        # 3. Safety gate before mutating actions (stage 1 cached by frame
+        # dhash; stage 2, when the policy needs it, by dhash+action+target).
         if step.action in _SAFETY_GATED:
             sf = _safety_cached(gate, frame, safety_cache)
             if sf.usage is not None:
                 totals.add(sf.usage)
                 rec.usages.append(sf.usage)
             rec.safety = "error" if sf.error else (sf.category or "none")
-            decision = safety_decision(sf, authorized, thresholds["safety"])
+            decision = safety_decision(sf, None, authorized, thresholds)
+            if decision.needs_stage2:
+                sa = _safety_action_cached(
+                    gate, frame, step.action, step.target, safety_action_cache
+                )
+                if sa.usage is not None:
+                    totals.add(sa.usage)
+                    rec.usages.append(sa.usage)
+                decision = safety_decision(sf, sa, authorized, thresholds)
             if decision.pause:
                 rec.verdict = "paused"
                 _flush(frame)  # record any pending field checks against this frame

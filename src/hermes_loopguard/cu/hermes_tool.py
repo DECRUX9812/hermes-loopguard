@@ -248,7 +248,17 @@ def make_cu_pre_tool_call(get_cfg: Callable[[], dict], store_factory=None) -> Ca
                 driver.close()
             gate = _build_gate(cu)
             result = _safety_cached_ttl(gate, frame)
-            decision = safety_decision(result, authorized=set(), threshold=gate.thresholds["safety"])
+            decision = safety_decision(result, None, authorized=set(), thresholds=gate.thresholds)
+            if decision.needs_stage2:
+                # Two-stage policy: the screen-level risk is ambiguous, so run
+                # the action-level check on the SAME frame (stage 2; re-opening
+                # the driver is unnecessary — no new screenshot involved).
+                stage2 = gate.safety_action(
+                    frame, action, str((args or {}).get("target") or "")
+                )
+                decision = safety_decision(
+                    result, stage2, authorized=set(), thresholds=gate.thresholds
+                )
             shadow = bool(cu.get("shadow"))
             if shadow:
                 log.info("loopguard cu safety (shadow): pause=%s %s", decision.pause, decision.reason)

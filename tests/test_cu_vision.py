@@ -642,6 +642,87 @@ def test_replay_recorded_openai_fallback_grounding():
     assert r.grounding == "fallback"  # openai backend => fallback grounding
 
 
+# --- stage-2 action-level safety (REAL recorded responses, fake transport) ---
+
+
+def test_safety_hard_threshold_default():
+    assert VisionGate().thresholds["safety_hard"] == pytest.approx(0.6)
+    assert VisionGate({"thresholds": {"safety_hard": 0.8}}).thresholds["safety_hard"] == \
+        pytest.approx(0.8)
+
+
+def test_safety_action_questions_ask_about_the_exact_step(monkeypatch):
+    case = load_case("safety_stage2_settings_gtk_dark_mode_jev114")
+    replay = ReplayBackend(case)
+    gate = gate_with_backends(monkeypatch, {"jev-1.14.0": replay})
+    r = gate.safety_action(_fixture_frame("settings_gtk", 432, 330), "click", "Dark mode")
+    assert r.error is None
+    assert set(r.probs) == {"payment", "deletion", "account_or_security_change",
+                            "send_or_publish"}
+    qs = replay.calls[0]["questions"]
+    instructions = " ".join(q.instructions for q in qs.values())
+    assert "clicking 'Dark mode'" in instructions
+    for phrase in ("spend money", "delete data",
+                   "change a password, login, account or security setting",
+                   "send or publish something to other people"):
+        assert phrase in instructions
+    assert replay.calls[0]["images"] and list(replay.calls[0]["images"])
+
+
+def test_replay_recorded_safety_action_settings_dark_mode_clears(monkeypatch):
+    """REAL stage-2 answer: clicking 'Dark mode' is not an account change (0.02)."""
+    case = load_case("safety_stage2_settings_gtk_dark_mode_jev114")
+    replay = ReplayBackend(case)
+    gate = gate_with_backends(monkeypatch, {"jev-1.14.0": replay})
+    r = gate.safety_action(_fixture_frame("settings_gtk", 432, 330), "click", "Dark mode")
+    assert r.probs["account_or_security_change"] < 0.2
+    assert r.probs["payment"] < 0.2 and r.probs["deletion"] < 0.2
+
+
+def test_replay_recorded_safety_action_password_update_confirms(monkeypatch):
+    """REAL stage-2 answer: clicking 'Update password' IS a security change (0.98)."""
+    case = load_case("safety_stage2_password_update_jev114")
+    replay = ReplayBackend(case)
+    gate = gate_with_backends(monkeypatch, {"jev-1.14.0": replay})
+    r = gate.safety_action(_fixture_frame("password"), "click", "Update password")
+    assert r.probs["account_or_security_change"] >= 0.2
+
+
+def test_replay_recorded_safety_action_delete_confirms(monkeypatch):
+    """REAL stage-2 answer: clicking 'Delete' DOES delete data (0.99)."""
+    case = load_case("safety_stage2_delete_confirm_jev114")
+    replay = ReplayBackend(case)
+    gate = gate_with_backends(monkeypatch, {"jev-1.14.0": replay})
+    r = gate.safety_action(_fixture_frame("delete_confirm"), "click", "Delete")
+    assert r.probs["deletion"] >= 0.2
+
+
+def test_replay_recorded_stage1_settings_gtk_false_pause_band(monkeypatch):
+    """REAL stage-1 answer on the plain GTK settings window: 0.39 on
+    account_or_security_change — the ambiguous band that caused the false
+    pause before stage 2 existed."""
+    case = load_case("safety_stage1_settings_gtk_jev114")
+    replay = ReplayBackend(case)
+    gate = gate_with_backends(monkeypatch, {"jev-1.14.0": replay})
+    s = gate.safety(_fixture_frame("settings_gtk", 432, 330))
+    assert 0.2 <= s.probs["account_or_security_change"] < 0.6
+    assert s.pause is True  # stage-1-alone bias to ask; stage 2 clears it
+
+
+def test_safety_action_all_models_fail_returns_error(monkeypatch):
+    gate = gate_with_backends(
+        monkeypatch,
+        {
+            "jev-1.14.0": FailingBackend("400 bad"),
+            "jev-1.13.0": FailingBackend("500 boom"),
+            "openai:gemini-3.8-flash-high": FailingBackend("connection refused"),
+        },
+    )
+    r = gate.safety_action(_fixture_frame("form"), "click", "Submit")
+    assert r.error and not r.probs
+    assert r.usage is not None and len(r.usage.fallbacks) == 3
+
+
 # --- hash thresholds ------------------------------------------------------------------
 
 
