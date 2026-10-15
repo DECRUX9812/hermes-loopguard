@@ -1,0 +1,17 @@
+{
+  "name": "loopguard",
+  "label": "LoopGuard",
+  "icon": "Shield",
+  "version": "0.1.0",
+  "description": "Automations only wake the big model when it is worth it",
+  "tab": {
+    "path": "/loopguard",
+    "position": "after:cron"
+  },
+  "slots": [
+    "cron:top"
+  ],
+  "entry": "dist/index.js",
+  "css": "dist/style.css",
+  "api": "plugin_api.py"
+}

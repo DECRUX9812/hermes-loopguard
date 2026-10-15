@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hermes-loopguard"
+version = "0.1.0"
+description = "LoopGuard core engine and plugins for Hermes Agent"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+dependencies = [
+    "pyyaml>=6,<7",
+]
+
+[project.optional-dependencies]
+typesafe = [
+    "typesafe-sdk>=0.7,<1",
+]
+dev = [
+    "pytest>=8,<10",
+]
+
+[project.entry-points."hermes_agent.plugins"]
+loopguard = "hermes_loopguard.plugin"
+
+[project.scripts]
+hermes-loopguard = "hermes_loopguard.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+hermes_loopguard = [
+    "dashboard/**/*",
+]

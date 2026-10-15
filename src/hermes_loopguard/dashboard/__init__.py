@@ -1,0 +1,1 @@
+"""LoopGuard dashboard plugin package."""

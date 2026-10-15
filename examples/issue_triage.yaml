@@ -1,0 +1,58 @@
+# WatcherSpec: triage open GitHub issues with a cheap semantic gate.
+name: issue-triage
+source:
+  command: ["gh", "issue", "list", "--state", "open", "--json",
+            "number,title,body,updatedAt,labels", "--limit", "50"]
+id_field: number
+fingerprint_fields: [title, body, updatedAt, labels]
+state_fields: [title, body, labels]
+brief: |
+  Triage open GitHub issues for this repository. Work only from the admitted
+  items below. Never comment on GitHub, never push. One item at a time.
+gate:
+  route_question: kind
+  questions:
+    kind:
+      type: choice
+      instructions: What does this issue need?
+      criteria:
+        bug: a defect in existing behaviour that a code change can fix
+        feature: a request for new behaviour
+        question: a usage or support question answerable without code changes
+        duplicate_or_spam: spam, empty, duplicate, or off-topic
+    actionable:
+      type: noul
+      instructions: Is there enough detail (steps, error text, versions, or a
+        precise ask) for an engineer to start now?
+      criteria:
+        "true": there are steps, error text, versions, or a precise ask
+        "false": the report is too vague to act on
+    urgency:
+      type: score
+      instructions: How urgent is this issue?
+      criteria:
+        - can wait
+        - needs attention this week
+        - users are blocked or data is at risk
+  routes:
+    bug:
+      handler: agent
+      min_prob: 0.6
+      when: {actionable: ">=0.6"}
+      brief: "Reproduce first. Find the root cause. Propose the smallest fix
+        with a test. Do not push."
+    feature:
+      handler: review
+      min_prob: 0.5
+    question:
+      handler: review
+      min_prob: 0.5
+    duplicate_or_spam:
+      handler: drop
+      min_prob: 0.75
+  default_route: review
+# A local backend could add keyword hints under config local.keywords, e.g.
+# local:
+#   keywords:
+#     duplicate_or_spam: ["airdrop", "followers", "buy now"]
+#     bug: ["traceback", "stack trace", "500"]

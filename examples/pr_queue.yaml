@@ -1,0 +1,50 @@
+# WatcherSpec: keep an eye on the open pull-request queue.
+name: pr-queue
+source:
+  command: ["gh", "pr", "list", "--json",
+            "number,title,body,headRefOid,updatedAt,isDraft,reviewDecision,statusCheckRollup"]
+id_field: number
+fingerprint_fields: [headRefOid, updatedAt, reviewDecision, statusCheckRollup]
+state_fields: [title, body, isDraft, reviewDecision]
+brief: |
+  Watch the open pull-request queue. Admit a PR only when its route says so.
+  Never push, never merge, never comment on GitHub directly.
+kanban:
+  assignee: fixer
+gate:
+  route_question: state
+  questions:
+    state:
+      type: choice
+      instructions: What state is this pull request in?
+      criteria:
+        ready_for_review: not draft, checks green, needs a reviewer
+        needs_fixes: failing checks or changes requested
+        waiting: draft, checks running, or waiting on the author
+        stale_or_noise: bot bumps, abandoned
+    risk:
+      type: score
+      instructions: How risky would automated work on this PR be?
+      criteria:
+        - docs/tests only
+        - normal code change
+        - touches security, auth, migrations, or deletes data
+  routes:
+    ready_for_review:
+      handler: agent
+      min_prob: 0.6
+      brief: "Review the diff; report blocking issues only."
+    needs_fixes:
+      handler: kanban
+      min_prob: 0.7
+    waiting:
+      handler: drop
+      min_prob: 0.6
+    stale_or_noise:
+      handler: drop
+      min_prob: 0.8
+  default_route: review
+# The `risk` score can gate a route with a condition, e.g. for needs_fixes:
+#   when: {risk: "<=1"}
+# so risky PRs (security, auth, migrations, data deletion) always fall back
+# to review instead of an automated fixer.
