@@ -110,6 +110,7 @@ Global configuration in `<HERMES_HOME>/loopguard/config.yaml`:
 ```yaml
 backend: auto
 shadow: false
+on_error: wake  # watcher error policy: wake (fail open) | skip
 typesafe:
   api_key_env: TYPESAFE_API_KEY
   timeout: 30
@@ -117,6 +118,12 @@ pricing:
   est_tokens_per_run: 25000
   usd_per_mtok: 3.0
 ```
+
+`on_error` decides what a watcher run does when it fails (a broken decision
+store, a source that crashes, a backend error): `wake` (the default) fails
+open and wakes the agent so LoopGuard is never worse than not having it;
+`skip` keeps the agent asleep (`{"wakeAgent": false}`). Either way the error
+is logged and a `LoopGuard: ...` warning goes to stderr.
 
 ## Watcher spec reference
 
@@ -232,6 +239,19 @@ Run unit tests:
 
 ```bash
 PYTHONPATH=src pytest -q
+```
+
+End-to-end tests (`tests/test_e2e_hermes.py`) run the real stock `hermes`
+binary in subprocesses against a throwaway `HERMES_HOME`. The hermes path is
+machine-specific, so it is required via `LOOPGUARD_E2E_HERMES` (the module
+skips cleanly when unset). `LOOPGUARD_E2E_INSTALLS` optionally points at an
+already-bootstrapped PM `installs/` directory so the first hermes command in
+the test home skips the slow (~240 MB) bootstrap:
+
+```bash
+LOOPGUARD_E2E_HERMES=/path/to/hermes-venv/bin/hermes \
+LOOPGUARD_E2E_INSTALLS=/path/to/prepared/installs \
+PYTHONPATH=src pytest -q tests/test_e2e_hermes.py
 ```
 
 License: MIT.

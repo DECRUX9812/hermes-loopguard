@@ -10,6 +10,7 @@ from hermes_loopguard import _yaml, paths
 DEFAULTS = {
     "backend": "auto",  # auto | typesafe | openai | hermes | local
     "shadow": False,  # global shadow mode
+    "on_error": "wake",  # watcher error policy: wake (fail open) | skip
     "typesafe": {
         "model": None,
         "api_key_env": "TYPESAFE_API_KEY",

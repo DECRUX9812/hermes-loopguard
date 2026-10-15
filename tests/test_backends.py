@@ -6,8 +6,9 @@ import types
 
 import pytest
 
-from hermes_loopguard.backends import ask_with_fallback, backend_chain, make_backend
+from hermes_loopguard.backends import ask_with_fallback, backend_chain, make_backend, set_llm
 from hermes_loopguard.backends.base import BackendError, GateResult, Usage
+from hermes_loopguard.backends.hermes_llm import HermesLlmBackend
 from hermes_loopguard.backends.local import LocalBackend
 from hermes_loopguard.backends.openai_compat import OpenAICompatBackend
 from hermes_loopguard.backends.typesafe import TypeSafeBackend
@@ -380,3 +381,112 @@ def test_typesafe_backend_sdk_not_installed(monkeypatch):
     with pytest.raises(BackendError) as exc_info:
         backend.ask({"title": "t"}, TEST_QUESTIONS)
     assert "typesafe-sdk is not installed" in str(exc_info.value)
+
+
+# --- hermes backend wiring (plugin ctx.llm shim) ----------------------------
+
+_KIND_QS = {
+    "kind": Choice(
+        instructions="Category",
+        criteria={"bug": "defect", "feature": "request", "question": "support", "duplicate_or_spam": "noise"},
+    )
+}
+_PARSED_KIND = {
+    "kind": {"probabilities": {"bug": 0.85, "feature": 0.1, "question": 0.05, "duplicate_or_spam": 0.0}}
+}
+
+
+class _FakePluginLlmUsage:
+    def __init__(self):
+        self.input_tokens = 100
+        self.output_tokens = 25
+        self.cost_usd = 0.0002
+
+
+class _FakePluginLlmResult:
+    def __init__(self, parsed):
+        self.parsed = parsed
+        self.provider = "cliproxy-antigravity"
+        self.model = "gemini-3.1-flash-lite"
+        self.usage = _FakePluginLlmUsage()
+
+
+class _FakeHermesLlm:
+    # FAKE BACKEND (unit test only): stands in for the host LLM facade
+    # (agent.plugin_llm.PluginLlm via ctx.llm) that plugin.register()
+    # installs with set_llm().
+    def __init__(self):
+        self.calls = []
+
+    def complete_structured(self, **kwargs):
+        self.calls.append(kwargs)
+        return _FakePluginLlmResult(_PARSED_KIND)
+
+
+def test_hermes_backend_ask_via_set_llm():
+    """In the Hermes process, register() installs the ctx.llm shim; ask()
+    routes complete_structured(task=auxiliary task) through it."""
+    fake = _FakeHermesLlm()
+    set_llm(fake)
+    try:
+        backend = HermesLlmBackend({"hermes": {"task": "loopguard_gate", "max_tokens": 400}})
+        assert backend.available() is True
+
+        res = backend.ask({"title": "Login crashes"}, _KIND_QS)
+        assert res.backend == "hermes"
+        assert res.model == "cliproxy-antigravity/gemini-3.1-flash-lite"
+        assert res.answers["kind"].choice == "bug"
+        assert res.usage.input_tokens == 100
+        assert res.usage.output_tokens == 25
+        assert res.usage.cost_usd == pytest.approx(0.0002)
+
+        # The auxiliary task and the JSON schema ride on the call.
+        assert len(fake.calls) == 1
+        assert fake.calls[0]["task"] == "loopguard_gate"
+        assert fake.calls[0]["json_schema"]["properties"]["kind"]["type"] == "object"
+        assert fake.calls[0]["max_tokens"] == 400
+    finally:
+        set_llm(None)
+
+
+def test_hermes_backend_discovers_plugins_when_llm_unset(monkeypatch):
+    """In the cron shim subprocess register() has not run yet; ask() must
+    wire the LLM by running Hermes' plugin discovery (which calls
+    register(ctx) -> set_llm) before giving up."""
+    import hermes_loopguard.backends.hermes_llm as hermes_llm_mod
+
+    fake = _FakeHermesLlm()
+    discovered = []
+
+    fake_plugins_mod = types.ModuleType("hermes_cli.plugins")
+
+    def fake_discover_plugins():
+        discovered.append(1)
+        hermes_llm_mod.set_llm(fake)
+
+    fake_plugins_mod.discover_plugins = fake_discover_plugins
+    monkeypatch.setitem(sys.modules, "hermes_cli.plugins", fake_plugins_mod)
+    set_llm(None)
+    try:
+        backend = HermesLlmBackend({})
+        res = backend.ask({"title": "Login crashes"}, _KIND_QS)
+        assert discovered == [1]
+        assert res.backend == "hermes"
+        assert res.answers["kind"].choice == "bug"
+    finally:
+        set_llm(None)
+
+
+def test_hermes_backend_raises_when_no_llm_available(monkeypatch):
+    """Discovery ran but nothing installed an LLM (plugin disabled) -> the
+    backend fails loudly so the chain can fall through."""
+    import hermes_loopguard.backends.hermes_llm as hermes_llm_mod
+
+    fake_plugins_mod = types.ModuleType("hermes_cli.plugins")
+    fake_plugins_mod.discover_plugins = lambda: None
+    monkeypatch.setitem(sys.modules, "hermes_cli.plugins", fake_plugins_mod)
+    set_llm(None)
+    backend = HermesLlmBackend({})
+    with pytest.raises(BackendError) as exc_info:
+        backend.ask({"title": "t"}, _KIND_QS)
+    assert "Hermes LLM is not available" in str(exc_info.value)

@@ -63,7 +63,22 @@ def run_watcher(
         try:
             store = Store.open_default()
         except Exception as e:
-            pass
+            # A broken store must never silently mute the automation (a run
+            # with no store could only ever print {"wakeAgent": false}).
+            # Warn once on stderr, which Hermes captures, and apply the
+            # on_error policy here: "skip" keeps the agent asleep, anything
+            # else (the default is "wake") fails open so LoopGuard is never
+            # worse than not having it.
+            err.write(
+                f"LoopGuard: could not open the decision store ({e}); "
+                f"watcher '{name}' cannot gate this run\n"
+            )
+            on_error = cfg.get("on_error", "wake") if cfg else "wake"
+            if on_error == "skip":
+                out.write(WAKE_FALSE + "\n")
+            else:
+                out.write(WAKE_TRUE + "\n")
+            return 0
 
     if chain_factory is None:
         chain_factory = lambda: backend_chain(cfg)
@@ -99,7 +114,7 @@ def run_watcher(
                 )
             except Exception:
                 pass
-        on_error = cfg.get("on_error", "skip") if cfg else "skip"
+        on_error = cfg.get("on_error", "wake") if cfg else "wake"
         if on_error == "skip":
             out.write(WAKE_FALSE + "\n")
         else:

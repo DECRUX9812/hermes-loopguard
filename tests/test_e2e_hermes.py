@@ -10,8 +10,9 @@ silently fails to register and ``hermes loopguard`` is "not a hermes
 command".
 
 Environment:
-- ``LOOPGUARD_E2E_HERMES``: hermes binary to test. Default: the ship-test
-  lg-venv binary when it exists. The module skips cleanly when absent.
+- ``LOOPGUARD_E2E_HERMES``: hermes binary to test (required). The module
+  skips cleanly when it is unset — the path is machine-specific, so no
+  default is hardcoded.
 - ``LOOPGUARD_E2E_INSTALLS``: path to an already-bootstrapped PM
   ``installs/`` dir; symlinked into the test home so the first hermes
   command skips the several-minute (~240 MB) bootstrap. Without it, the
@@ -33,13 +34,11 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
-_DEFAULT_HERMES = Path("/path/to/lg-venv/bin/hermes")
-HERMES_BIN = os.environ.get("LOOPGUARD_E2E_HERMES") or (
-    str(_DEFAULT_HERMES) if _DEFAULT_HERMES.is_file() else ""
-)
+HERMES_BIN = os.environ.get("LOOPGUARD_E2E_HERMES", "")
 if not HERMES_BIN:
     pytest.skip(
-        "stock hermes binary not found; set LOOPGUARD_E2E_HERMES to run e2e tests",
+        "LOOPGUARD_E2E_HERMES not set (path to a stock hermes binary with the "
+        "loopguard plugin installed); skipping e2e tests",
         allow_module_level=True,
     )
 
