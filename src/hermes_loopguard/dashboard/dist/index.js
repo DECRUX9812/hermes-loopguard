@@ -431,6 +431,504 @@
     );
   }
 
+  /* --- Computer use (X5) ------------------------------------------------- */
+
+  /* Overlay math, pure so it can be tested: box [x0, y0, x1, y1] are fractions
+     of the frame -> percentages of the rendered image; point [x, y] is in
+     desktop pixels -> percentages via the loaded image's natural size.
+     Fractions are rounded to 2 decimals of a percent (float artifacts like
+     0.57 * 100 = 56.999... must not leak into style strings). */
+  function overlayGeometry(box, point, naturalW, naturalH) {
+    function pct(fraction) {
+      return (Math.round(fraction * 10000) / 100) + '%';
+    }
+    var out = { box: null, point: null };
+    if (box && box.length === 4) {
+      var x0 = Math.min(Number(box[0]), Number(box[2]));
+      var x1 = Math.max(Number(box[0]), Number(box[2]));
+      var y0 = Math.min(Number(box[1]), Number(box[3]));
+      var y1 = Math.max(Number(box[1]), Number(box[3]));
+      out.box = {
+        left: pct(x0),
+        top: pct(y0),
+        width: pct(Math.max(0, x1 - x0)),
+        height: pct(Math.max(0, y1 - y0))
+      };
+    }
+    var w = Number(naturalW);
+    var hgt = Number(naturalH);
+    if (point && point.length === 2 && w > 0 && hgt > 0) {
+      out.point = {
+        left: pct(Number(point[0]) / w),
+        top: pct(Number(point[1]) / hgt)
+      };
+    }
+    return out;
+  }
+
+  function cuStateLabel(state) {
+    return String(state || 'running').replace(/_/g, ' ');
+  }
+
+  var CU_STATE_CHIP = {
+    completed: 'lg-chip-skip',
+    paused_for_approval: 'lg-chip-review',
+    stalled: 'lg-chip-budget',
+    budget_exhausted: 'lg-chip-budget',
+    blocked: 'lg-chip-error',
+    running: 'lg-chip-agent'
+  };
+
+  function cuStateChip(state) {
+    return CU_STATE_CHIP[state] || 'lg-chip-drop';
+  }
+
+  function formatNoul(noul) {
+    if (noul === null || noul === undefined || isNaN(Number(noul))) return null;
+    return String(Math.round(Number(noul) * 100) / 100);
+  }
+
+  function formatWall(seconds) {
+    var s = Number(seconds) || 0;
+    if (s < 60) return Math.round(s) + 's';
+    var m = Math.floor(s / 60);
+    var rem = Math.round(s % 60);
+    return m + 'm ' + rem + 's';
+  }
+
+  /* Frames are binary, so SDK.fetchJSON (JSON-only) cannot load them. Plain
+     fetch + the SPA's injected session token (same credential the host hands
+     the page) -> object URL; <img> tags cannot carry auth headers. */
+  function fetchFrameUrl(frameId, kind) {
+    var url = '/api/plugins/loopguard/cu/frame/' + frameId + '?kind=' + kind;
+    var token = window.__HERMES_SESSION_TOKEN__;
+    var init = token ? { headers: { 'X-Hermes-Session-Token': token } } : undefined;
+    return fetch(url, init).then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.blob();
+    }).then(function (blob) {
+      return URL.createObjectURL(blob);
+    });
+  }
+
+  /* Enlarged frame with the Jev box drawn over it (fractions -> % of the image)
+     and the click point marked; safety pauses get a highlighted banner. */
+  function FrameModal(props) {
+    var step = props.step;
+    var onClose = props.onClose;
+
+    var kindState = useState(step.frame_before ? 'before' : 'after');
+    var kind = kindState[0];
+    var setKind = kindState[1];
+
+    var dimsState = useState(null);
+    var dims = dimsState[0];
+    var setDims = dimsState[1];
+
+    var frameId = kind === 'after' ? step.frame_after : step.frame_before;
+    var geom = overlayGeometry(
+      step.box, step.point,
+      dims ? dims[0] : 0, dims ? dims[1] : 0
+    );
+    var paused = step.verdict === 'paused';
+    var pauseReason = props.runReason || step.effect || 'paused for approval';
+
+    var urlState = useState(null);
+    var url = urlState[0];
+    var setUrl = urlState[1];
+
+    useEffect(function () {
+      var loaded = null;
+      setUrl(null);
+      setDims(null);
+      fetchFrameUrl(frameId, kind)
+        .then(function (u) { loaded = u; setUrl(u); })
+        .catch(function () { setUrl(null); });
+      return function () { if (loaded) URL.revokeObjectURL(loaded); };
+    }, [frameId, kind]);
+
+    if (!frameId) return null;
+
+    return h('div', {
+      className: 'lg-cu-modal-backdrop',
+      onClick: onClose,
+      role: 'button',
+      tabIndex: 0,
+      onKeyDown: function (e) { if (e.key === 'Escape') onClose(); }
+    },
+      h('div', {
+        className: 'lg-cu-modal',
+        onClick: function (e) { e.stopPropagation(); },
+        role: 'dialog'
+      },
+        h('div', { className: 'lg-cu-modal-header' },
+          h('span', { className: 'lg-code-badge' },
+            'step ' + step.idx + ' — ' + step.action + ' ' + step.target
+          ),
+          (step.frame_before && step.frame_after) ? h('div', { className: 'lg-view-switch' },
+            h('button', {
+              className: 'lg-view-btn' + (kind === 'before' ? ' lg-view-btn-active' : ''),
+              onClick: function () { setKind('before'); }
+            }, 'Before'),
+            h('button', {
+              className: 'lg-view-btn' + (kind === 'after' ? ' lg-view-btn-active' : ''),
+              onClick: function () { setKind('after'); }
+            }, 'After')
+          ) : null,
+          h('button', { className: 'lg-btn lg-btn-sm', onClick: onClose }, 'Close')
+        ),
+        paused ? h('div', { className: 'lg-cu-pause-banner' },
+          'Safety pause — ' + pauseReason
+        ) : null,
+        h('div', { className: 'lg-cu-frame-wrap' },
+          url ? h('img', {
+            className: 'lg-cu-frame-img',
+            src: url,
+            alt: 'step ' + step.idx + ' ' + kind + ' frame',
+            onLoad: function (e) {
+              setDims([e.target.naturalWidth, e.target.naturalHeight]);
+            }
+          }) : h('div', { className: 'lg-cu-frame-loading' }, 'loading frame…'),
+          url && geom.box ? h('div', {
+            className: 'lg-cu-box',
+            style: {
+              left: geom.box.left,
+              top: geom.box.top,
+              width: geom.box.width,
+              height: geom.box.height
+            },
+            title: 'Jev box ' + JSON.stringify(step.box)
+          }) : null,
+          url && geom.point ? h('div', {
+            className: 'lg-cu-point',
+            style: { left: geom.point.left, top: geom.point.top },
+            title: 'click point ' + step.point[0] + ',' + step.point[1] + ' px'
+          }) : null
+        ),
+        h('div', { className: 'lg-cu-modal-meta lg-tabular' },
+          (dims ? (dims[0] + '×' + dims[1] + ' px') : 'loading…') +
+          (step.point ? ' · click at ' + step.point[0] + ',' + step.point[1] + ' px' : '') +
+          (step.box ? ' · box as fractions of the frame' : '')
+        )
+      )
+    );
+  }
+
+  function CuThumbnail(props) {
+    var step = props.step;
+    var frameId = step.frame_before || step.frame_after;
+    var onOpen = props.onOpen;
+
+    var urlState = useState(null);
+    var url = urlState[0];
+    var setUrl = urlState[1];
+
+    useEffect(function () {
+      var loaded = null;
+      if (frameId) {
+        fetchFrameUrl(frameId, 'thumb')
+          .then(function (u) { loaded = u; setUrl(u); })
+          .catch(function () { setUrl(null); });
+      }
+      return function () { if (loaded) URL.revokeObjectURL(loaded); };
+    }, [frameId]);
+
+    if (!frameId) {
+      return h('div', { className: 'lg-cu-thumb lg-cu-thumb-empty', title: 'no frame recorded' }, '—');
+    }
+    if (!url) {
+      return h('div', { className: 'lg-cu-thumb lg-cu-thumb-empty' }, '…');
+    }
+    return h('img', {
+      className: 'lg-cu-thumb',
+      src: url,
+      alt: 'step ' + step.idx + ' thumbnail',
+      onClick: function () { onOpen(step); }
+    });
+  }
+
+  function CuStepRow(props) {
+    var step = props.step;
+    var runningCost = props.runningCost;
+    var paused = step.verdict === 'paused';
+    var noul = formatNoul(step.noul);
+    var stallFlags = step.stall ? step.stall.split(',').filter(function (f) { return f; }) : [];
+
+    var verdictChip = 'lg-chip-drop';
+    var v = (step.verdict || '').toLowerCase();
+    if (v === 'pass' || v === 'free') verdictChip = 'lg-chip-skip';
+    else if (v === 'paused') verdictChip = 'lg-chip-review';
+    else if (v === 'fail') verdictChip = 'lg-chip-budget';
+    else if (v === 'error') verdictChip = 'lg-chip-error';
+
+    return h('div', {
+      className: 'lg-cu-step-row' + (paused ? ' lg-cu-step-paused' : '')
+    },
+      h(CuThumbnail, { step: step, onOpen: props.onOpen }),
+      h('div', { className: 'lg-cu-step-body' },
+        h('div', { className: 'lg-cu-step-line' },
+          h('span', { className: 'lg-cu-step-action' },
+            '#' + step.idx + ' ' + step.action + (step.target ? ' ' + step.target : '')
+          ),
+          h('span', {
+            className: 'lg-code-badge',
+            title: 'grounding path (' + step.grounding + ')'
+          }, step.grounding),
+          h('span', { className: 'lg-chip ' + verdictChip },
+            step.verdict + (noul !== null ? ' · noul ' + noul : '')
+          ),
+          paused ? h('span', { className: 'lg-chip lg-chip-review' }, 'safety pause') : null,
+          step.safety && step.safety !== 'none' ? h('span', {
+            className: 'lg-chip lg-chip-error',
+            title: 'safety category on screen'
+          }, step.safety) : null,
+          stallFlags.length ? h('span', { className: 'lg-chip lg-chip-budget', title: 'stall flags' }, stallFlags.join(', ')) : null
+        ),
+        h('div', { className: 'lg-cu-step-meta lg-tabular' },
+          step.effect ? h('span', null, step.effect) : null,
+          step.model ? h('span', null, step.model) : null,
+          h('span', null, formatTokens(step.tokens) + ' tok'),
+          h('span', null, formatCurrency(step.usd)),
+          h('span', { className: 'lg-cu-running-cost' }, 'Σ ' + formatCurrency(runningCost))
+        )
+      )
+    );
+  }
+
+  function CuPanel() {
+    var runsState = useState(null);
+    var runs = runsState[0];
+    var setRuns = runsState[1];
+
+    var errorState = useState(null);
+    var error = errorState[0];
+    var setError = errorState[1];
+
+    var runIdState = useState(null);
+    var runId = runIdState[0];
+    var setRunId = runIdState[1];
+
+    var stepsState = useState(null);
+    var steps = stepsState[0];
+    var setSteps = stepsState[1];
+
+    var stepsErrorState = useState(null);
+    var stepsError = stepsErrorState[0];
+    var setStepsError = stepsErrorState[1];
+
+    var modalState = useState(null);
+    var modal = modalState[0];
+    var setModal = modalState[1];
+
+    var loadRuns = useCallback(function () {
+      return fetchJSON('/api/plugins/loopguard/cu/runs?limit=200')
+        .then(function (data) {
+          setRuns(data || []);
+          setError(null);
+        })
+        .catch(function (err) {
+          setError(err.message || 'Failed to load computer-use runs');
+        });
+    }, []);
+
+    useEffect(function () { loadRuns(); }, [loadRuns]);
+
+    useEffect(function () {
+      if (!runId) { setSteps(null); return undefined; }
+      var cancelled = false;
+      setSteps(null);
+      fetchJSON('/api/plugins/loopguard/cu/steps?run=' + runId)
+        .then(function (data) {
+          if (!cancelled) { setSteps(data || []); setStepsError(null); }
+        })
+        .catch(function (err) {
+          if (!cancelled) setStepsError(err.message || 'Failed to load steps');
+        });
+      return function () { cancelled = true; };
+    }, [runId]);
+
+    // 15s auto-refresh of the run list, paused when the tab is hidden
+    useEffect(function () {
+      var timer = setInterval(function () {
+        if (!document.hidden) loadRuns();
+      }, 15000);
+      return function () { clearInterval(timer); };
+    }, [loadRuns]);
+
+    if (error) {
+      return h('div', { className: 'lg-error-banner' },
+        h('span', null, error),
+        h('button', { className: 'lg-btn lg-btn-sm lg-btn-danger', onClick: function () { loadRuns(); } }, 'Retry')
+      );
+    }
+
+    if (runs === null) {
+      return h('div', { className: 'lg-cu-loading' }, 'Loading computer-use runs…');
+    }
+
+    if (!runs.length) {
+      return h('div', { className: 'lg-empty-card' },
+        h('h3', { className: 'lg-empty-title' }, 'No computer-use runs yet'),
+        h('p', { className: 'lg-empty-desc' },
+          'When a watcher dispatches a computer-use task (jev_computer), every step is logged here: screenshots, grounding, verifier verdicts, stall flags and safety pauses. Runs appear after the first jev_computer dispatch.'
+        )
+      );
+    }
+
+    // KPI aggregation
+    var completed = 0, paused = 0, stalled = 0;
+    var totalUsd = 0;
+    var bigModelAvoided = 0;
+    for (var i = 0; i < runs.length; i++) {
+      var r = runs[i];
+      totalUsd += Number(r.usd) || 0;
+      bigModelAvoided += Number(r.big_model_avoided) || 0;
+      if (r.state === 'completed') completed++;
+      else if (r.state === 'paused_for_approval') paused++;
+      else if (r.state === 'stalled') stalled++;
+    }
+    var perCompleted = completed > 0 ? totalUsd / completed : null;
+
+    var selectedRun = null;
+    for (var s = 0; s < runs.length; s++) {
+      if (runs[s].id === runId) { selectedRun = runs[s]; break; }
+    }
+
+    var runningCost = 0;
+
+    return h('div', { className: 'lg-cu-panel' },
+
+      // KPI strip: runs, completed/paused/stalled, total $, $ per completed, big-model avoided
+      h('div', { className: 'lg-kpi-strip' },
+        h('div', { className: 'lg-kpi-card' },
+          h('div', { className: 'lg-kpi-header' }, h('span', { className: 'lg-kpi-title' }, 'Runs')),
+          h('div', { className: 'lg-kpi-number lg-tabular' }, runs.length),
+          h('div', { className: 'lg-kpi-footer' },
+            h('span', { className: 'lg-kpi-caption' }, 'computer-use runs logged')
+          )
+        ),
+        h('div', { className: 'lg-kpi-card' },
+          h('div', { className: 'lg-kpi-header' }, h('span', { className: 'lg-kpi-title' }, 'Completed / Paused / Stalled')),
+          h('div', { className: 'lg-kpi-number lg-tabular' }, completed + ' / ' + paused + ' / ' + stalled),
+          h('div', { className: 'lg-kpi-footer' },
+            h('span', { className: 'lg-kpi-caption' }, 'terminal states')
+          )
+        ),
+        h('div', { className: 'lg-kpi-card' },
+          h('div', { className: 'lg-kpi-header' }, h('span', { className: 'lg-kpi-title' }, 'Total Cost')),
+          h('div', { className: 'lg-kpi-number lg-tabular' }, formatCurrency(totalUsd)),
+          h('div', { className: 'lg-kpi-footer' },
+            h('span', { className: 'lg-kpi-caption' },
+              perCompleted !== null
+                ? formatCurrency(perCompleted) + ' per completed run'
+                : 'no completed runs yet'
+            )
+          )
+        ),
+        h('div', { className: 'lg-kpi-card' },
+          h('div', { className: 'lg-kpi-header' }, h('span', { className: 'lg-kpi-title' }, 'Big-model Calls Avoided')),
+          h('div', { className: 'lg-kpi-number lg-tabular' }, bigModelAvoided),
+          h('div', { className: 'lg-kpi-footer' },
+            h('span', { className: 'lg-kpi-caption' }, 'verifier steps handled by Jev')
+          )
+        )
+      ),
+
+      // Runs table
+      h('div', { className: 'lg-subcard' },
+        h('div', { className: 'lg-card-title-row' },
+          h('h3', { className: 'lg-card-heading' }, 'Computer-use Runs'),
+          h('button', {
+            className: 'lg-btn lg-btn-sm',
+            onClick: function () { loadRuns(); },
+            title: 'Refresh runs'
+          }, 'Refresh')
+        ),
+        h('div', { className: 'lg-table-wrapper' },
+          h('table', { className: 'lg-table' },
+            h('thead', null,
+              h('tr', null,
+                h('th', null, 'Run'),
+                h('th', null, 'Task'),
+                h('th', null, 'State'),
+                h('th', { className: 'lg-tabular' }, 'Steps'),
+                h('th', { className: 'lg-tabular' }, 'Tokens'),
+                h('th', { className: 'lg-tabular' }, 'Cost'),
+                h('th', { className: 'lg-tabular' }, 'Wall'),
+                h('th', { className: 'lg-tabular' }, 'Big avoided'),
+                h('th', null, 'Created')
+              )
+            ),
+            h('tbody', null,
+              runs.map(function (run) {
+                return h('tr', {
+                  key: run.id,
+                  className: 'lg-cu-run-row' + (runId === run.id ? ' lg-cu-run-selected' : ''),
+                  tabIndex: 0,
+                  onClick: function () { setRunId(run.id); },
+                  onKeyDown: function (e) {
+                    if (e.key === 'Enter' || e.key === ' ') setRunId(run.id);
+                  }
+                },
+                  h('td', { className: 'lg-tabular' }, '#' + run.id),
+                  h('td', null, h('span', { className: 'lg-code-badge' }, run.task || '—')),
+                  h('td', null, h('span', { className: 'lg-chip ' + cuStateChip(run.state) }, cuStateLabel(run.state))),
+                  h('td', { className: 'lg-tabular' }, run.steps),
+                  h('td', { className: 'lg-tabular' }, formatTokens(run.tokens)),
+                  h('td', { className: 'lg-tabular' }, formatCurrency(run.usd)),
+                  h('td', { className: 'lg-tabular' }, formatWall(run.wall_s)),
+                  h('td', { className: 'lg-tabular' }, run.big_model_avoided || 0),
+                  h('td', { className: 'lg-feed-time lg-tabular' }, run.created_at ? timeAgo(run.created_at * 1000) : '')
+                );
+              })
+            )
+          )
+        )
+      ),
+
+      // Step log for the selected run
+      selectedRun ? h('div', { className: 'lg-subcard' },
+        h('div', { className: 'lg-card-title-row' },
+          h('h3', { className: 'lg-card-heading' }, 'Step Log — Run #' + selectedRun.id),
+          h('span', { className: 'lg-kpi-caption' }, 'Click a thumbnail for the frame + box overlay')
+        ),
+        h('p', { className: 'lg-cu-instruction' }, selectedRun.instruction || selectedRun.task || ''),
+        h('div', { className: 'lg-cu-run-meta lg-tabular' },
+          h('span', { className: 'lg-chip ' + cuStateChip(selectedRun.state) }, cuStateLabel(selectedRun.state)),
+          selectedRun.reason ? h('span', { className: 'lg-cu-reason' }, 'reason: ' + selectedRun.reason) : null,
+          selectedRun.done_check !== null && selectedRun.done_check !== undefined
+            ? h('span', null, 'goal check noul ' + formatNoul(selectedRun.done_check))
+            : null
+        ),
+        stepsError ? h('div', { className: 'lg-error-banner' },
+          h('span', null, stepsError),
+          h('button', { className: 'lg-btn lg-btn-sm lg-btn-danger', onClick: function () { setRunId(null); setRunId(selectedRun.id); } }, 'Retry')
+        ) : null,
+        steps === null && !stepsError ? h('div', { className: 'lg-cu-loading' }, 'Loading steps…') : null,
+        steps && !steps.length ? h('div', {
+          style: { padding: '24px', textAlign: 'center', color: 'var(--color-muted-foreground)' }
+        }, 'This run has no recorded steps.') : null,
+        steps && steps.length ? h('div', { className: 'lg-cu-step-list' },
+          steps.map(function (step) {
+            runningCost += Number(step.usd) || 0;
+            return h(CuStepRow, {
+              key: step.id,
+              step: step,
+              runningCost: runningCost,
+              onOpen: function (st) { setModal(st); }
+            });
+          })
+        ) : null
+      ) : null,
+
+      modal ? h(FrameModal, {
+        step: modal,
+        runReason: selectedRun ? selectedRun.reason : '',
+        onClose: function () { setModal(null); }
+      }) : null
+    );
+  }
+
   /* Main LoopGuard Dashboard Page */
   function LoopGuardPage() {
     var rangeState = useState('24h');
@@ -471,6 +969,11 @@
     var reviewActionPendingState = useState({});
     var reviewActionPending = reviewActionPendingState[0];
     var setReviewActionPending = reviewActionPendingState[1];
+
+    // Page switch: gate stats vs computer-use step log
+    var viewState = useState('gates');
+    var view = viewState[0];
+    var setView = viewState[1];
 
     // Fetch data
     var loadData = useCallback(function () {
@@ -571,8 +1074,19 @@
           )
         ),
         h('div', { className: 'lg-controls-group' },
-          // Range switch
-          h('div', { className: 'lg-range-switch' },
+          // Page switch: gates view vs computer-use log
+          h('div', { className: 'lg-view-switch' },
+            h('button', {
+              className: 'lg-view-btn' + (view === 'gates' ? ' lg-view-btn-active' : ''),
+              onClick: function () { setView('gates'); }
+            }, 'Gates'),
+            h('button', {
+              className: 'lg-view-btn' + (view === 'cu' ? ' lg-view-btn-active' : ''),
+              onClick: function () { setView('cu'); }
+            }, 'Computer use')
+          ),
+          // Range switch (gates view only)
+          view === 'gates' ? h('div', { className: 'lg-range-switch' },
             ['24h', '7d', '30d', 'all'].map(function (r) {
               return h('button', {
                 key: r,
@@ -580,9 +1094,9 @@
                 onClick: function () { setRange(r); }
               }, r);
             })
-          ),
-          // Watcher filter
-          h('select', {
+          ) : null,
+          // Watcher filter (gates view only)
+          view === 'gates' ? h('select', {
             className: 'lg-select',
             value: watcherFilter,
             onChange: function (e) { setWatcherFilter(e.target.value); }
@@ -591,18 +1105,18 @@
             watchers.map(function (w) {
               return h('option', { key: w.name, value: w.name }, w.name);
             })
-          ),
+          ) : null,
           // Live dot
           h('div', { className: 'lg-live-indicator' },
             h('span', { className: 'lg-live-dot' }),
             h('span', { className: 'lg-tabular' }, 'updated ' + secondsAgo + 's ago')
           ),
           // Refresh button
-          h('button', {
+          view === 'gates' ? h('button', {
             className: 'lg-btn lg-btn-sm',
             onClick: function () { loadData(); },
             title: 'Refresh now'
-          }, 'Refresh')
+          }, 'Refresh') : null
         )
       ),
 
@@ -614,6 +1128,9 @@
           onClick: function () { loadData(); }
         }, 'Retry')
       ) : null,
+
+      // Computer-use page (own fetches and empty state) vs gate pages
+      view === 'cu' ? h(CuPanel, {}) : [
 
       // Empty state friendly card
       isEmpty ? h('div', { className: 'lg-empty-card' },
@@ -903,6 +1420,7 @@
           })
         )
       )
+      ]
 
     );
   }

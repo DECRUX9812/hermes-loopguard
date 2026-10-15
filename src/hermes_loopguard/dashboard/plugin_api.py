@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 from typing import Any
 
 try:
     from fastapi import APIRouter, HTTPException, Query, Request
+    from fastapi.responses import Response
 except ImportError:  # pragma: no cover
     # Import fallback so unit tests can import this module without fastapi
     # installed; the real fastapi types above are used whenever importable.
@@ -36,6 +38,8 @@ except ImportError:  # pragma: no cover
 
     class Request:  # type: ignore
         pass
+
+    Response = None  # type: ignore
 
 
 router = APIRouter()
@@ -228,3 +232,172 @@ def post_review(review_id: int, payload: dict[str, Any]) -> dict[str, Any]:
         return {"ok": True, "action": action, "review_id": review_id}
     finally:
         store.close()
+
+
+# --- computer use (X5): read-only views over the cu_runs / cu_steps log -----
+
+_CU_KINDS = ("before", "after", "thumb")
+
+
+def _cu_run_dict(row: dict[str, Any]) -> dict[str, Any]:
+    tokens_in = int(row.get("tokens_in") or 0)
+    tokens_out = int(row.get("tokens_out") or 0)
+    return {
+        "id": row["id"],
+        "task": row.get("task") or "",
+        "instruction": row.get("instruction") or "",
+        "state": row.get("state") or "running",
+        "steps": int(row.get("steps") or 0),
+        "tokens": tokens_in + tokens_out,
+        "tokens_in": tokens_in,
+        "tokens_out": tokens_out,
+        "usd": float(row.get("usd") or 0.0),
+        "wall_s": float(row.get("wall_s") or 0.0),
+        "big_model_calls": int(row.get("big_model_calls") or 0),
+        "big_model_avoided": int(row.get("big_model_avoided") or 0),
+        "reason": row.get("reason") or "",
+        "done_check": row.get("done_check"),
+        "shadow": bool(row.get("shadow", 1)),
+        "created_at": row.get("created_at"),
+        "finished_at": row.get("finished_at"),
+    }
+
+
+def _cu_num_list(raw: Any, length: int) -> list[float] | None:
+    """Parse a JSON-encoded numeric tuple ('[x, y, ...]'); None on anything else."""
+    if not raw:
+        return None
+    try:
+        parsed = json.loads(raw)
+    except (ValueError, TypeError):
+        return None
+    if not isinstance(parsed, (list, tuple)) or len(parsed) != length:
+        return None
+    try:
+        return [float(v) for v in parsed]
+    except (TypeError, ValueError):
+        return None
+
+
+def _cu_step_dict(row: dict[str, Any]) -> dict[str, Any]:
+    tokens_in = int(row.get("tokens_in") or 0)
+    tokens_out = int(row.get("tokens_out") or 0)
+    return {
+        "id": row["id"],
+        "run_id": row.get("run_id"),
+        "idx": row.get("idx"),
+        "action": row.get("action") or "",
+        "target": row.get("target") or "",
+        "grounding": row.get("grounding") or "none",
+        # box: [x0, y0, x1, y1] as fractions of the frame; point: [x, y] in
+        # desktop pixels.  Frames themselves are referenced by STEP id, never
+        # by filesystem path.
+        "box": _cu_num_list(row.get("box"), 4),
+        "point": _cu_num_list(row.get("point"), 2),
+        "verdict": row.get("verdict") or "",
+        "noul": row.get("noul"),
+        "effect": row.get("effect") or "",
+        "stall": row.get("stall") or "",
+        "safety": row.get("safety") or "",
+        "model": row.get("model") or "",
+        "tokens": tokens_in + tokens_out,
+        "tokens_in": tokens_in,
+        "tokens_out": tokens_out,
+        "usd": float(row.get("usd") or 0.0),
+        "frame_before": int(row["id"]) if row.get("frame_before") else None,
+        "frame_after": int(row["id"]) if row.get("frame_after") else None,
+        "created_at": row.get("created_at"),
+    }
+
+
+@router.get("/cu/runs")
+def get_cu_runs(limit: int = 100) -> list[dict[str, Any]]:
+    limit = max(1, min(int(limit), 500))
+    from hermes_loopguard.db import Store
+
+    store = Store.open_default()
+    try:
+        cur = store.conn.execute(
+            "SELECT * FROM cu_runs ORDER BY id DESC LIMIT ?", (limit,)
+        )
+        return [_cu_run_dict(r) for r in cur.fetchall()]
+    finally:
+        store.close()
+
+
+@router.get("/cu/steps")
+def get_cu_steps(run: int) -> list[dict[str, Any]]:
+    from hermes_loopguard.db import Store
+
+    store = Store.open_default()
+    try:
+        cur = store.conn.execute("SELECT id FROM cu_runs WHERE id = ?", (run,))
+        if not cur.fetchone():
+            raise HTTPException(status_code=404, detail=f"Run {run} not found")
+        cur = store.conn.execute(
+            "SELECT * FROM cu_steps WHERE run_id = ? ORDER BY idx, id", (run,)
+        )
+        rows = cur.fetchall()
+    finally:
+        store.close()
+    return [_cu_step_dict(r) for r in rows]
+
+
+def _cu_frame_payload(step_id: int, kind: str) -> tuple[bytes, str]:
+    """Resolve the frame file a cu_steps row points to.  Serves ONLY files
+    under the loopguard data dir; anything else (including paths smuggled into
+    the db) is a 404.  Returns (bytes, media_type)."""
+    if kind not in _CU_KINDS:
+        raise HTTPException(
+            status_code=400, detail="kind must be 'before', 'after' or 'thumb'"
+        )
+
+    from hermes_loopguard import paths
+    from hermes_loopguard.db import Store
+
+    store = Store.open_default()
+    try:
+        cur = store.conn.execute(
+            "SELECT frame_before, frame_after FROM cu_steps WHERE id = ?", (step_id,)
+        )
+        row = cur.fetchone()
+    finally:
+        store.close()
+
+    if not row:
+        raise HTTPException(status_code=404, detail=f"Step {step_id} not found")
+
+    column = "frame_after" if kind == "after" else "frame_before"
+    raw = row.get(column)
+    if not raw:
+        raise HTTPException(status_code=404, detail=f"Step {step_id} has no {kind} frame")
+
+    frame_path = Path(str(raw))
+    if kind == "thumb":
+        # The thumbnail is the JPEG sibling the logger wrote next to the PNG.
+        frame_path = frame_path.with_suffix(".jpg")
+    try:
+        resolved = frame_path.resolve()
+    except (OSError, ValueError):
+        raise HTTPException(status_code=404, detail="Invalid frame path")
+
+    data_root = paths.data_dir().resolve()
+    if not str(resolved).startswith(str(data_root) + os.sep):
+        raise HTTPException(
+            status_code=404, detail="Frame path is outside the LoopGuard data dir"
+        )
+    if not resolved.is_file():
+        raise HTTPException(status_code=404, detail="Frame file not found")
+
+    media_type = "image/jpeg" if resolved.suffix.lower() in (".jpg", ".jpeg") else "image/png"
+    return resolved.read_bytes(), media_type
+
+
+@router.get("/cu/frame/{step_id}")
+def get_cu_frame(step_id: int, kind: str = "before") -> Any:
+    data, media_type = _cu_frame_payload(step_id, kind)
+    if Response is not None:
+        return Response(content=data, media_type=media_type)
+    # Fallback (no fastapi, unit tests only): plain dict so callers can still
+    # inspect the payload and media type.
+    return {"status_code": 200, "media_type": media_type, "body": data}
