@@ -1,0 +1,25 @@
+LoopGuard eval: 40 cases, accuracy 97.5%, tokens in=21926 out=3261 cost=$0.0000, backend calls=40
+
+Confusion matrix (expected -> predicted):
+expected \ predicted                   bug    duplicate_or_s           feature          question            review
+bug                                     11                 0                 0                 0                 1
+duplicate_or_spam                        0                 7                 0                 0                 0
+feature                                  0                 0                 8                 0                 0
+question                                 0                 0                 0                 7                 0
+review                                   0                 0                 0                 0                 6
+
+Misses (expected an admitting route, gate did not admit) (1):
+  c08: expected bug -> predicted review (top prob 0.99) -- event ids and queue evidence
+
+False admits (gate admitted, expected something else) (0):
+  none
+
+Threshold sweep (min_prob on admitting routes; marker = fewest false admits among those with the fewest misses):
+  threshold  misses  false_admits  accuracy
+* 0.3             1              0     97.5%
+* 0.4             1              0     97.5%
+* 0.5             1              0     97.5%
+* 0.6             1              0     97.5%
+* 0.7             1              0     97.5%
+* 0.8             1              0     97.5%
+* 0.9             1              0     97.5%

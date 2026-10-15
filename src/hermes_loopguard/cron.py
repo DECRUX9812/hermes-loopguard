@@ -15,12 +15,20 @@ WAKE_TRUE = '{"wakeAgent": true}'
 WAKE_FALSE = '{"wakeAgent": false}'
 
 # Hermes runs cron .py scripts on its own PM-managed interpreter, where the
-# outer venv's site-packages (and therefore hermes_loopguard) are NOT on
-# sys.path. The shim embeds the install-time package root (as a repr'd
-# literal, so paths with quotes or backslashes stay valid Python) and adds
-# it to sys.path only when the import fails on that interpreter.
+# outer venv's site-packages (and therefore hermes_loopguard and its venv-only
+# dependencies such as typesafe-sdk) are NOT on sys.path. The shim embeds, as
+# repr'd literals (so paths with quotes or backslashes stay valid Python):
+#   - the install-time package root, inserted only when the import fails;
+#   - the installing interpreter's site-packages dirs, APPENDED (never
+#     prepended, so Hermes's own packages keep priority) and only when the
+#     running interpreter's major.minor matches the recording one.
 SHIM_TEMPLATE = """\
+import os
 import sys
+if sys.version_info[:2] == {version}:
+    for _site_dir in {site_dirs}:
+        if os.path.isdir(_site_dir) and _site_dir not in sys.path:
+            sys.path.append(_site_dir)
 try:
     import hermes_loopguard
 except ImportError:

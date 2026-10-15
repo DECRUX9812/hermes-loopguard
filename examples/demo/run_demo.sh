@@ -20,8 +20,11 @@
 #   LG_DEMO_PROVIDER    (default cliproxy-antigravity)
 #   LG_DEMO_MODEL       (default gemini-3.1-flash-lite)
 #   LG_DEMO_KEY_ENV     (default CLIPROXY_API_KEY)
+#   LG_DEMO_BACKEND     (default auto) semantic-gate backend written into the
+#                       watcher's config.backend: auto | typesafe | openai | local
 # The key for LG_DEMO_KEY_ENV is read from ~/.hermes/.env only when the env
-# var is unset and that file exists; it is never printed.
+# var is unset and that file exists; it is never printed. TYPESAFE_API_KEY is
+# loaded the same way, so LG_DEMO_BACKEND=typesafe works out of the box.
 set -euo pipefail
 
 DEMO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -37,7 +40,14 @@ LG_DEMO_BASE_URL="${LG_DEMO_BASE_URL:-http://127.0.0.1:8317/v1}"
 LG_DEMO_PROVIDER="${LG_DEMO_PROVIDER:-cliproxy-antigravity}"
 LG_DEMO_MODEL="${LG_DEMO_MODEL:-gemini-3.1-flash-lite}"
 LG_DEMO_KEY_ENV="${LG_DEMO_KEY_ENV:-CLIPROXY_API_KEY}"
-export LG_DEMO_BASE_URL LG_DEMO_PROVIDER LG_DEMO_MODEL LG_DEMO_KEY_ENV
+LG_DEMO_BACKEND="${LG_DEMO_BACKEND:-auto}"
+case "$LG_DEMO_BACKEND" in
+  auto|typesafe|openai|hermes|local) ;;
+  *)
+    echo "error: LG_DEMO_BACKEND must be auto, typesafe, openai, hermes or local (got: $LG_DEMO_BACKEND)" >&2
+    exit 1;;
+esac
+export LG_DEMO_BASE_URL LG_DEMO_PROVIDER LG_DEMO_MODEL LG_DEMO_KEY_ENV LG_DEMO_BACKEND
 
 HERMES_BIN="${HERMES_BIN:-$(command -v hermes)}"
 if [ -z "$HERMES_BIN" ]; then
@@ -52,6 +62,13 @@ if [ -z "${!LG_DEMO_KEY_ENV:-}" ] && [ -f "$HOME/.hermes/.env" ]; then
   key="$(grep -E "^${LG_DEMO_KEY_ENV}=" "$HOME/.hermes/.env" | head -1 | cut -d= -f2- | tr -d '"')" || true
   if [ -n "$key" ]; then
     export "${LG_DEMO_KEY_ENV}=$key"
+  fi
+fi
+
+if [ -z "${TYPESAFE_API_KEY:-}" ] && [ -f "$HOME/.hermes/.env" ]; then
+  typesafe_key="$(grep -E "^TYPESAFE_API_KEY=" "$HOME/.hermes/.env" | head -1 | cut -d= -f2- | tr -d '"')" || true
+  if [ -n "$typesafe_key" ]; then
+    export TYPESAFE_API_KEY="$typesafe_key"
   fi
 fi
 
@@ -121,6 +138,7 @@ sed -e "s|@ISSUES_JSON@|$HERMES_HOME/demo/issues.json|" \
     -e "s|@BASE_URL@|$LG_DEMO_BASE_URL|" \
     -e "s|@MODEL@|$LG_DEMO_MODEL|" \
     -e "s|@KEY_ENV@|$LG_DEMO_KEY_ENV|" \
+    -e "s|backend: auto$|backend: $LG_DEMO_BACKEND|" \
     "$DEMO_DIR/issue_watcher.yaml" > "$RESOLVED"
 "$HERMES_BIN" loopguard watch install "$RESOLVED" --schedule "every 15m"
 rm -f "$RESOLVED"

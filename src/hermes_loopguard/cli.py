@@ -249,6 +249,29 @@ def _cmd_watch_list(args) -> int:
     return 0
 
 
+def _recorded_site_dirs() -> list[str]:
+    """Site-packages dirs of the interpreter installing the watcher.
+
+    These hold the pip dependencies (typesafe-sdk among them) that Hermes's
+    own cron interpreter lacks; the shim appends them at run time.
+    """
+    import site
+
+    dirs: list[str] = []
+    try:
+        dirs.extend(site.getsitepackages())
+    except Exception:
+        pass
+    try:
+        user_site = site.getusersitepackages()
+    except Exception:
+        user_site = None
+    if user_site and os.path.isdir(user_site):
+        dirs.append(user_site)
+    seen: set[str] = set()
+    return [d for d in dirs if not (d in seen or seen.add(d))]
+
+
 def _cmd_watch_install(args) -> int:
     import hermes_loopguard
 
@@ -281,7 +304,18 @@ def _cmd_watch_install(args) -> int:
     sdir.mkdir(parents=True, exist_ok=True)
     shim = sdir / f"loopguard_{spec.name}.py"
     pkg_root = Path(hermes_loopguard.__file__).resolve().parent.parent
-    shim.write_text(SHIM_TEMPLATE.format(name=spec.name, pkg_root=repr(str(pkg_root))), encoding="utf-8")
+    site_dirs = _recorded_site_dirs()
+    shim.write_text(
+        SHIM_TEMPLATE.format(
+            name=spec.name,
+            pkg_root=repr(str(pkg_root)),
+            site_dirs=repr(site_dirs),
+            version=repr(tuple(sys.version_info[:2])),
+        ),
+        encoding="utf-8",
+    )
+    print(f"  shim site dirs: {len(site_dirs)} recorded "
+          f"(python {sys.version_info[0]}.{sys.version_info[1]})")
 
     cmd = [
         "hermes",
