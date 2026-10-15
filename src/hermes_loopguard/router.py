@@ -5,6 +5,8 @@ import json
 import re
 import statistics
 import subprocess
+import sys
+from pathlib import Path
 from typing import Any, Callable
 
 from hermes_loopguard import sources
@@ -45,6 +47,47 @@ class PollResult:
 
 _KANBAN_TASK_RE = re.compile(r"t_[A-Za-z0-9]+")
 _INT_RE = re.compile(r"\b(\d+)\b")
+
+
+def _hermes_bin() -> str:
+    """The hermes binary that runs this process, not whatever `hermes` PATH
+    resolves to: cron scripts run on the install's own Python
+    (cron/scheduler_script.py::_script_argv), and PATH may hold a different
+    install (e.g. ~/.local/bin/hermes)."""
+    if sys.executable:
+        sibling = Path(sys.executable).with_name("hermes")
+        if sibling.is_file():
+            return str(sibling)
+    return "hermes"
+
+
+def build_kanban_argv(spec: WatcherSpec, delta: ItemDelta) -> list[str]:
+    """Argv for `hermes kanban create`, matching stock Hermes' CLI:
+    `title` is positional; `--board` is a TOP-LEVEL `hermes kanban` flag and
+    must come before the `create` subcommand; assignee/tenant are `create`
+    options; `--max-retries N` trips the failure breaker on the Nth failure,
+    i.e. N total attempts — exactly LoopGuard's `max_attempts`."""
+    cmd: list[str] = [_hermes_bin(), "kanban"]
+    if spec.kanban.get("board"):
+        cmd.extend(["--board", str(spec.kanban["board"])])
+    cmd.extend([
+        "create",
+        delta.title,
+        "--body",
+        canonical(delta.item),
+        "--idempotency-key",
+        f"loopguard:{spec.name}:{delta.item_id}:{delta.fingerprint}",
+        "--created-by",
+        "loopguard",
+        "--json",
+        "--max-retries",
+        str(spec.max_attempts),
+    ])
+    if spec.kanban.get("assignee"):
+        cmd.extend(["--assignee", str(spec.kanban["assignee"])])
+    if spec.kanban.get("tenant"):
+        cmd.extend(["--tenant", str(spec.kanban["tenant"])])
+    return cmd
 
 
 def parse_kanban_task_id(output: str) -> str | None:
@@ -299,25 +342,7 @@ def poll(
                         if kanban_runner is None:
 
                             def default_kanban_runner(s, d, dec):
-                                cmd = [
-                                    "hermes",
-                                    "kanban",
-                                    "create",
-                                    d.title,
-                                    "--body",
-                                    canonical(d.item),
-                                    "--idempotency-key",
-                                    f"loopguard:{s.name}:{d.item_id}:{d.fingerprint}",
-                                    "--created-by",
-                                    "loopguard",
-                                    "--json",
-                                    "--max-retries",
-                                    str(s.max_attempts),
-                                ]
-                                if s.kanban.get("assignee"):
-                                    cmd.extend(["--assignee", str(s.kanban["assignee"])])
-                                if s.kanban.get("tenant"):
-                                    cmd.extend(["--tenant", str(s.kanban["tenant"])])
+                                cmd = build_kanban_argv(s, d)
                                 proc = subprocess.run(cmd, capture_output=True, text=True)
                                 if proc.returncode != 0:
                                     raise RuntimeError(f"kanban create failed: {proc.stderr}")

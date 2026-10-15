@@ -7,12 +7,12 @@ import pytest
 import yaml
 
 from hermes_loopguard.backends.base import GateResult, Usage
-from hermes_loopguard.change_gate import classify
+from hermes_loopguard.change_gate import ItemDelta, classify
 from hermes_loopguard.config import WatcherSpec
 from hermes_loopguard.cron import WAKE_FALSE, WAKE_TRUE, run_watcher
 from hermes_loopguard.db import Store
 from hermes_loopguard.questions import ChoiceAnswer
-from hermes_loopguard.router import poll
+from hermes_loopguard.router import build_kanban_argv, parse_kanban_task_id, poll
 
 
 class FakeAcceptanceBackend:
@@ -217,3 +217,108 @@ def test_skip_summary_row_only_logged_when_non_actionable(tmp_path: Path):
     rows = skip_rows()
     assert len(rows) == 1
     assert rows[0].get("note") == "1 unchanged, 0 other"
+
+
+class _BrokenStore:
+    # FAKE STORE (unit test only): a store whose open always fails, as a
+    # corrupted/undopenable SQLite file would.
+    @staticmethod
+    def open_default():
+        raise RuntimeError("database disk image is malformed")
+
+
+def _run_with_broken_store(cfg, monkeypatch):
+    import hermes_loopguard.cron as cron_mod
+
+    monkeypatch.setattr(cron_mod, "Store", _BrokenStore)
+    out, err = io.StringIO(), io.StringIO()
+    ret = run_watcher("store_fail", cfg=cfg, out=out, err=err)
+    return ret, out.getvalue(), err.getvalue()
+
+
+def test_store_open_failure_wakes_by_default(monkeypatch):
+    # on_error unset -> fail open: the wake decision still reaches Hermes and
+    # the failure is visible on stderr.
+    ret, out, err = _run_with_broken_store({}, monkeypatch)
+    assert ret == 0
+    assert out.strip().splitlines()[-1] == WAKE_TRUE
+    assert "LoopGuard:" in err
+    assert "store" in err
+
+
+def test_store_open_failure_skip_policy(monkeypatch):
+    ret, out, err = _run_with_broken_store({"on_error": "skip"}, monkeypatch)
+    assert ret == 0
+    assert out.strip().splitlines()[-1] == WAKE_FALSE
+    assert "LoopGuard:" in err
+    assert "store" in err
+
+
+# --- kanban route: argv construction + task-id parsing (D7) ---
+
+# The real shape of `hermes kanban create --json` stdout on stock Hermes
+# (captured live against /path/to/lg-venv).
+KANBAN_CREATE_STDOUT = """{
+  "id": "t_01311c1f",
+  "title": "probe task D7",
+  "body": "probe body",
+  "assignee": null,
+  "status": "ready",
+  "priority": 0,
+  "tenant": null,
+  "created_by": "loopguard",
+  "max_retries": 3
+}"""
+
+
+def test_parse_kanban_task_id_real_json_output():
+    assert parse_kanban_task_id(KANBAN_CREATE_STDOUT) == "t_01311c1f"
+
+
+def test_parse_kanban_task_id_fallbacks():
+    assert parse_kanban_task_id("Created task t_abc123") == "t_abc123"
+    assert parse_kanban_task_id("Created task 42") == "42"
+    assert parse_kanban_task_id("") is None
+    assert parse_kanban_task_id("no id in here") is None
+
+
+def _kanban_delta() -> ItemDelta:
+    return ItemDelta(
+        item_id="k-1",
+        title="CI fails on main",
+        fingerprint="fp-k1",
+        item={"id": "k-1", "title": "CI fails on main", "body": "tests broken"},
+        status="new",
+        prior=None,
+    )
+
+
+def test_kanban_argv_matches_stock_cli(tmp_path):
+    spec = WatcherSpec(name="kb", source={"file": str(tmp_path / "i.json")},
+                       max_attempts=3)
+    argv = build_kanban_argv(spec, _kanban_delta())
+    assert argv[argv.index("create") + 1] == "CI fails on main"  # positional title
+    assert argv[argv.index("--idempotency-key") + 1] == "loopguard:kb:k-1:fp-k1"
+    assert argv[argv.index("--max-retries") + 1] == "3"
+    assert "--created-by" in argv and "--json" in argv
+    body = argv[argv.index("--body") + 1]
+    assert json.loads(body)["id"] == "k-1"  # body is the whole item as JSON
+
+
+def test_kanban_argv_board_is_a_top_level_flag(tmp_path):
+    # `--board` lives on `hermes kanban` itself, NOT on `create` (stock CLI:
+    # `hermes kanban [--board SLUG] create ...`) — it must precede `create`.
+    spec = WatcherSpec(name="kb", source={"file": str(tmp_path / "i.json")},
+                       kanban={"board": "ops", "assignee": "fixer", "tenant": "acme"})
+    argv = build_kanban_argv(spec, _kanban_delta())
+    assert argv[argv.index("--board") + 1] == "ops"
+    assert argv.index("--board") < argv.index("create")
+    assert argv[argv.index("--assignee") + 1] == "fixer"
+    assert argv[argv.index("--tenant") + 1] == "acme"
+
+
+def test_kanban_argv_omits_unset_board_assignee_tenant(tmp_path):
+    spec = WatcherSpec(name="kb", source={"file": str(tmp_path / "i.json")})
+    argv = build_kanban_argv(spec, _kanban_delta())
+    for flag in ("--board", "--assignee", "--tenant"):
+        assert flag not in argv

@@ -1,0 +1,44 @@
+# LoopGuard watcher: file-backed ops reports admitted straight onto a
+# Hermes kanban board (route handler: kanban).
+#
+# The source path is a placeholder: replace @ITEMS_JSON@ with the absolute
+# path of your items file before installing, e.g.
+#   sed "s|@ITEMS_JSON@|$HOME/ops/items.json|" \
+#     examples/hooks/kanban_watcher.yaml > /tmp/kanban_watcher.yaml
+#   hermes loopguard watch install /tmp/kanban_watcher.yaml --schedule "every 15m"
+#
+# Gate backend: local keyword heuristics (zero tokens, zero network). A
+# report that clearly reads as a failing build routes to `handler: kanban`,
+# which runs `hermes kanban create` ONLY after the change gate admits the
+# item; a per-item claim plus an idempotency key mean one item can never
+# make two tasks. `board` is the top-level `hermes kanban --board` flag,
+# assignee/tenant are `create` options.
+name: kanban-ops
+source:
+  file: "@ITEMS_JSON@"
+id_field: id
+title_field: title
+fingerprint_fields: [title, body]
+state_fields: [title, body]
+kanban:
+  board: default
+config:
+  backend: local
+  local:
+    keywords:
+      board_fix: [fail, broken, traceback, crash, tests]
+      noise: [newsletter, unsubscribe, lunch]
+gate:
+  route_question: triage
+  questions:
+    triage:
+      type: choice
+      instructions: What does this ops report need?
+      criteria:
+        board_fix: failing build, broken tests, crash or traceback
+        noise: newsletter, unsubscribe, unrelated chatter
+  routes:
+    board_fix:
+      handler: kanban
+      min_prob: 0.6
+  default_route: review

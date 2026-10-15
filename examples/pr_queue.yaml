@@ -11,6 +11,10 @@ brief: |
   Never push, never merge, never comment on GitHub directly.
 kanban:
   assignee: fixer
+  # board is the top-level `hermes kanban --board` flag; tenant is a
+  # `create` option. Both are optional:
+  # board: ops
+  # tenant: acme
 gate:
   route_question: state
   questions:
