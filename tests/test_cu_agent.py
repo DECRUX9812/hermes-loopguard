@@ -318,6 +318,52 @@ def test_flush_unverified_when_field_screen_unchanged(monkeypatch):
     assert result.state == "completed"  # no 'field verification kept failing'
 
 
+def test_goal_check_failure_replans_once(monkeypatch):
+    """REAL failure: the cheap planner under-plans (1 step for a 4-step task);
+    the goal check then fails and the run went terminal.  The agent must
+    replan ONCE with that evidence before giving up."""
+    driver = make_driver(
+        ["form.png", "form.png", "thanks.png", "thanks.png", "thanks.png", "thanks.png"],
+        elements=[{"token": "e1", "role": "entry", "label": "Name", "x": 10, "y": 20, "w": 300, "h": 30}],
+    )
+    gate = FakeGate()
+    gate.verify_results.append(VerifyResult(passed=True, yes=0.9, usage=_usage()))   # step 1 verify
+    gate.verify_results.append(VerifyResult(passed=False, yes=0.0, usage=_usage()))  # goal check #1
+    for _ in range(3):  # box grounding for the planned clicks
+        gate.locate_results.append(
+            LocateResult(found=True, presence=0.9, confidence=0.9, box=(0.1, 0.2, 0.3, 0.4),
+                         center=(200, 300), grounding="box", usage=_usage())
+        )
+    calls = patch_plan(monkeypatch, [
+        [agent.Step(action="click", target="link", expect="the page is open")],
+        [agent.Step(action="type", target="Name", text="Ada", expect="the Name field shows Ada")],
+    ])
+    result = agent.run_task("do it", driver, gate, {"max_steps": 8})
+    assert result.state == "completed"
+    assert calls[1] is not None  # the replan carried failure evidence
+
+
+def test_goal_check_failure_replans_only_once(monkeypatch):
+    driver = make_driver(["form.png"] * 10, elements=[])
+    gate = FakeGate()
+    gate.verify_results.append(VerifyResult(passed=True, yes=0.9, usage=_usage()))   # step 1 verify
+    gate.verify_results.append(VerifyResult(passed=False, yes=0.0, usage=_usage()))  # goal check #1
+    gate.verify_results.append(VerifyResult(passed=True, yes=0.9, usage=_usage()))   # step 2 verify
+    gate.verify_results.append(VerifyResult(passed=False, yes=0.0, usage=_usage()))  # goal check #2
+    for _ in range(5):  # box grounding for the planned clicks
+        gate.locate_results.append(
+            LocateResult(found=True, presence=0.9, confidence=0.9, box=(0.1, 0.2, 0.3, 0.4),
+                         center=(200, 300), grounding="box", usage=_usage())
+        )
+    patch_plan(monkeypatch, [
+        [agent.Step(action="click", target="link", expect="the page is open")],
+        [agent.Step(action="click", target="other", expect="the page is open")],
+    ])
+    result = agent.run_task("do it", driver, gate, {"max_steps": 8})
+    assert result.state == "blocked"
+    assert "goal check" in result.reason
+
+
 def test_pad_region_keeps_big_boxes_centered():
     w, h = 1280, 800
     box = (0.25, 0.25, 0.75, 0.75)

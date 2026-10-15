@@ -767,6 +767,7 @@ def run_task(
     step_no = 0
     step_failures = 0
     replanned = False
+    goal_replanned = False
     escalations_used = 0
     flush_failures = 0
 
@@ -860,6 +861,25 @@ def run_task(
             totals.add(final.usage)
             if final.passed:
                 return _finish("completed", done_check=final.yes)
+            # The goal check says the task is NOT done.  A short plan is the
+            # usual cause (the cheap planner under-plans multi-step tasks);
+            # replan ONCE with that evidence before going terminal.
+            if not goal_replanned:
+                goal_replanned = True
+                new_steps, plan_usage = plan(
+                    instruction,
+                    driver,
+                    cfg,
+                    failure_evidence=(
+                        "the planned steps all ran, but the overall goal check "
+                        "says the goal is NOT met yet; look at what is still "
+                        "missing on screen and plan ONLY the remaining work"
+                    ),
+                )
+                totals.add(plan_usage, vision=False)
+                if new_steps:
+                    queue[:] = new_steps
+                    continue
             state, reason = "blocked", f"final goal check failed (noul={final.yes:.2f})"
             break
 
