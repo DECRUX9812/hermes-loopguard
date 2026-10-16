@@ -1,3 +1,5 @@
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 # hermes-loopguard
 
 Stop automations from burning frontier model tokens on unchanged state, routine triage, and retry loops.
