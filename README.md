@@ -7,6 +7,8 @@ A [Hermes Agent](https://github.com/NousResearch/hermes-agent) plugin (plugin id
 
 Stop automations from burning frontier model tokens on unchanged state, routine triage, and retry loops.
 
+![The LoopGuard dashboard page: runs skipped, tokens avoided, watchers, route mix and the decision feed](examples/demo/dashboard.png)
+
 Cron and kanban automations pay frontier models to inspect empty queues,
 reread unchanged issues, and evaluate whether failed tasks should retry.
 LoopGuard puts those decisions on a cheap, typed path before the agent wakes.
