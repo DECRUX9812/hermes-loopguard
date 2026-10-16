@@ -2,8 +2,10 @@ name: CI
 
 on:
   push:
-    branches: [master]
+    branches: [main]
+    tags: ["v*"]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -14,21 +16,43 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12"]
+        python-version: ["3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install package with dev extras
+      # The unit tests run from the source tree (PYTHONPATH=src) with the
+      # package NOT installed: the cron-shim tests build a stub package and
+      # check that the shim imports it, which an installed copy would shadow.
+      - name: Install test dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e '.[dev,typesafe,cu]'
-      # tests/test_e2e_hermes.py is deliberately OUT of CI: it requires a real
-      # stock Hermes install and installs an upstream package. It is skipped
-      # via --ignore, not via its own skip logic.
+          pip install "pyyaml>=6,<7" "typesafe-sdk>=0.7,<1" "pillow>=10,<13" "pytest>=8,<10"
+      # tests/test_e2e_hermes.py is deliberately OUT of CI: it needs a real
+      # stock Hermes install (LOOPGUARD_E2E_HERMES) and skips without one.
       - name: Unit tests
-        working-directory: ${{ github.workspace }}
         env:
           PYTHONPATH: src
-        run: python3 -m pytest -q --ignore tests/test_e2e_hermes.py
+        run: python -m pytest -q --ignore tests/test_e2e_hermes.py
+      - name: Install the package
+        run: pip install .
+      - name: Plugin entry point loads
+        working-directory: ${{ runner.temp }}
+        run: |
+          python - <<'PY'
+          from importlib.metadata import entry_points
+          (ep,) = [e for e in entry_points(group="hermes_agent.plugins") if e.name == "loopguard"]
+          mod = ep.load()
+          assert callable(getattr(mod, "register", None)), ep
+          print("entry point ok:", ep.value, mod.__file__)
+          PY
+      - name: Manifest parses and names the plugin
+        run: |
+          python - <<'PY'
+          import yaml
+          m = yaml.safe_load(open("plugin.yaml"))
+          assert m["name"] == "loopguard" and m["version"], m
+          assert isinstance(m.get("config_schema"), dict) and m["config_schema"], "config_schema missing"
+          print("plugin.yaml ok:", m["name"], m["version"], len(m["config_schema"]), "settings")
+          PY

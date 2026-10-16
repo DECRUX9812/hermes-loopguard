@@ -540,7 +540,7 @@ def ensure_stack() -> None:
 
 
 def load_secrets() -> None:
-    """Load ~/.hermes/.env keys into the process env (per CONTRACTS-CU.md).
+    """Load ~/.hermes/.env keys into the process env (bench harness only, not the plugin).
     Never prints values.  Background units do not inherit the interactive
     shell's exports, and paths.get_secret() depends on them."""
     env_file = Path.home() / ".hermes" / ".env"
@@ -592,7 +592,7 @@ def preflight_jev(_import_sdk=None, _ping=None, _key=None) -> None:
     """Exit non-zero BEFORE any spend unless the Jev arm can really run.
 
     Guards the failure mode of the invalid first Jev run
-    (results/invalid-no-typesafe-sdk): run_bench.py executed under a python
+    (an unpublished early result set): run_bench.py executed under a python
     without typesafe-sdk, every Jev request failed, and VisionGate silently
     fell back to the CLIProxy model — a whole "Jev arm" with zero jev-* calls.
     """

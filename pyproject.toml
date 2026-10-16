@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "hermes-loopguard"
 version = "0.1.0"
-description = "LoopGuard core engine and plugins for Hermes Agent"
+description = "Hermes Agent plugin that stops automations from burning tokens: a zero-cost change gate, a cheap typed semantic gate, and cheap computer-use gates."
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
@@ -31,6 +31,7 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
@@ -41,6 +42,7 @@ dependencies = [
 Homepage = "https://github.com/DECRUX9812/hermes-loopguard"
 Repository = "https://github.com/DECRUX9812/hermes-loopguard"
 Issues = "https://github.com/DECRUX9812/hermes-loopguard/issues"
+Changelog = "https://github.com/DECRUX9812/hermes-loopguard/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
 typesafe = [

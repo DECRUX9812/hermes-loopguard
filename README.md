@@ -1,6 +1,9 @@
+# hermes-loopguard
+
+[![CI](https://github.com/DECRUX9812/hermes-loopguard/actions/workflows/ci.yml/badge.svg)](https://github.com/DECRUX9812/hermes-loopguard/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-# hermes-loopguard
+A [Hermes Agent](https://github.com/NousResearch/hermes-agent) plugin (plugin id **`loopguard`**).
 
 Stop automations from burning frontier model tokens on unchanged state, routine triage, and retry loops.
 
@@ -37,28 +40,73 @@ cron tick -> loopguard_<watcher>.py shim
 When every item is unchanged or filtered out, the runner emits `{"wakeAgent": false}`.
 Hermes terminates the job immediately without building a prompt or dispatching an LLM turn.
 
+## Results at a glance
+
+Two measured things, with the caveats up front. Full tables, per-task rows and failure analysis:
+[BENCH.md](BENCH.md).
+
+- **Change gate:** an unchanged poll costs zero model calls. Hermes gets `{"wakeAgent": false}`
+  and never builds a prompt (recorded run: [examples/demo/sample-output.txt](examples/demo/sample-output.txt)).
+- **Computer use (`jev_computer`):** 11 tasks on a disposable Xvfb desktop (browser forms and flows,
+  a GTK settings dialog, a text-editor save, two file-manager tasks and a payment trap), 2 runs per
+  task, judged by code (a recorded form POST or a file on disk), not by either agent.
+
+| Round | Jev driver | Baseline (big-model loop) | Jev cost / baseline cost |
+|---|---|---|---|
+| X7: both arms, same code, same stack | 15/22 pass, $0.1217 | 15/22 pass, $1.8863 | **6.4 %** per run |
+| X8: Jev rerun after bench fixes | 18/22 pass, $0.1215 | not rerun (see below) | 6.4 % vs the X7 baseline |
+
+What the numbers do and do not show:
+
+- **The baseline model** is `claude-opus-4-6-thinking`, run as a plain screenshot-in / one-JSON-action-out
+  loop (`examples/cu_bench/baseline.py`). It is one reasonable big-model loop, not a tuned
+  commercial computer-use agent. It was reached through a flat-rate proxy, so its dollar figures are
+  list-price equivalents, not invoices.
+- **The baseline was not re-run for X8.** The Opus endpoint returned continuous HTTP 429s, so the
+  X8 row compares against the X7 baseline, which ran before the bench-hygiene fixes. Read 18 vs 15
+  as "at least as good", not as a clean win. The like-for-like result is the X7 tie.
+- The Jev arm's planner is `gemini-3.1-flash-lite`, and its vision chain is `jev-1.14.0`, then
+  `jev-1.13.0`, then `gemini-3.8-flash-high`. One step may escalate to Opus after two failures (0
+  Opus calls in X7, 4 in X8, against 153 for the baseline).
+- 22 runs per arm is small. A one-task difference is noise; the ~15x cost gap is not. Still failing:
+  `mousepad-save` on both arms (on the Jev side, intermittent TypeSafe `400 Invalid image dimensions`
+  storms during grounding). `thunar-rename` passed 2/2 for Jev only after the X9 `set_value` fix.
+- TypeSafe labels image input and the Box question "Dreamer-ready", not production. See
+  [Jaggedness](#jaggedness-measured-not-marketed) below.
+
 ## Install
 
-LoopGuard is a local package, not on PyPI. Install it from a checkout into the **same Python
-environment the `hermes` command runs from** — plugins load inside Hermes' own PM-managed
-environment, so an install into some other venv is invisible to Hermes:
+LoopGuard is not on PyPI. Install it from GitHub into the **same Python environment the `hermes`
+command runs from**. Plugins load inside Hermes's own PM-managed environment, so an install into
+some other venv is invisible to Hermes.
+
+**As a directory plugin** (simplest; no pip needed, because the root `__init__.py` adds `src/` to the path):
+
+```bash
+git clone https://github.com/DECRUX9812/hermes-loopguard.git "${HERMES_HOME:-$HOME/.hermes}/plugins/loopguard"
+hermes plugins validate "${HERMES_HOME:-$HOME/.hermes}/plugins/loopguard"
+hermes plugins enable loopguard
+```
+
+**As a package** (adds the `hermes-loopguard` console script and the `hermes_agent.plugins` entry point):
 
 ```bash
 # Find the interpreter behind your `hermes` command:
 head -1 "$(command -v hermes)"    # e.g. #!/path/to/hermes-venv/bin/python
 
-# Install from a local checkout into that environment:
-/path/to/hermes-venv/bin/pip install -e /path/to/hermes-loopguard
-# or: uv pip install --python /path/to/hermes-venv/bin/python -e /path/to/hermes-loopguard
+git clone https://github.com/DECRUX9812/hermes-loopguard.git
+/path/to/hermes-venv/bin/pip install -e ./hermes-loopguard
+# or: uv pip install --python /path/to/hermes-venv/bin/python -e ./hermes-loopguard
 ```
 
-The `-e` (editable) install matters: stock Hermes' PM rewires `sys.path` and drops every
+The `-e` (editable) install matters: stock Hermes's PM rewires `sys.path` and drops every
 `site-packages` entry that is not its own, so a regular (non-editable) install is invisible to the
 in-process plugin loader. An editable install survives because its `.pth` adds the source directory
 instead. (The cron-script path works either way: the watcher shim embeds the install's site dirs.)
 
-LoopGuard has no runtime dependencies beyond what stock Hermes ships (pyyaml is optional; a
-built-in fallback covers YAML), so it loads cleanly inside the PM environment.
+LoopGuard's only declared dependency is `pyyaml>=6,<7`, which stock Hermes already ships, and a
+built-in fallback covers YAML if it is missing. Optional extras: `[typesafe]` (`typesafe-sdk`, for
+the Jev backends) and `[cu]` (Pillow, for screenshot preparation in computer use).
 
 ## Quickstart
 
@@ -173,8 +221,17 @@ installing:
   config under `<HERMES_HOME>/loopguard/`, the cron watcher scripts it installs into
   `<HERMES_HOME>/scripts/` when you run `hermes loopguard watch install`, and a read of the
   `GOAL.md` in the working directory when the completion check is active.
-- **Shell commands:** the `kanban` route runs `hermes kanban create`; the computer-use driver
-  (off by default) spawns the `cua-driver` CLI you point it at.
+- **Shell commands** (always as an argument list, never through a shell):
+  - a watcher's `source.command`, which is the command you wrote in your watcher spec;
+  - the `run:` checks in a `GOAL.md` when the completion check is active (in that working
+    directory, with a timeout);
+  - `hermes cron create` when you run `hermes loopguard watch install`, and
+    `hermes kanban create` for the `kanban` route;
+  - the `cua-driver` CLI you point it at, for computer use (off by default).
+- **Approvals:** the tool gate and the computer-use safety gate can only *block* a call or hand it
+  to Hermes's own approval gate (`pre_tool_call` returns `block` or `approve`). They have no "allow"
+  directive, so they never auto-approve anything or weaken Hermes's rules, and unattended runs
+  are handled by Hermes's approval policy.
 - **Background processes:** none.
 - **Stored credentials:** the TypeSafe key (`TYPESAFE_API_KEY`) and, if you configure them, any
   `api_key_env` for the OpenAI-compatible backend — all read only through Hermes's secret scope,
@@ -446,4 +503,6 @@ LOOPGUARD_E2E_INSTALLS=/path/to/prepared/installs \
 PYTHONPATH=src pytest -q tests/test_e2e_hermes.py
 ```
 
-License: MIT.
+## License
+
+MIT. See [LICENSE](LICENSE).

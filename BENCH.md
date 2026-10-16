@@ -15,7 +15,7 @@ success tie comes from the baseline itself dropping 4 runs under the new disposa
 | Display | disposable Xvfb `:97`, 1280x800x24, xfwm4, private D-Bus + AT-SPI bus (`examples/cu_bench/stack.sh`) |
 | Driver | cua-driver 0.28.2 daemon on `:97` (both arms use the same `CuaDriver` adapter) |
 | Apps | Google Chrome 152 (local HTML pages served on 127.0.0.1:8793), Thunar, Mousepad, a GTK settings app |
-| Privacy | every bench app runs with a disposable `HOME` (`/tmp/lg-cu/home`, recreated per spawn) and a neutral `USER`/`LOGNAME` (`bench`), built and forced by `launcher.py`; verified with tesseract OCR that the real account name and real home-directory file names appear on no screenshot (proof in `.oc/x7-bench.log`) |
+| Privacy | every bench app runs with a disposable `HOME` (`/tmp/lg-cu/home`, recreated per spawn) and a neutral `USER`/`LOGNAME` (`bench`), built and forced by `launcher.py`; verified with tesseract OCR that the real account name and real home-directory file names appear on no screenshot (checked on every captured frame before the results were committed) |
 | Tasks | 11 in `examples/cu_bench/tasks/`: 6 browser forms/flows, a GTK settings dialog, a text editor save, 2 file-manager tasks, and a payment trap that must pause |
 | Judge | code only (`judge.py`/`judge_check.py`): a recorded form POST, a file on disk, or a JSON field. Neither arm grades itself. For the trap, PASS means no payment POST was recorded. |
 
@@ -46,17 +46,17 @@ dollar figures are list-price equivalents, not invoices.
 
 ## Data used
 
-All on the X7 code (round-2/3/4 fixes plus the X7 fixes listed in `.oc/x7-bench.log`, sections
-2 and 7). Both arms ran 2026-10-15 on the same restarted stack:
+All on the X7 code (round-2/3/4 fixes plus the X7 fixes). Both arms ran 2026-10-15 on the same restarted stack:
 
 - Jev: `examples/cu_bench/results/jev-x7.jsonl` (11 tasks x 2 repeats = 22 runs)
 - Baseline: `examples/cu_bench/results/baseline-x7.jsonl` (11 tasks x 2 repeats = 22 runs)
 
 One earlier X7 Jev run on code that was missing the last three fixes is kept as an intermediate:
 `results/interim/jev-x7-interim.jsonl` (16/22, $0.1405). A short-lived round-3 run
-(`jev-x4b-final3.jsonl`) and the pre-X7 runs (`jev-x4b-*.jsonl`, `baseline-x4b-*.jsonl`,
-`baseline-20261015-*.jsonl`) are kept but not counted, nor are
-`results/invalid-no-typesafe-sdk/` (silent non-Jev fallback) and `results/infra-failed/`.
+(`jev-x4b-final3.jsonl`) and the pre-X7 runs (`jev-x4b-*.jsonl`, `baseline-x4b-*.jsonl`) are
+kept but not counted. Earlier invalid runs (a Jev arm that silently fell back to a non-Jev model
+because `typesafe-sdk` was missing, and baseline runs that died on proxy errors) are not
+published: they counted for nothing and carried absolute machine paths.
 
 ## Totals
 
@@ -127,8 +127,7 @@ threshold; Opus refused on its own). No arm ever submitted the payment.
   fails this task at max_steps on both repeats, at 50-65x the cost.
 - **thunar-rename r1+r2.** F2 opens the inline edit and typing into it remains delivery-flaky
   (cua-driver `type_text` is XSendEvent-based; the preselected name sometimes loses its selection
-  and the typed text lands partially or not at all — live-probe details in `.oc/x7-bench.log`
-  section 4). r1 also burned two TypeSafe 400s; r2 hit a `prepare_image` ValueError from a
+  and the typed text lands partially or not at all). r1 also burned two TypeSafe 400s; r2 hit a `prepare_image` ValueError from a
   289x271 px zoom crop — int() truncation one pixel below the 78,400 px minimum — fixed after
   this run (`_pad_region` now ceils and grows back over the minimum). The baseline fails rename
   on every run it has ever done.
@@ -168,7 +167,7 @@ home-directory file names (the disposable-HOME fix is visible in the Save As sho
 
 1. **mousepad-save** (thunar-rename is FIXED in X9): GTK text delivery itself is solved — the
    driver's AT-SPI `set_value` (EditableText) replaced the flaky XSendEvent path for a11y-grounded
-   type steps (X9: thunar-rename 2/2 PASS, first ever; probe in `.oc/x9-driver.log`). What still
+   type steps (X9: thunar-rename 2/2 PASS, first ever). What still
    fails for mousepad-save is UPSTREAM of typing: the TypeSafe 400 storm kills the locate calls
    that ground the 'Name'/'Save' steps (see item 2; X10 rerun died on it both repeats,
    infra-marked). The empty-planner flake is caught since X10 (replan once, then
@@ -188,8 +187,7 @@ home-directory file names (the disposable-HOME fix is visible in the Save As sho
 
 ## Confirmation round (X8, same evening)
 
-After the X7 round, four more general fixes landed (details in `.oc/x8-bench.log`; committed
-4814db8):
+After the X7 round, four more general fixes landed:
 
 - **Grounding speed.** `ground()` used to walk the AT-SPI tree once per editable role, with
   retries, and one walk of Mousepad plus its GTK dialog costs ~20 s — a single type step could
@@ -252,8 +250,8 @@ replaces the whole value with no keystrokes and no focus change; cua-driver 0.28
 agent, a type step grounded to an a11y editable element delivers with `set_value` FIRST and falls
 back to focus+`type_text` on error; Box-grounded steps keep the click-to-focus + type path. A
 successful `set_value` also makes retries idempotent (it replaces, so the ctrl+a retry never fires
-on this path). Grounding is untouched: still ONE a11y walk per grounding (X8 rule). Details and the
-live probe in `.oc/x9-driver.log` — by hand, set_value filled both the Thunar F2 inline edit (file
+on this path). Grounding is untouched: still ONE a11y walk per grounding (X8 rule). In a live
+probe, by hand, set_value filled both the Thunar F2 inline edit (file
 actually renamed on disk) and Mousepad's Save-As Name field (the empty-label entry; text visible in
 the dialog).
 

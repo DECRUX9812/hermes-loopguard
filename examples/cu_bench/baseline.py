@@ -155,7 +155,7 @@ def _coords(action: dict, seen_w: int, seen_h: int, frame_w: int, frame_h: int):
 def _api_key() -> str:
     key = paths.get_secret("CLIPROXY_API_KEY")
     if not key:
-        raise RuntimeError("CLIPROXY_API_KEY not set (see .oc/CONTRACTS-CU.md)")
+        raise RuntimeError("CLIPROXY_API_KEY not set (the baseline talks to an OpenAI-compatible proxy; see BENCH.md)")
     return key
 
 
