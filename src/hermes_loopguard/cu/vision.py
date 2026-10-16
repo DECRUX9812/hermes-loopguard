@@ -216,13 +216,17 @@ class VisionGate:
             # for an image it accepted unchanged a second earlier (round-2 and
             # X7 traces: identical full-frame screenshots 400 in one call and
             # pass in the next).  Retry the SAME model once before falling to
-            # the next in the chain.
+            # the next in the chain -- with a byte-different image of the same
+            # pixels: the identical payload sometimes 400s again (jev-x9
+            # mousepad-save r1 400'd four times in a row).  The variant keeps
+            # the pixel dimensions, so Box fractions map identically.
             result = None
+            attempt_images = images
             for attempt in range(2):
                 started = time.perf_counter()
                 try:
                     result = backend.ask(
-                        state_text, questions, images=images or None, model=explicit
+                        state_text, questions, images=attempt_images or None, model=explicit
                     )
                     break
                 except Exception as e:  # backend errors fall to the next model
@@ -233,6 +237,14 @@ class VisionGate:
                     fallbacks.append(f"{model}: {e}" + (" (retrying once)" if retrying else ""))
                     if retrying:
                         time.sleep(0.5)
+                        if images:
+                            try:
+                                attempt_images = {
+                                    ref: frames.altered_variant(data)
+                                    for ref, data in images.items()
+                                }
+                            except Exception:  # Pillow trouble: retry same bytes
+                                attempt_images = images
                         continue
                     break
             if result is None:

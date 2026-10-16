@@ -880,7 +880,16 @@ def run_task(
     totals.add(usage, vision=False)
     queue: list[Step] = list(steps)
     if not queue:
-        return _finish("blocked", "planner returned no steps")
+        # Flash-Lite sometimes answers an empty/invalid steps list on the
+        # FIRST planning call (jev-x9 mousepad-save r2: blocked at 0 steps /
+        # 1.3 s, unmarked).  Replan ONCE; if the second plan is also empty
+        # the run is an infrastructure error (empty_planner_response), not a
+        # task failure, so bench summaries count it separately.
+        steps, usage = plan(instruction, driver, cfg, failure_evidence="empty steps list")
+        totals.add(usage, vision=False)
+        queue = list(steps)
+        if not queue:
+            return _finish("infra_error", "empty_planner_response")
 
     try:
         frame = _snap()

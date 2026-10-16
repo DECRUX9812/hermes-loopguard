@@ -518,6 +518,33 @@ def test_goal_check_failure_replans_once(monkeypatch):
     assert calls[1] is not None  # the replan carried failure evidence
 
 
+def test_empty_first_plan_replans_once(monkeypatch):
+    """X9 mousepad-save r2: Flash-Lite answered an EMPTY steps list on the
+    first planning call and the run died at 0 steps / 1.3 s.  The first empty
+    plan must replan ONCE (with evidence) and continue normally."""
+    driver = make_driver(["form.png"] * 8, elements=[])
+    gate = FakeGate()
+    steps = [agent.Step(action="key", keys="Return", expect="the page is open")]
+    calls = patch_plan(monkeypatch, [[], steps])
+    result = agent.run_task("press return", driver, gate, {"max_steps": 6})
+    assert result.state == "completed"
+    assert len(calls) == 2
+    assert calls[1] is not None and "empty steps list" in calls[1]
+
+
+def test_both_plans_empty_is_infra_error(monkeypatch):
+    """When the SECOND planning call is also empty the run is an
+    infrastructure error (empty_planner_response), not a task failure --
+    bench summaries must count it separately (infra_error marker)."""
+    driver = make_driver(["form.png"], elements=[])
+    gate = FakeGate()
+    calls = patch_plan(monkeypatch, [[], []])
+    result = agent.run_task("do it", driver, gate, {"max_steps": 6})
+    assert result.state == "infra_error"
+    assert result.reason == "empty_planner_response"
+    assert len(calls) == 2  # initial plan + one replan, no more
+
+
 def test_goal_check_failure_replans_only_once(monkeypatch):
     driver = make_driver(["form.png"] * 10, elements=[])
     gate = FakeGate()

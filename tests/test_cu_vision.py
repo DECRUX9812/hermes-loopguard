@@ -902,3 +902,85 @@ def test_ask_retries_once_on_typesafe_image_dimensions_400():
     assert chain.calls == 0  # the chain was NOT consumed
     assert answers["q"].noul == 0.9
     assert usage.model == "jev-1.14.0"
+
+
+def test_ask_400_retry_sends_byte_different_image_of_same_pixels():
+    """X9 mousepad-save r1: the identical-bytes retry 400'd again -- TypeSafe
+    keeps answering `400 Invalid image dimensions` for the same payload while
+    accepting the same pixels seconds later.  The retry must send a
+    BYTE-DIFFERENT image with the SAME pixel dimensions (Box fractions map
+    against the original dims) and stay within the single-retry budget."""
+    from io import BytesIO
+
+    from types import SimpleNamespace
+
+    from hermes_loopguard.cu import vision as vision_mod
+    from hermes_loopguard.cu import frames as cu_frames
+    from hermes_loopguard.questions import Noul, NoulAnswer
+
+    Image = cu_frames._pil_image()
+    buf = BytesIO()
+    # Deterministic gradient: large enough for the API bounds, cheap to build.
+    img = Image.new("RGB", (640, 400))
+    for y in range(0, 400, 2):
+        for x in range(0, 640, 4):
+            img.putpixel((x, y), ((x * 7) % 256, (y * 5) % 256, (x + y) % 256))
+    img.save(buf, format="PNG")
+    png = buf.getvalue()
+
+    class BytesRecordingBackend:
+        name = "typesafe"
+        received: list[bytes] = []
+
+        def ask(self, state, questions, *, images=None, model=None):
+            assert images is not None and len(images) == 1
+            data = next(iter(images.values()))
+            self.received.append(data)
+            if len(self.received) == 1:
+                raise RuntimeError(
+                    "TypeSafe System One call failed: 400 Invalid image dimensions."
+                )
+            return SimpleNamespace(
+                answers={q: NoulAnswer(noul=0.9) for q in questions}, usage=None
+            )
+
+    backend = BytesRecordingBackend()
+    gate = vision_mod.VisionGate({"models": ["jev-1.14.0"]})
+    orig = vision_mod.VisionGate._backend_for
+    gate._backend_for = lambda m: backend
+    try:
+        answers, usage = gate.ask({"f": png}, "s", {"q": Noul(instructions="x")})
+    finally:
+        vision_mod.VisionGate._backend_for = orig
+
+    assert len(backend.received) == 2, "one retry, no extra paid calls"
+    assert backend.received[0] == png
+    assert backend.received[1] != backend.received[0], "retry must alter the bytes"
+    retry = Image.open(BytesIO(backend.received[1]))
+    assert retry.size == (640, 400), "dimensions must not change"
+    assert answers["q"].noul == 0.9
+    assert usage.model == "jev-1.14.0"
+
+
+def test_altered_variant_is_deterministic_and_content_faithful():
+    from io import BytesIO
+
+    from hermes_loopguard.cu import frames as cu_frames
+
+    Image = cu_frames._pil_image()
+    buf = BytesIO()
+    img = Image.new("RGB", (512, 384))
+    for y in range(0, 384, 3):
+        for x in range(0, 512, 3):
+            img.putpixel((x, y), (x % 256, y % 256, (x ^ y) % 256))
+    img.save(buf, format="PNG")
+    png = buf.getvalue()
+
+    v1 = cu_frames.altered_variant(png)
+    v2 = cu_frames.altered_variant(png)
+    assert v1 == v2, "the variant must be deterministic"
+    assert v1 != png
+    out = Image.open(BytesIO(v1))
+    assert out.size == (512, 384)
+    # Same picture: the perceptual hash stays within a few bits of the source.
+    assert cu_frames.hamming(cu_frames.dhash(png), cu_frames.dhash(v1)) <= 12

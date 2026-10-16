@@ -170,12 +170,15 @@ home-directory file names (the disposable-HOME fix is visible in the Save As sho
    driver's AT-SPI `set_value` (EditableText) replaced the flaky XSendEvent path for a11y-grounded
    type steps (X9: thunar-rename 2/2 PASS, first ever; probe in `.oc/x9-driver.log`). What still
    fails for mousepad-save is UPSTREAM of typing: the TypeSafe 400 storm kills the locate calls
-   that ground the 'Name'/'Save' steps (see item 2), and one r2 run died on an empty planner
-   answer (not yet caught by the `infra_error` marker). The baseline still fails both tasks every
-   run recorded (baseline-x7, unchanged — its endpoint has been 429 since 20:38).
+   that ground the 'Name'/'Save' steps (see item 2; X10 rerun died on it both repeats,
+   infra-marked). The empty-planner flake is caught since X10 (replan once, then
+   `infra_error`/`empty_planner_response`). The baseline still fails the task in every recorded
+   run (baseline-x7, unchanged — its endpoint has been 429 since 20:38).
 2. **TypeSafe `400 Invalid image dimensions`** are intermittent and server-side (identical
-   screenshots pass a moment later). The same-model retry added in X7 recovers some calls, not
-   all; 4 of 22 rows lost grounding calls to it.
+   screenshots pass a moment later). Since X10 the same-model retry sends a byte-different image
+   of the same pixels, but inside a storm window BOTH payloads 400 (7 of 7 pairs in jev-x10), and
+   the chain's fallbacks were down at the same time (gemini-3.8-flash-high timeouts, Opus 429).
+   The exposure left is storm duration, not request shape.
 3. **The Jev goal check** false-negatives often (8 of the 15 successes and 6 of the 7
    failures ended in the agent's own `blocked` state). It costs nothing but makes the agent's own report unusable as a success signal; the
    code judge stays authoritative.
@@ -290,6 +293,51 @@ unmarked empty-planner flake.
 The one failing-run thumbnail is in `results/thumbs/x9/` (r2 ended before its first frame was
 saved). It was OCR-checked: Save-As dialog, disposable "home" breadcrumb, no account name, no
 /home paths, no real file names.
+
+### Targeted rerun (X10, 400-mitigation + planner flake marker)
+
+Two fixes landed for the two shapes X9 left open, both unit-tested:
+
+- **400 retries now change the request.** When a model answers `400 Invalid image dimensions`,
+  the single same-model retry resends a BYTE-DIFFERENT image of the same pixels
+  (`frames.altered_variant`: deterministic ~2% resize letterboxed back to the original pixel
+  dimensions, so Box fractions still map to the same grid). Same one-retry budget; if the
+  altered retry also 400s, the chain falls to the next model exactly as before. Test: a fake
+  backend that 400s identical bytes and accepts altered ones (2 calls, dims unchanged,
+  deterministic variant).
+- **Empty-plan flake is marked.** When the planner returns an empty/invalid steps list on the
+  FIRST planning call, the agent replans ONCE (with evidence); if the second plan is also
+  empty the run ends `infra_error` with reason `empty_planner_response`, so bench summaries
+  count it as infrastructure instead of a 0-step task failure. Tests: empty-then-good plan
+  continues; empty-then-empty fails infra-marked.
+
+Only mousepad-save reran (`results/jev-x10.jsonl`, 2 repeats; baseline NOT rerun — the Opus
+endpoint behind CLIProxy is still 429ing, unchanged since 20:38 the previous evening):
+
+| Task | Jev X10 r1 | Jev X10 r2 | Jev $ (r1 / r2) | Jev wall (r1 / r2) |
+|---|---|---|---|---|
+| mousepad-save | FAIL blocked 8 st | FAIL blocked 9 st | 0.0050 / 0.0236 | 285 s / 160 s |
+
+Round-by-round on mousepad-save (Jev successes, 2 repeats per round):
+
+| Task | jev-x7 | jev-x8 | jev-x9 | jev-x10 |
+|---|---|---|---|---|
+| mousepad-save | 0/2 | 0/2 | 0/2 | 0/2 |
+
+**Still failing, and the cause is unchanged: grounding availability under the TypeSafe 400
+storm — NOT delivery, NOT the planner.** The altered-bytes retry worked as designed (every
+400 pair in the fallbacks shows `(retrying once)` followed by a second, altered-bytes call)
+but inside a storm window TypeSafe 400s BOTH payloads: 7 identical->altered pairs across the
+two runs all died, and the fallback chain was down at the same time (gemini-3.8-flash-high
+timed out three times in r1; the Opus escalation 429'd). r1 blocked when both 'Name' type
+groundings died; r2 got one 'Name' type through the zoom path but its click+type fallback
+again did not land (the X9-known zoom-path weakness, no new bug) and both 'Save' click
+groundings then died in the same storm; the run ended on the goal check with the dialog open
+and the Name field empty (thumbnails in `results/thumbs/x10/`, OCR-checked after a 2x upscale:
+"Save as" only — disposable "home" breadcrumb, no account name, no /home paths, no real file
+names). The empty-planner flake did not recur in these two runs; both repeats are now
+correctly `infra_error`-marked. mousepad-save has never passed in any round (0/8 in x7-x10),
+but the baseline fails it in every recorded run too (0/4 at $0.16 per attempt).
 
 ## Caveats
 

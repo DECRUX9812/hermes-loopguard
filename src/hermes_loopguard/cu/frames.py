@@ -68,6 +68,28 @@ def prepare_image(png: bytes) -> tuple[bytes, int, int]:
     return _save_png(img), new_w, new_h
 
 
+def altered_variant(png: bytes) -> bytes:
+    """A BYTE-different re-encoding of the same pixels, same dimensions.
+
+    TypeSafe intermittently answers `400 Invalid image dimensions` for an
+    image it accepted unchanged a moment earlier (X9 mousepad-save: the
+    identical bytes 400'd four calls in a row and passed seconds later).
+    Retrying the identical payload does not always clear it; resending a
+    variant of the same frame -- resize by ~2% and letterbox back to the
+    original size, so Box fractions still map to the same pixel grid --
+    gives the server a different request without changing what it shows.
+    """
+    Image = _pil_image()
+    img = _load(png).convert("RGB")
+    width, height = img.size
+    small_w = max(1, round(width * 0.98))
+    small_h = max(1, round(height * 0.98))
+    small = img.resize((small_w, small_h))
+    variant = Image.new("RGB", (width, height))
+    variant.paste(small, ((width - small_w) // 2, (height - small_h) // 2))
+    return _save_png(variant)
+
+
 def crop(png: bytes, x0: int, y0: int, x1: int, y1: int) -> bytes:
     """Crop `png` to the desktop-pixel box, clamped to the image bounds."""
     img = _load(png)
