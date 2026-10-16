@@ -402,21 +402,21 @@ What jaggedness we actually hit (all reproducible; failure thumbnails ship in
 (Jev + AT-SPI) and compares it against a big-model computer-use loop. Results and the verdict:
 [BENCH.md](BENCH.md).
 
-Run it with the **lg-venv interpreter** (it has `typesafe-sdk`, PyYAML and Pillow — the system
-python3 does not, and every Jev call would silently fall back to the CLIProxy model) and
-`PYTHONPATH=src`:
+Run it with an interpreter that has the bench extras (`typesafe-sdk`, PyYAML and Pillow — install
+them into a venv with `pip install -e .[typesafe]` plus `pip install pillow`) and `PYTHONPATH=src`.
+The system python usually lacks `typesafe-sdk`, and then every Jev call would silently fall back
+to the fallback model — the preflight exists to catch exactly that:
 
 ```bash
+PY=</path/to/venv-with-extras>/bin/python
 # stack + runs both hold the shared locks; never skip flock
-~/Code/ship-test/lg-venv/bin/python -c "import typesafe_sdk"   # interpreter check
+$PY -c "import typesafe_sdk"                              # interpreter check
 flock /tmp/lg-cu/stack.lock examples/cu_bench/stack.sh start    # Xvfb :97 stack (if down)
 
 cd examples/cu_bench
-flock /tmp/lg-cu/stack.lock env PYTHONPATH=src \
-  ~/Code/ship-test/lg-venv/bin/python run_bench.py --arm jev      --tasks all --repeat 1
-flock /tmp/lg-cu/stack.lock env PYTHONPATH=src \
-  ~/Code/ship-test/lg-venv/bin/python run_bench.py --arm baseline --tasks all --repeat 1
-env PYTHONPATH=src ~/Code/ship-test/lg-venv/bin/python run_bench.py --summary
+flock /tmp/lg-cu/stack.lock env PYTHONPATH=src $PY run_bench.py --arm jev      --tasks all --repeat 1
+flock /tmp/lg-cu/stack.lock env PYTHONPATH=src $PY run_bench.py --arm baseline --tasks all --repeat 1
+env PYTHONPATH=src $PY run_bench.py --summary
 ```
 
 `--arm jev` preflights the interpreter, the `TYPESAFE_API_KEY` and one tiny real `jev-1.14.0`
