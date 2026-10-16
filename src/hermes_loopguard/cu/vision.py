@@ -212,15 +212,31 @@ class VisionGate:
                 continue
             explicit = self._explicit_id(model)
             backend = self._backend_for(model)
-            started = time.perf_counter()
-            try:
-                result = backend.ask(
-                    state_text, questions, images=images or None, model=explicit
-                )
-            except Exception as e:  # backend errors fall to the next model
-                fallbacks.append(f"{model}: {e}")
-                last_error = e
-                continue
+            # TypeSafe intermittently answers `400 Invalid image dimensions`
+            # for an image it accepted unchanged a second earlier (round-2 and
+            # X7 traces: identical full-frame screenshots 400 in one call and
+            # pass in the next).  Retry the SAME model once before falling to
+            # the next in the chain.
+            result = None
+            for attempt in range(2):
+                started = time.perf_counter()
+                try:
+                    result = backend.ask(
+                        state_text, questions, images=images or None, model=explicit
+                    )
+                    break
+                except Exception as e:  # backend errors fall to the next model
+                    last_error = e
+                    retrying = attempt == 0 and (
+                        "invalid image dimensions" in str(e).lower()
+                    )
+                    fallbacks.append(f"{model}: {e}" + (" (retrying once)" if retrying else ""))
+                    if retrying:
+                        time.sleep(0.5)
+                        continue
+                    break
+            if result is None:
+                continue  # this model failed: next in the chain
             latency = time.perf_counter() - started
             usage = self._mk_usage(backend.name, explicit, result.usage, latency, fallbacks)
             return result.answers, usage

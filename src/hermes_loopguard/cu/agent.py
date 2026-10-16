@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import base64
 import json
+import math
 import re
 import time
 import uuid as _uuid
@@ -529,7 +530,22 @@ def _pad_region(box: tuple[float, float, float, float], w: int, h: int, pad: flo
             x0, x1 = float(max(0, w - need_w)), float(w)
         if y1 > h:
             y0, y1 = float(max(0, h - need_h)), float(h)
-    region = (int(x0), int(y0), int(min(w, x1)), int(min(h, y1)))
+    region = (
+        max(0, int(x0)),
+        max(0, int(y0)),
+        min(w, int(math.ceil(x1))),
+        min(h, int(math.ceil(y1))),
+    )
+    # int() truncation can shave a hair below the pixel minimum (REAL failure:
+    # a 289x271 crop = 78,319 px < 78,400 killed the zoom retry); grow back
+    # within the frame if the clamp allows it.
+    while (region[2] - region[0]) * (region[3] - region[1]) < _ZOOM_MIN_PIXELS and (
+        region[2] < w or region[3] < h
+    ):
+        if region[2] < w:
+            region = (region[0], region[1], region[2] + 1, region[3])
+        if region[3] < h:
+            region = (region[0], region[1], region[2], region[3] + 1)
     if region[2] - region[0] < 4 or region[3] - region[1] < 4:
         return None
     return region
@@ -804,6 +820,7 @@ def run_task(
             rec.noul = noul
             if noul >= thresholds["verify"]:
                 rec.verdict = "pass"
+                sig_verdicts[s.sig()] = "pass"
             elif (
                 now_hash is not None
                 and rec.before_hash is not None
@@ -814,8 +831,10 @@ def run_task(
                 # is not visible (e.g. typing behind a modal dialog), not a
                 # visible failure.  Don't fail, don't re-queue.
                 rec.verdict = "unverified"
+                sig_verdicts[s.sig()] = "unverified"
             else:
                 rec.verdict = "fail"
+                sig_verdicts[s.sig()] = "fail"
                 failed.append((s, rec))
         return failed
 
@@ -840,6 +859,7 @@ def run_task(
     escalations_used = 0
     flush_failures = 0
     type_attempts: dict[str, int] = {}  # step.sig() -> attempts so far
+    sig_verdicts: dict[str, str] = {}  # step.sig() -> latest final verdict
 
     def _escalate_act(step: Step, rec: StepRecord, frame_before: Frame) -> bool:
         """Escalate THIS ONE failing step to the strong vision model and act."""
@@ -879,6 +899,14 @@ def run_task(
         rec.verdict = "pass"
         return True
 
+    def _filter_replan(new_steps: list[Step]) -> list[Step]:
+        """Drop replanned steps that EXACTLY repeat a step that already
+        verified (pass/free).  REAL failure (settings-gtk): the replanner
+        repeated the already-run "Dark mode" toggle, UNDOING it, and the
+        re-save then committed the wrong state."""
+        passed = {sig for sig, v in sig_verdicts.items() if v in ("pass", "free")}
+        return [s for s in new_steps if s.sig() not in passed]
+
     def _handle_failure(step: Step, rec: StepRecord, frame_before: Frame) -> bool:
         """Retry once -> replan once -> escalate that one step -> blocked.
 
@@ -896,6 +924,7 @@ def run_task(
             )
             new_steps, plan_usage = plan(instruction, driver, cfg, failure_evidence=evidence)
             totals.add(plan_usage, vision=False)
+            new_steps = _filter_replan(new_steps)
             if new_steps:
                 queue[:] = new_steps
                 step_failures = 0
@@ -927,7 +956,13 @@ def run_task(
                 names = ", ".join(s.target or s.action for s, _r in failed)
                 state, reason = "blocked", f"field verification failed: {names}"
                 break
-            final = gate.verify(frame, f"the overall task is done: {instruction}")
+            final = gate.verify(
+                frame,
+                f"the overall task is done: {instruction} — judge ONLY by what is "
+                "visible on the screen now; an action that is already complete "
+                "and left no trace (a click on a button, a saved file) must not "
+                "count against it",
+            )
             totals.add(final.usage)
             if final.passed:
                 return _finish("completed", done_check=final.yes)
@@ -951,6 +986,7 @@ def run_task(
                     ),
                 )
                 totals.add(plan_usage, vision=False)
+                new_steps = _filter_replan(new_steps)
                 if new_steps:
                     queue[:] = new_steps
                     continue
@@ -1127,6 +1163,8 @@ def run_task(
         else:
             rec.verdict = "unverified"
 
+        if rec.verdict != "pending":
+            sig_verdicts[step.sig()] = rec.verdict
         if rec.verdict == "fail":
             ok = False
 

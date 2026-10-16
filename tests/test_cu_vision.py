@@ -853,3 +853,52 @@ def test_verify_before_and_after_images_both_sent(monkeypatch):
     refs = set(call["images"])
     # each ref appears in the state text exactly as a reference
     assert all(f"`{ref}`" in call["state"] for ref in refs)
+
+
+def test_ask_retries_once_on_typesafe_image_dimensions_400():
+    """REAL failure (mousepad-save r2, thunar-move r1 in jev-x7): TypeSafe
+    answers `400 Invalid image dimensions` for an image it accepted unchanged
+    a moment earlier; the locate died and the step failed.  ask() must retry
+    the SAME model once before falling to the next in the chain."""
+    from hermes_loopguard.cu import vision as vision_mod
+    from hermes_loopguard.questions import Noul, NoulAnswer
+
+    gate = vision_mod.VisionGate({"models": ["jev-1.14.0", "openai:gemini-3.8-flash-high"]})
+
+    from types import SimpleNamespace
+
+    class FlakyBackend:
+        name = "typesafe"
+        calls = 0
+
+        def ask(self, state, questions, *, images=None, model=None):
+            self.calls += 1
+            if self.calls == 1:
+                raise RuntimeError(
+                    "TypeSafe System One call failed: 400 Invalid image dimensions."
+                )
+            return SimpleNamespace(
+                answers={q: NoulAnswer(noul=0.9) for q in questions}, usage=None
+            )
+
+    class ChainBackend:
+        name = "openai"
+        calls = 0
+
+        def ask(self, state, questions, *, images=None, model=None):
+            self.calls += 1
+            return SimpleNamespace(
+                answers={q: NoulAnswer(noul=0.1) for q in questions}, usage=None
+            )
+
+    flaky, chain = FlakyBackend(), ChainBackend()
+    orig = vision_mod.VisionGate._backend_for
+    gate._backend_for = lambda m: flaky if m == "jev-1.14.0" else chain
+    try:
+        answers, usage = gate.ask({}, "s", {"q": Noul(instructions="x")})
+    finally:
+        vision_mod.VisionGate._backend_for = orig
+    assert flaky.calls == 2  # one retry of the same model
+    assert chain.calls == 0  # the chain was NOT consumed
+    assert answers["q"].noul == 0.9
+    assert usage.model == "jev-1.14.0"

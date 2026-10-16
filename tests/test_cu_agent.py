@@ -351,10 +351,9 @@ def test_clipboard_keys_are_never_verified_and_never_stall(monkeypatch):
     assert result.state == "completed"  # no stall, no retry ladder
     # the cut produced ZERO verify calls; only the paste + the final goal check
     assert len(gate.calls["verify"]) == 2
-    assert [c["expected"] for c in gate.calls["verify"]] == [
-        "the file appears here",
-        "the overall task is done: move it",
-    ]
+    expected = [c["expected"] for c in gate.calls["verify"]]
+    assert expected[0] == "the file appears here"
+    assert expected[1].startswith("the overall task is done: move it")
 
 
 def test_is_invisible_key_matches_clipboard_combos_only():
@@ -509,8 +508,9 @@ def test_zoom_retry_uses_padded_region(monkeypatch):
     assert len(gate.calls["locate"]) == 2
     # 25% padding of the 128x80 box gives (480,300,672,420) = 192x120 px,
     # which the zoom now GROWS to meet the TypeSafe minimums (>=256/side,
-    # >=78400 px): 354x256 centered on the same point -> (398,232,753,488).
-    assert gate.calls["locate"][1]["region"] == (398, 232, 753, 488)
+    # >=78400 px): 356x256 centered on the same point -> (398,232,754,488)
+    # (x1/y1 ceiled so the integer region can never fall below the minimums).
+    assert gate.calls["locate"][1]["region"] == (398, 232, 754, 488)
 
 
 def test_padded_region_crops_always_meet_typesafe_minimums():
@@ -533,6 +533,21 @@ def test_padded_region_crops_always_meet_typesafe_minimums():
         prepared, w, h = frames.prepare_image(frames.crop(frame_png, x0, y0, x1, y1))
         assert w >= frames.MIN_SIDE and h >= frames.MIN_SIDE, frac_box
         assert w * h >= frames.MIN_PIXELS, frac_box
+
+
+def test_pad_region_never_truncates_below_the_pixel_minimum():
+    """REAL failure (thunar-rename r2 in jev-x7): a padded region of
+    289.2x271.1 px truncated by int() to 289x271 = 78,319 px, one hair under
+    the TypeSafe 78,400 minimum -> prepare_image ValueError, no zoom retry.
+    Every region must meet the minimums in INTEGER pixels."""
+    w, h = 1280, 800
+    for i in range(1, 120):
+        bw, bh = 0.02 + i * 0.001, 0.02 + (i % 17) * 0.004
+        region = agent._pad_region((0.3, 0.2, 0.3 + bw, 0.2 + bh), w, h)
+        assert region is not None, i
+        x0, y0, x1, y1 = region
+        assert (x1 - x0) * (y1 - y0) >= 78_400, (i, region)
+        assert x1 - x0 >= 256 and y1 - y0 >= 256, (i, region)
 
 
 # --------------------------------------------------------------------- safety
@@ -985,3 +1000,34 @@ def test_aba_loop_detected(monkeypatch):
     result = agent.run_task("loop task", driver, gate, {"max_steps": 10})
     assert result.state == "stalled"
     assert "A-B-A-B" in result.reason
+
+
+def test_goal_replan_drops_exact_repeats_of_verified_steps(monkeypatch):
+    """REAL failure (settings-gtk x7): the goal-replan repeated the already-
+    verified 'Dark mode' click, UNDOING the toggle, and the re-save then
+    committed dark_mode=false.  An exact repeat of a step that already
+    verified (pass/free) must be dropped from the replanned queue."""
+    driver = make_driver(
+        ["form.png"] * 10,
+        elements=[
+            {"token": "t1", "role": "check box", "label": "Dark mode", "x": 10, "y": 20, "w": 120, "h": 30},
+            {"token": "b1", "role": "push button", "label": "Save", "x": 10, "y": 300, "w": 80, "h": 30},
+        ],
+    )
+    gate = FakeGate()
+    # step verify passes (click Dark mode), the goal check fails twice
+    gate.verify_results.append(VerifyResult(passed=True, yes=0.9, usage=_usage()))
+    gate.verify_results.append(VerifyResult(passed=False, yes=0.01, usage=_usage()))
+    gate.verify_results.append(VerifyResult(passed=False, yes=0.01, usage=_usage()))
+    first = [agent.Step(action="click", target="Dark mode", expect="dark mode is on"),
+             agent.Step(action="click", target="Save", expect="")]
+    replan = [agent.Step(action="click", target="Dark mode", expect="dark mode is on"),
+              agent.Step(action="click", target="Save", expect="")]
+    patch_plan(monkeypatch, [first, replan])
+    result = agent.run_task("enable dark mode and save", driver, gate, {"max_steps": 6})
+    # the repeated Dark-mode click must NOT run a second time
+    dark_clicks = [s for s in result.steps if s.target == "Dark mode"]
+    assert len(dark_clicks) == 1
+    assert dark_clicks[0].verdict == "pass"
+    # the non-repeat (Save) still runs
+    assert any(s.target == "Save" for s in result.steps[1:])
