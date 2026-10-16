@@ -42,7 +42,7 @@ def _bench_pids() -> list[str]:
     daemonized mousepad reports comm 'mousepad', not 'Mousepad') — or the
     bench settings app, whose comm is just 'python3' (cmdline match)."""
     pids = subprocess.run(
-        ["pgrep", "-f", "thunar|mousepad|settings_app|google-chrome"],
+        ["pgrep", "-f", "thunar|mousepad|settings_app|google-chrome|soffice|oosplash"],
         capture_output=True, text=True,
     ).stdout.split()
     out = []
@@ -59,7 +59,10 @@ def _bench_pids() -> list[str]:
             continue
         if _display(pid) != BENCH_DISPLAY:
             continue
-        if comm in ("thunar", "mousepad", "chrome", "chrome_crashpad"):
+        # soffice/oosplash: the bench's LibreOffice arm leaks windows across
+        # lock holds; under the lock nothing of X7's is RUNNING, leftovers only
+        if comm in ("thunar", "mousepad", "chrome", "chrome_crashpad",
+                    "soffice", "soffice.bin", "oosplash"):
             out.append(pid)
     return out
 
@@ -100,15 +103,22 @@ def main() -> int:
     # (with app=None the typed input has no target window and lands nowhere)
     driver = CuaDriver(socket="/tmp/lg-cu/cua.sock", app="Mousepad")
     launch(["mousepad"])
-    time.sleep(4)
-    frame = driver.screenshot()
-    (HERE / "frames" / "mousepad.png").write_bytes(frame.png)
+    # wait for a REAL mousepad window (File menu = the editor, not some
+    # leftover dialog); a Save As dialog alone must never pass
     elements: list = []
-    for _ in range(12):  # window + a11y tree can lag the spawn
+    for _ in range(60):
         elements = driver.elements("Mousepad")
-        if elements:
+        if any(e.role == "menu" and e.label == "File" for e in elements):
             break
         time.sleep(1.5)
+    else:
+        print("FAIL: no mousepad editor window (File menu) after 90s; "
+              f"elements: {elements}", file=sys.stderr)
+        kill_scoped()
+        driver.close()
+        return 1
+    frame = driver.screenshot()
+    (HERE / "frames" / "mousepad.png").write_bytes(frame.png)
     els = [e for e in elements if e.role == "text"]
     if els:
         res = driver.click(els[0].x + els[0].w // 2, els[0].y + els[0].h // 2)
@@ -118,12 +128,23 @@ def main() -> int:
     time.sleep(1)
     frame = driver.screenshot()
     (HERE / "frames" / "mousepad_typed.png").write_bytes(frame.png)
+    if frame.png == (HERE / "frames" / "mousepad.png").read_bytes():
+        print("FAIL: typed frame identical to the empty frame; typing did not land",
+              file=sys.stderr)
+        kill_scoped()
+        driver.close()
+        return 1
     # rect dump for the NEW window position (positions move between launches)
     fresh = driver.elements("Mousepad")
     rows = [
         {"role": el.role, "label": el.label, "x": el.x, "y": el.y, "w": el.w, "h": el.h}
         for el in (fresh or elements)
     ]
+    if not rows:
+        print("FAIL: empty AT-SPI dump; gt would be empty", file=sys.stderr)
+        kill_scoped()
+        driver.close()
+        return 1
     (HERE / "gt_mousepad.json").write_text(json.dumps({"elements": rows}, indent=2) + "\n")
     kill_scoped()
     driver.close()

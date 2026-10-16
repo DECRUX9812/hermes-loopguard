@@ -1,0 +1,19 @@
+Computer-use eval: 4 cases (locate=4 [absent 0], verify=0, safety=0), repeat=3, arms=jev,gemini
+
+== Locate (click point inside the true rect) ==
+arm       hit_rate    IoU  absent_acc  latency_s  tok/call   $/locate  flips
+jev            67%  0.423         n/a       0.29      8427    $0.0004      1
+gemini         92%  0.712         n/a       7.49      2469    $0.0048      1
+  calibration (jev, present targets): confidence bucket -> hit rate
+    0.00-0.25: n=0    hit -
+    0.25-0.50: n=0    hit -
+    0.50-0.75: n=5    hit 100%
+    0.75-1.00: n=3    hit 100%
+  calibration (gemini, present targets): confidence bucket -> hit rate
+    0.00-0.25: n=0    hit -
+    0.25-0.50: n=0    hit -
+    0.50-0.75: n=0    hit -
+    0.75-1.00: n=12   hit 92%
+
+Spend: $0.0614 (118671 in / 12083 out tokens, 24 model calls)
+Failure thumbnails: 5 (results/thumbs/)

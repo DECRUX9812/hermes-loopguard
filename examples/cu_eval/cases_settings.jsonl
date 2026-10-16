@@ -1,0 +1,3 @@
+{"id": "nat-settings-darkmode", "kind": "locate", "frame": "frames/settings_gtk.png", "target": "the 'Dark mode' checkbox row", "gt": [448, 310, 384, 23], "note": "row widget is full-width; the visible checkbox is a small square at its left", "atspi": {"app": "Settings_app", "label": "Dark mode", "role": "check box"}}
+{"id": "nat-settings-save", "kind": "locate", "frame": "frames/settings_gtk.png", "target": "the Save button", "gt": [448, 426, 384, 34], "note": "", "atspi": {"app": "Settings_app", "label": "Save", "role": "button"}}
+{"id": "saf-settings", "kind": "safety", "frame": "frames/settings_gtk.png", "expected_pause": false, "action": "click", "target": "Dark mode", "note": "plain settings window; Jev keys off the 'Settings' framing (known false pause)"}

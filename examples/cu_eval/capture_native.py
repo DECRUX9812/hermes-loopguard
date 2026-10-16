@@ -72,14 +72,17 @@ def _is_bench_app(pid: str) -> bool:
         return _display(pid) == BENCH_DISPLAY
     if _display(pid) != BENCH_DISPLAY:
         return False
-    return comm in ("thunar", "mousepad", "chrome", "chrome_crashpad")
+    # soffice/oosplash: the bench's LibreOffice arm leaks windows across lock
+    # holds; under the lock nothing of X7's is RUNNING, leftovers only
+    return comm in ("thunar", "mousepad", "chrome", "chrome_crashpad",
+                    "soffice", "soffice.bin", "oosplash")
 
 
 def kill_scoped() -> None:
     """Kill bench apps on the bench display ONLY (DISPLAY=:97 + comm match).
     Never touches the user's desktop, other displays, or other users."""
     out = subprocess.run(
-        ["pgrep", "-f", "thunar|mousepad|settings_app|google-chrome"],
+        ["pgrep", "-f", "thunar|mousepad|settings_app|google-chrome|soffice|oosplash"],
         capture_output=True, text=True,
     ).stdout.split()
     for pid in out:
@@ -90,7 +93,7 @@ def kill_scoped() -> None:
                 continue
     for _ in range(15):  # wait until really gone (chrome writes its profile)
         alive = [p for p in subprocess.run(
-            ["pgrep", "-f", "thunar|mousepad|settings_app|google-chrome"],
+            ["pgrep", "-f", "thunar|mousepad|settings_app|google-chrome|soffice|oosplash"],
             capture_output=True, text=True).stdout.split() if _is_bench_app(p)]
         if not alive:
             break
@@ -111,6 +114,18 @@ def dump_elements(driver: CuaDriver, app: str, tries: int = 8) -> list[dict]:
     ]
 
 
+def wait_elements(driver: CuaDriver, app: str, timeout_s: float = 60.0) -> list[dict]:
+    """Poll AT-SPI until the app exposes elements.  Under the disposable-HOME
+    launcher a first-run GTK app can take >10s to map (4s was not enough)."""
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        els = driver.elements(app)
+        if els:
+            return els
+        time.sleep(0.5)
+    return []
+
+
 def main() -> int:
     from hermes_loopguard.cu import eval_cu
 
@@ -123,30 +138,42 @@ def main() -> int:
     gt: dict[str, dict] = {}
 
     def save(frame_name: str) -> None:
-        frame = driver.screenshot()
+        # A not-yet-mapped window screenshots as a (near-)black frame; retry
+        # until something visible is on screen (the Xvfb root IS black).
+        from io import BytesIO
+
+        from PIL import Image, ImageStat
+        for attempt in range(15):
+            frame = driver.screenshot()
+            mean = ImageStat.Stat(Image.open(BytesIO(frame.png)).convert("L")).mean[0]
+            if mean > 8.0:
+                break
+            time.sleep(2)
         (FRAMES / f"{frame_name}.png").write_bytes(frame.png)
-        print(f"  {frame_name}.png {frame.width}x{frame.height}")
+        print(f"  {frame_name}.png {frame.width}x{frame.height} (mean {mean:.0f})")
 
     # GTK settings window
     launch(["python3", str(HERE.parent / "cu_bench" / "apps" / "settings_app.py")])
-    time.sleep(4)
+    wait_elements(driver, "Settings_app")
+    time.sleep(2)  # settle: a11y can register before the first paint
     save("settings_gtk")
     gt["settings_gtk"] = {"elements": dump_elements(driver, "Settings_app")}
 
     # thunar (dense toolbar)
     launch(["thunar", str(FILES_DIR)])
-    time.sleep(4)
+    wait_elements(driver, "thunar")
+    time.sleep(2)
     save("thunar")
     gt["thunar"] = {"elements": dump_elements(driver, "thunar")}
 
-    # mousepad: empty, then typed (click the text area first: type_text goes
-    # into the focused element, and a fresh window is not focused)
+    # mousepad: empty, then typed (type via a TARGETED driver: with app=None
+    # type_text has no target window and the keystrokes land nowhere,
+    # verified 2026-10-15)
     launch(["mousepad"])
-    time.sleep(3)
+    wait_elements(driver, "Mousepad")
+    time.sleep(2)
     save("mousepad")
-    gt["mousepad"] = {"elements": dump_elements(driver, "Mousepad")}
-    # type via a TARGETED driver: with app=None type_text has no target
-    # window and the keystrokes land nowhere (verified 2026-10-15)
+    gt["mousepad"] = {"elements": dump_elements(driver, "Mousepad", tries=30)}
     mp = CuaDriver(socket=SOCKET, app="Mousepad")
     mp.type_text(TYPED_TEXT)
     mp.close()

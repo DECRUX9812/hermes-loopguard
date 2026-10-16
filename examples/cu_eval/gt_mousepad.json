@@ -3,56 +3,56 @@
     {
       "role": "menu",
       "label": "File",
-      "x": 10,
-      "y": 58,
+      "x": 635,
+      "y": 29,
       "w": 37,
       "h": 27
     },
     {
       "role": "menu",
       "label": "Edit",
-      "x": 47,
-      "y": 58,
+      "x": 672,
+      "y": 29,
       "w": 39,
       "h": 27
     },
     {
       "role": "menu",
       "label": "Search",
-      "x": 86,
-      "y": 58,
+      "x": 711,
+      "y": 29,
       "w": 57,
       "h": 27
     },
     {
       "role": "menu",
       "label": "View",
-      "x": 143,
-      "y": 58,
+      "x": 768,
+      "y": 29,
       "w": 44,
       "h": 27
     },
     {
       "role": "menu",
       "label": "Document",
-      "x": 187,
-      "y": 58,
+      "x": 812,
+      "y": 29,
       "w": 81,
       "h": 27
     },
     {
       "role": "menu",
       "label": "Help",
-      "x": 268,
-      "y": 58,
+      "x": 893,
+      "y": 29,
       "w": 45,
       "h": 27
     },
     {
       "role": "text",
       "label": "loopground eval typed text",
-      "x": 11,
-      "y": 88,
+      "x": 636,
+      "y": 59,
       "w": 638,
       "h": 447
     }

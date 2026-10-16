@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import struct
 import time
 from dataclasses import dataclass, field
@@ -346,29 +347,45 @@ def run_locate_jev(cases: list[LocateCase], base: Path, gate, repeat: int) -> li
 
 
 def run_locate_atspi(cases: list[LocateCase], driver, repeat: int) -> list[dict]:
-    """AT-SPI label-lookup rows; only for cases carrying an atspi hint."""
+    """AT-SPI label-lookup rows; only for cases carrying an atspi hint.
+
+    Each repeat does a FRESH lookup with up to 3 walks (the same retry
+    budget the agent's find_element uses): single-shot get_window_state
+    walks are NOT reliable — under a loaded desktop (chrome + LibreOffice +
+    several apps) the daemon returns degraded/empty trees most of the time
+    (measured 2026-10-15: 15/15 single-shot lookups empty, retries succeed),
+    which would score the arm 0% as a walk-timing artifact, not a result.
+    `walks` records how many walks the repeat actually used.
+    """
     rows: list[dict] = []
     hinted = [c for c in cases if c.atspi]
     if not hinted or driver is None:
         return rows
     for case in hinted:
         hint = case.atspi or {}
-        started = time.perf_counter()
-        try:
-            elements = driver.elements(hint.get("app")) if hint.get("app") else driver.elements()
-        except Exception as e:
-            elements = []
-        lookup_s = time.perf_counter() - started
-        el = match_element(hint.get("label", ""), hint.get("role"), elements)
-        # One repeat = one lookup; the tree is free and deterministic, but the
-        # per-repeat loop keeps the row shape identical for the aggregation.
         for rep in range(repeat):
+            started = time.perf_counter()
+            el = None
+            walks = 0
+            for _ in range(3):
+                walks += 1
+                try:
+                    elements = (driver.elements(hint.get("app"))
+                                if hint.get("app") else driver.elements())
+                except Exception:
+                    elements = []
+                el = match_element(hint.get("label", ""), hint.get("role"), elements)
+                if el is not None:
+                    break
+                time.sleep(0.3)
+            lookup_s = time.perf_counter() - started
             row = {
                 "case": case.id,
                 "arm": "atspi",
                 "repeat": rep,
                 "target": case.target,
                 "absent": case.gt is None,
+                "walks": walks,
             }
             hit = False
             iou_v = 0.0
@@ -695,7 +712,9 @@ def save_thumbnail(
         draw.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(30, 80, 220))
     out_path.parent.mkdir(parents=True, exist_ok=True)
     img.save(out_path, format="JPEG", quality=70)
-    return str(out_path)
+    # Results files move with the repo; never bake an absolute machine path
+    # into them.
+    return os.path.relpath(out_path, out_path.parent.parent)
 
 
 # --- orchestration ------------------------------------------------------------------

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -406,7 +407,10 @@ def test_save_thumbnail_draws_gt_and_point(tmp_path):
     pytest.importorskip("PIL")
     out = tmp_path / "thumbs" / "x.jpg"
     rel = eval_cu.save_thumbnail(out, load_png("form"), gt=(100, 100, 200, 80), center=(200, 140))
-    assert rel and Path(rel).is_file()
+    # stored path is relative to the results dir (out.parent.parent), never absolute
+    assert rel == os.path.join("thumbs", "x.jpg")
+    assert not Path(rel).is_absolute()
+    assert (tmp_path / rel).is_file()
     from PIL import Image
 
     img = Image.open(out)

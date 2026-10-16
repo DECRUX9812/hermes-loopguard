@@ -1,0 +1,1207 @@
+{
+  "arms": [
+    "jev",
+    "gemini"
+  ],
+  "cases_file": "cases_native.jsonl",
+  "counts": {
+    "locate": 4,
+    "safety": 0,
+    "verify": 0
+  },
+  "locate": {
+    "gemini": {
+      "aggregate": {
+        "absent_accuracy": null,
+        "errors": 0,
+        "flip_case_ids": [
+          "nat-thunar-parent"
+        ],
+        "hit_flip_cases": 1,
+        "hit_rate": 0.9166666666666666,
+        "input_tokens": 17982,
+        "latency_s": 7.489166666666667,
+        "mean_iou": 0.7120138958244646,
+        "mean_presence_stdev": 0.0,
+        "n_absent": 0,
+        "n_cases": 4,
+        "n_present": 12,
+        "n_rows": 12,
+        "output_tokens": 11651,
+        "usd": 0.05717775,
+        "usd_per_locate": 0.0047648125
+      },
+      "calibration": [
+        {
+          "bucket": "0.00-0.25",
+          "hit_rate": null,
+          "hits": 0,
+          "n": 0
+        },
+        {
+          "bucket": "0.25-0.50",
+          "hit_rate": null,
+          "hits": 0,
+          "n": 0
+        },
+        {
+          "bucket": "0.50-0.75",
+          "hit_rate": null,
+          "hits": 0,
+          "n": 0
+        },
+        {
+          "bucket": "0.75-1.00",
+          "hit_rate": 0.9166666666666666,
+          "hits": 11,
+          "n": 12
+        }
+      ],
+      "rows": [
+        {
+          "absent": false,
+          "arm": "gemini",
+          "backend": "openai",
+          "box": [
+            0.316,
+            0.08,
+            0.34,
+            0.118
+          ],
+          "case": "nat-thunar-parent",
+          "center": [
+            420,
+            79
+          ],
+          "confidence": 0.98,
+          "fallbacks": [],
+          "found": true,
+          "grounding": "fallback",
+          "hit": true,
+          "input_tokens": 1486,
+          "iou": 0.7181467181467182,
+          "latency_s": 5.72,
+          "model": "gemini-3.8-flash-high",
+          "output_tokens": 723,
+          "presence": 1.0,
+          "repeat": 0,
+          "target": "the 'Open Parent' toolbar button",
+          "usd": 0.00382575
+        },
+        {
+          "absent": false,
+          "arm": "gemini",
+          "backend": "openai",
+          "box": [
+            0.316,
+            0.078,
+            0.341,
+            0.118
+          ],
+          "case": "nat-thunar-parent",
+          "center": [
+            420,
+            78
+          ],
+          "confidence": 0.95,
+          "fallbacks": [],
+          "found": true,
+          "grounding": "fallback",
+          "hit": true,
+          "input_tokens": 1494,
+          "iou": 0.7907335907335907,
+          "latency_s": 8.614,
+          "model": "gemini-3.8-flash-high",
+          "output_tokens": 1166,
+          "presence": 1.0,
+          "repeat": 1,
+          "target": "the 'Open Parent' toolbar button",
+          "usd": 0.005493
+        },
+        {
+          "absent": false,
+          "arm": "gemini",
+          "backend": "openai",
+          "box": [
+            0.316,
+            0.83,
+            0.342,
+            0.113
+          ],
+          "case": "nat-thunar-parent",
+          "center": [
+            421,
+            377
+          ],
+          "confidence": 0.95,
+          "fallbacks": [],
+          "found": true,
+          "grounding": "fallback",
+          "hit": false,
+          "input_tokens": 1506,
+          "iou": 0.00823603507581997,
+          "latency_s": 5.312,
+          "model": "gemini-3.8-flash-high",
+          "output_tokens": 691,
+          "presence": 1.0,
+          "repeat": 2,
+          "target": "the 'Open Parent' toolbar button",
+          "usd": 0.00372075
+        },
+        {
+          "absent": false,
+          "arm": "gemini",
+          "backend": "openai",
+          "box": [
+            0.966,
+            0.078,
+            0.992,
+            0.118
+          ],
+          "case": "nat-thunar-search",
+          "center": [
+            1253,
+            78
+          ],
+          "confidence": 1.0,
+          "fallbacks": [],
+          "found": true,
+          "grounding": "fallback",
+          "hit": true,
+          "input_tokens": 1508,
+          "iou": 0.8401544401544402,
+          "latency_s": 6.185,
+          "model": "gemini-3.8-flash-high",
+          "output_tokens": 752,
+          "presence": 1.0,
+          "repeat": 0,
+          "target": "the 'Search for Files...' toolbar toggle",
+          "usd": 0.003951
+        },
+        {
+          "absent": false,
+          "arm": "gemini",
+          "backend": "openai",
+          "box": [
+            0.965,
+            0.077,
+            0.992,
+            0.123
+          ],
+          "case": "nat-thunar-search",
+          "center": [
+            1252,
+            80
+          ],
+          "confidence": 0.95,
+          "fallbacks": [],
+          "found": true,
+          "grounding": "fallback",
+          "hit": true,
+          "input_tokens": 1512,
+          "iou": 0.825,
+          "latency_s": 7.876,
+          "model": "gemini-3.8-flash-high",
+          "output_tokens": 947,
+          "presence": 1.0,
+          "repeat": 1,
+          "target": "the 'Search for Files...' toolbar toggle",
+          "usd": 0.00468525
+        },
+        {
+          "absent": false,
+          "arm": "gemini",
+          "backend": "openai",
+          "box": [
+            0.964,
+            0.077,
+            0.992,
+            0.122
+          ],
+          "case": "nat-thunar-search",
+          "center": [
+            1252,
+            80
+          ],
+          "confidence": 0.95,
+          "fallbacks": [],
+          "found": true,
+          "grounding": "fallback",
+          "hit": true,
+          "input_tokens": 1500,
+          "iou": 0.8043175487465181,
+          "latency_s": 6.995,
+          "model": "gemini-3.8-flash-high",
+          "output_tokens": 972,
+          "presence": 1.0,
+          "repeat": 2,
+          "target": "the 'Search for Files...' toolbar toggle",
+          "usd": 0.00477
+        },
+        {
+          "absent": false,
+          "arm": "gemini",
+          "backend": "openai",
+          "box": [
+            0.495,
+            0.071,
+            0.996,
+            0.635
+          ],
+          "case": "nat-mousepad-textarea",
+          "center": [
+            954,
+            282
+          ],
+          "confidence": 0.95,
+          "fallbacks": [],
+          "found": true,
+          "grounding": "fallback",
+          "hit": true,
+          "input_tokens": 1502,
+          "iou": 0.9864921426125338,
+          "latency_s": 9.632,
+          "model": "gemini-3.8-flash-high",
+          "output_tokens": 1160,
+          "presence": 1.0,
+          "repeat": 0,
+          "target": "the text area",
+          "usd": 0.0054765
+        },
+        {
+          "absent": false,
+          "arm": "gemini",
+          "backend": "openai",
+          "box": [
+            0.495,
+            0.105,
+            0.996,
+            0.932
+          ],
+          "case": "nat-mousepad-textarea",
+          "center": [
+            954,
+            415
+          ],
+          "confidence": 0.95,
+          "fallbacks": [],
+          "found": true,
+          "grounding": "fallback",
+          "hit": true,
+          "input_tokens": 1490,
+          "iou": 0.6114941902192181,
+          "latency_s": 10.617,
+          "model": "gemini-3.8-flash-high",
+          "output_tokens": 1344,
+          "presence": 1.0,
+          "repeat": 1,
+          "target": "the text area",
+          "usd": 0.0061575
+        },
+        {
+          "absent": false,
+          "arm": "gemini",
+          "backend": "openai",
+          "box": [
+            0.495,
+            0.072,
+            0.996,
+            0.638
+          ],
+          "case": "nat-mousepad-textarea",
+          "center": [
+            954,
+            284
+          ],
+          "confidence": 0.98,
+          "fallbacks": [],
+          "found": true,
+          "grounding": "fallback",
+          "hit": true,
+          "input_tokens": 1494,
+          "iou": 0.9843096378722406,
+          "latency_s": 7.161,
+          "model": "gemini-3.8-flash-high",
+          "output_tokens": 926,
+          "presence": 1.0,
+          "repeat": 2,
+          "target": "the text area",
+          "usd": 0.004593
+        },
+        {
+          "absent": false,
+          "arm": "gemini",
+          "backend": "openai",
+          "box": [
+            0.498,
+            0.042,
+            0.523,
+            0.067
+          ],
+          "case": "nat-mousepad-filemenu",
+          "center": [
+            653,
+            44
+          ],
+          "confidence": 0.95,
+          "fallbacks": [],
+          "found": true,
+          "grounding": "fallback",
+          "hit": true,
+          "input_tokens": 1498,
+          "iou": 0.6406406406406406,
+          "latency_s": 7.651,
+          "model": "gemini-3.8-flash-high",
+          "output_tokens": 990,
+          "presence": 1.0,
+          "repeat": 0,
+          "target": "the File menu",
+          "usd": 0.004836
+        },
+        {
+          "absent": false,
+          "arm": "gemini",
+          "backend": "openai",
+          "box": [
+            0.498,
+            0.042,
+            0.526,
+            0.068
+          ],
+          "case": "nat-mousepad-filemenu",
+          "center": [
+            655,
+            44
+          ],
+          "confidence": 0.95,
+          "fallbacks": [],
+          "found": true,
+          "grounding": "fallback",
+          "hit": true,
+          "input_tokens": 1502,
+          "iou": 0.6869479882237488,
+          "latency_s": 7.287,
+          "model": "gemini-3.8-flash-high",
+          "output_tokens": 1011,
+          "presence": 1.0,
+          "repeat": 1,
+          "target": "the File menu",
+          "usd": 0.00491775
+        },
+        {
+          "absent": false,
+          "arm": "gemini",
+          "backend": "openai",
+          "box": [
+            0.499,
+            0.043,
+            0.526,
+            0.068
+          ],
+          "case": "nat-mousepad-filemenu",
+          "center": [
+            656,
+            44
+          ],
+          "confidence": 0.95,
+          "fallbacks": [],
+          "found": true,
+          "grounding": "fallback",
+          "hit": true,
+          "input_tokens": 1490,
+          "iou": 0.647693817468106,
+          "latency_s": 6.82,
+          "model": "gemini-3.8-flash-high",
+          "output_tokens": 969,
+          "presence": 1.0,
+          "repeat": 2,
+          "target": "the File menu",
+          "usd": 0.00475125
+        }
+      ]
+    },
+    "jev": {
+      "aggregate": {
+        "absent_accuracy": null,
+        "errors": 0,
+        "flip_case_ids": [
+          "nat-mousepad-textarea"
+        ],
+        "hit_flip_cases": 1,
+        "hit_rate": 0.6666666666666666,
+        "input_tokens": 100689,
+        "latency_s": 0.29341666666666666,
+        "mean_iou": 0.4227221809309952,
+        "mean_presence_stdev": 0.014637540071493078,
+        "n_absent": 0,
+        "n_cases": 4,
+        "n_present": 12,
+        "n_rows": 12,
+        "output_tokens": 432,
+        "usd": 0.004228938,
+        "usd_per_locate": 0.00035241149999999996
+      },
+      "calibration": [
+        {
+          "bucket": "0.00-0.25",
+          "hit_rate": null,
+          "hits": 0,
+          "n": 0
+        },
+        {
+          "bucket": "0.25-0.50",
+          "hit_rate": null,
+          "hits": 0,
+          "n": 0
+        },
+        {
+          "bucket": "0.50-0.75",
+          "hit_rate": 1.0,
+          "hits": 5,
+          "n": 5
+        },
+        {
+          "bucket": "0.75-1.00",
+          "hit_rate": 1.0,
+          "hits": 3,
+          "n": 3
+        }
+      ],
+      "rows": [
+        {
+          "absent": false,
+          "arm": "jev",
+          "backend": "typesafe",
+          "box": [
+            0.3,
+            0.07,
+            0.33,
+            0.11
+          ],
+          "case": "nat-thunar-parent",
+          "center": [
+            403,
+            72
+          ],
+          "confidence": 0.91,
+          "fallbacks": [],
+          "found": true,
+          "grounding": "box",
+          "hit": true,
+          "input_tokens": 8396,
+          "iou": 0.26882263769580594,
+          "latency_s": 0.25,
+          "model": "jev-1.14.0",
+          "output_tokens": 36,
+          "presence": 0.76,
+          "repeat": 0,
+          "target": "the 'Open Parent' toolbar button",
+          "usd": 0.000352632
+        },
+        {
+          "absent": false,
+          "arm": "jev",
+          "backend": "typesafe",
+          "box": [
+            0.31,
+            0.07,
+            0.34,
+            0.11
+          ],
+          "case": "nat-thunar-parent",
+          "center": [
+            416,
+            72
+          ],
+          "confidence": 0.91,
+          "fallbacks": [],
+          "found": true,
+          "grounding": "box",
+          "hit": true,
+          "input_tokens": 8402,
+          "iou": 0.5547987616099072,
+          "latency_s": 0.268,
+          "model": "jev-1.14.0",
+          "output_tokens": 36,
+          "presence": 0.8,
+          "repeat": 1,
+          "target": "the 'Open Parent' toolbar button",
+          "usd": 0.00035288400000000003
+        },
+        {
+          "absent": false,
+          "arm": "jev",
+          "backend": "typesafe",
+          "box": [
+            0.3,
+            0.07,
+            0.34,
+            0.11
+          ],
+          "case": "nat-thunar-parent",
+          "center": [
+            410,
+            72
+          ],
+          "confidence": 0.91,
+          "fallbacks": [],
+          "found": true,
+          "grounding": "box",
+          "hit": true,
+          "input_tokens": 8390,
+          "iou": 0.44116198916789756,
+          "latency_s": 0.287,
+          "model": "jev-1.14.0",
+          "output_tokens": 36,
+          "presence": 0.77,
+          "repeat": 2,
+          "target": "the 'Open Parent' toolbar button",
+          "usd": 0.00035238
+        },
+        {
+          "absent": false,
+          "arm": "jev",
+          "backend": "typesafe",
+          "box": [
+            0.96,
+            0.09,
+            0.98,
+            0.11
+          ],
+          "case": "nat-thunar-search",
+          "center": null,
+          "confidence": 0.78,
+          "fallbacks": [],
+          "found": false,
+          "grounding": "box",
+          "hit": false,
+          "input_tokens": 8389,
+          "iou": 0.21854780733285406,
+          "latency_s": 0.301,
+          "model": "jev-1.14.0",
+          "output_tokens": 36,
+          "presence": 0.38,
+          "repeat": 0,
+          "target": "the 'Search for Files...' toolbar toggle",
+          "usd": 0.000352338
+        },
+        {
+          "absent": false,
+          "arm": "jev",
+          "backend": "typesafe",
+          "box": [
+            0.95,
+            0.09,
+            0.98,
+            0.11
+          ],
+          "case": "nat-thunar-search",
+          "center": null,
+          "confidence": 0.73,
+          "fallbacks": [],
+          "found": false,
+          "grounding": "box",
+          "hit": false,
+          "input_tokens": 8383,
+          "iou": 0.19011882426516574,
+          "latency_s": 0.308,
+          "model": "jev-1.14.0",
+          "output_tokens": 36,
+          "presence": 0.31,
+          "repeat": 1,
+          "target": "the 'Search for Files...' toolbar toggle",
+          "usd": 0.000352086
+        },
+        {
+          "absent": false,
+          "arm": "jev",
+          "backend": "typesafe",
+          "box": [
+            0.95,
+            0.09,
+            0.98,
+            0.11
+          ],
+          "case": "nat-thunar-search",
+          "center": null,
+          "confidence": 0.73,
+          "fallbacks": [],
+          "found": false,
+          "grounding": "box",
+          "hit": false,
+          "input_tokens": 8401,
+          "iou": 0.19011882426516574,
+          "latency_s": 0.3,
+          "model": "jev-1.14.0",
+          "output_tokens": 36,
+          "presence": 0.35,
+          "repeat": 2,
+          "target": "the 'Search for Files...' toolbar toggle",
+          "usd": 0.000352842
+        },
+        {
+          "absent": false,
+          "arm": "jev",
+          "backend": "typesafe",
+          "box": [
+            0.49,
+            0.06,
+            0.99,
+            0.65
+          ],
+          "case": "nat-mousepad-textarea",
+          "center": null,
+          "confidence": 0.48,
+          "fallbacks": [],
+          "found": false,
+          "grounding": "box",
+          "hit": false,
+          "input_tokens": 8394,
+          "iou": 0.9241437834402,
+          "latency_s": 0.298,
+          "model": "jev-1.14.0",
+          "output_tokens": 36,
+          "presence": 0.95,
+          "repeat": 0,
+          "target": "the text area",
+          "usd": 0.000352548
+        },
+        {
+          "absent": false,
+          "arm": "jev",
+          "backend": "typesafe",
+          "box": [
+            0.49,
+            0.06,
+            1.0,
+            0.65
+          ],
+          "case": "nat-mousepad-textarea",
+          "center": [
+            954,
+            284
+          ],
+          "confidence": 0.54,
+          "fallbacks": [],
+          "found": true,
+          "grounding": "box",
+          "hit": true,
+          "input_tokens": 8382,
+          "iou": 0.9252796739948608,
+          "latency_s": 0.27,
+          "model": "jev-1.14.0",
+          "output_tokens": 36,
+          "presence": 0.96,
+          "repeat": 1,
+          "target": "the text area",
+          "usd": 0.00035204400000000003
+        },
+        {
+          "absent": false,
+          "arm": "jev",
+          "backend": "typesafe",
+          "box": [
+            0.49,
+            0.06,
+            0.99,
+            0.65
+          ],
+          "case": "nat-mousepad-textarea",
+          "center": [
+            947,
+            284
+          ],
+          "confidence": 0.55,
+          "fallbacks": [],
+          "found": true,
+          "grounding": "box",
+          "hit": true,
+          "input_tokens": 8391,
+          "iou": 0.9241437834402,
+          "latency_s": 0.305,
+          "model": "jev-1.14.0",
+          "output_tokens": 36,
+          "presence": 0.95,
+          "repeat": 2,
+          "target": "the text area",
+          "usd": 0.000352422
+        },
+        {
+          "absent": false,
+          "arm": "jev",
+          "backend": "typesafe",
+          "box": [
+            0.51,
+            0.05,
+            0.53,
+            0.06
+          ],
+          "case": "nat-mousepad-filemenu",
+          "center": [
+            666,
+            44
+          ],
+          "confidence": 0.67,
+          "fallbacks": [],
+          "found": true,
+          "grounding": "box",
+          "hit": true,
+          "input_tokens": 8382,
+          "iou": 0.1451766953199618,
+          "latency_s": 0.318,
+          "model": "jev-1.14.0",
+          "output_tokens": 36,
+          "presence": 0.9,
+          "repeat": 0,
+          "target": "the File menu",
+          "usd": 0.00035204400000000003
+        },
+        {
+          "absent": false,
+          "arm": "jev",
+          "backend": "typesafe",
+          "box": [
+            0.51,
+            0.05,
+            0.53,
+            0.06
+          ],
+          "case": "nat-mousepad-filemenu",
+          "center": [
+            666,
+            44
+          ],
+          "confidence": 0.67,
+          "fallbacks": [],
+          "found": true,
+          "grounding": "box",
+          "hit": true,
+          "input_tokens": 8385,
+          "iou": 0.1451766953199618,
+          "latency_s": 0.314,
+          "model": "jev-1.14.0",
+          "output_tokens": 36,
+          "presence": 0.89,
+          "repeat": 1,
+          "target": "the File menu",
+          "usd": 0.00035217
+        },
+        {
+          "absent": false,
+          "arm": "jev",
+          "backend": "typesafe",
+          "box": [
+            0.51,
+            0.05,
+            0.53,
+            0.06
+          ],
+          "case": "nat-mousepad-filemenu",
+          "center": [
+            666,
+            44
+          ],
+          "confidence": 0.66,
+          "fallbacks": [],
+          "found": true,
+          "grounding": "box",
+          "hit": true,
+          "input_tokens": 8394,
+          "iou": 0.1451766953199618,
+          "latency_s": 0.302,
+          "model": "jev-1.14.0",
+          "output_tokens": 36,
+          "presence": 0.91,
+          "repeat": 2,
+          "target": "the File menu",
+          "usd": 0.000352548
+        }
+      ]
+    }
+  },
+  "notes": [],
+  "repeat": 3,
+  "safety": {},
+  "spend": {
+    "calls": 24,
+    "input_tokens": 118671,
+    "output_tokens": 12083,
+    "usd": 0.061406688
+  },
+  "sweep": {
+    "locate": {
+      "gemini": [
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.3,
+          "hit_rate": 0.9166666666666666,
+          "presence": 0.3
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.4,
+          "hit_rate": 0.9166666666666666,
+          "presence": 0.3
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.5,
+          "hit_rate": 0.9166666666666666,
+          "presence": 0.3
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.6,
+          "hit_rate": 0.9166666666666666,
+          "presence": 0.3
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.7,
+          "hit_rate": 0.9166666666666666,
+          "presence": 0.3
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.3,
+          "hit_rate": 0.9166666666666666,
+          "presence": 0.4
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.4,
+          "hit_rate": 0.9166666666666666,
+          "presence": 0.4
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.5,
+          "hit_rate": 0.9166666666666666,
+          "presence": 0.4
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.6,
+          "hit_rate": 0.9166666666666666,
+          "presence": 0.4
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.7,
+          "hit_rate": 0.9166666666666666,
+          "presence": 0.4
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.3,
+          "hit_rate": 0.9166666666666666,
+          "presence": 0.5
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.4,
+          "hit_rate": 0.9166666666666666,
+          "presence": 0.5
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.5,
+          "hit_rate": 0.9166666666666666,
+          "presence": 0.5
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.6,
+          "hit_rate": 0.9166666666666666,
+          "presence": 0.5
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.7,
+          "hit_rate": 0.9166666666666666,
+          "presence": 0.5
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.3,
+          "hit_rate": 0.9166666666666666,
+          "presence": 0.6
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.4,
+          "hit_rate": 0.9166666666666666,
+          "presence": 0.6
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.5,
+          "hit_rate": 0.9166666666666666,
+          "presence": 0.6
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.6,
+          "hit_rate": 0.9166666666666666,
+          "presence": 0.6
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.7,
+          "hit_rate": 0.9166666666666666,
+          "presence": 0.6
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.3,
+          "hit_rate": 0.9166666666666666,
+          "presence": 0.7
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.4,
+          "hit_rate": 0.9166666666666666,
+          "presence": 0.7
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.5,
+          "hit_rate": 0.9166666666666666,
+          "presence": 0.7
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.6,
+          "hit_rate": 0.9166666666666666,
+          "presence": 0.7
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.7,
+          "hit_rate": 0.9166666666666666,
+          "presence": 0.7
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.3,
+          "hit_rate": 0.9166666666666666,
+          "presence": 0.8
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.4,
+          "hit_rate": 0.9166666666666666,
+          "presence": 0.8
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.5,
+          "hit_rate": 0.9166666666666666,
+          "presence": 0.8
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.6,
+          "hit_rate": 0.9166666666666666,
+          "presence": 0.8
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.7,
+          "hit_rate": 0.9166666666666666,
+          "presence": 0.8
+        }
+      ],
+      "jev": [
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.3,
+          "hit_rate": 0.6666666666666666,
+          "presence": 0.3
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.4,
+          "hit_rate": 0.6666666666666666,
+          "presence": 0.3
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.5,
+          "hit_rate": 0.6666666666666666,
+          "presence": 0.3
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.6,
+          "hit_rate": 0.5,
+          "presence": 0.3
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.7,
+          "hit_rate": 0.25,
+          "presence": 0.3
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.3,
+          "hit_rate": 0.6666666666666666,
+          "presence": 0.4
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.4,
+          "hit_rate": 0.6666666666666666,
+          "presence": 0.4
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.5,
+          "hit_rate": 0.6666666666666666,
+          "presence": 0.4
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.6,
+          "hit_rate": 0.5,
+          "presence": 0.4
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.7,
+          "hit_rate": 0.25,
+          "presence": 0.4
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.3,
+          "hit_rate": 0.6666666666666666,
+          "presence": 0.5
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.4,
+          "hit_rate": 0.6666666666666666,
+          "presence": 0.5
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.5,
+          "hit_rate": 0.6666666666666666,
+          "presence": 0.5
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.6,
+          "hit_rate": 0.5,
+          "presence": 0.5
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.7,
+          "hit_rate": 0.25,
+          "presence": 0.5
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.3,
+          "hit_rate": 0.6666666666666666,
+          "presence": 0.6
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.4,
+          "hit_rate": 0.6666666666666666,
+          "presence": 0.6
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.5,
+          "hit_rate": 0.6666666666666666,
+          "presence": 0.6
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.6,
+          "hit_rate": 0.5,
+          "presence": 0.6
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.7,
+          "hit_rate": 0.25,
+          "presence": 0.6
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.3,
+          "hit_rate": 0.6666666666666666,
+          "presence": 0.7
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.4,
+          "hit_rate": 0.6666666666666666,
+          "presence": 0.7
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.5,
+          "hit_rate": 0.6666666666666666,
+          "presence": 0.7
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.6,
+          "hit_rate": 0.5,
+          "presence": 0.7
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.7,
+          "hit_rate": 0.25,
+          "presence": 0.7
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.3,
+          "hit_rate": 0.5,
+          "presence": 0.8
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.4,
+          "hit_rate": 0.5,
+          "presence": 0.8
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.5,
+          "hit_rate": 0.5,
+          "presence": 0.8
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.6,
+          "hit_rate": 0.3333333333333333,
+          "presence": 0.8
+        },
+        {
+          "absent_accuracy": null,
+          "box_confidence": 0.7,
+          "hit_rate": 0.08333333333333333,
+          "presence": 0.8
+        }
+      ]
+    }
+  },
+  "thumbs": [
+    "thumbs/nat-thunar-search-jev-r0.jpg",
+    "thumbs/nat-thunar-search-jev-r1.jpg",
+    "thumbs/nat-thunar-search-jev-r2.jpg",
+    "thumbs/nat-mousepad-textarea-jev-r0.jpg",
+    "thumbs/nat-thunar-parent-gemini-r2.jpg"
+  ],
+  "verify": {}
+}

@@ -1,0 +1,4 @@
+{"id": "nat-thunar-parent", "kind": "locate", "frame": "frames/thunar.png", "target": "the 'Open Parent' toolbar button", "gt": [403, 60, 37, 35], "note": "dense toolbar: buttons are 37x35 px, chrome window behind as a distractor", "atspi": {"app": "thunar", "label": "Open Parent", "role": "button"}}
+{"id": "nat-thunar-search", "kind": "locate", "frame": "frames/thunar.png", "target": "the 'Search for Files...' toolbar toggle", "gt": [1235, 60, 37, 35], "note": "", "atspi": {"app": "thunar", "label": "Search for Files...", "role": "toggle button"}}
+{"id": "nat-mousepad-textarea", "kind": "locate", "frame": "frames/mousepad.png", "target": "the text area", "gt": [636, 59, 638, 447], "note": ""}
+{"id": "nat-mousepad-filemenu", "kind": "locate", "frame": "frames/mousepad.png", "target": "the File menu", "gt": [635, 29, 37, 27], "note": "", "atspi": {"app": "Mousepad", "label": "File", "role": "menu"}}
