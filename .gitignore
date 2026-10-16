@@ -10,8 +10,12 @@ venv/
 *.db
 *.sqlite3
 .env
-.oc/*.log
-.oc/*.log.part
+
+# Local agent / workspace state (never published)
+.oc/
+.hermes/
+devloop/
+.task/
 
 # bench run frames are large; BENCH.md links a few JPEG thumbnails instead
 examples/cu_bench/results/**/frames/

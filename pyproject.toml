@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -8,10 +8,39 @@ version = "0.1.0"
 description = "LoopGuard core engine and plugins for Hermes Agent"
 readme = "README.md"
 requires-python = ">=3.11"
-license = {text = "MIT"}
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [
+    { name = "DECRUX9812", email = "60716910+DECRUX9812@users.noreply.github.com" },
+]
+keywords = [
+    "hermes",
+    "hermes-agent",
+    "plugin",
+    "cron",
+    "automation",
+    "token-savings",
+    "gate",
+    "computer-use",
+    "llm",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
 dependencies = [
     "pyyaml>=6,<7",
 ]
+
+[project.urls]
+Homepage = "https://github.com/DECRUX9812/hermes-loopguard"
+Repository = "https://github.com/DECRUX9812/hermes-loopguard"
+Issues = "https://github.com/DECRUX9812/hermes-loopguard/issues"
 
 [project.optional-dependencies]
 typesafe = [
