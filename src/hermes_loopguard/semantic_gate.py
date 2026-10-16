@@ -68,7 +68,7 @@ def check_condition(value: float, cond: str) -> bool:
         return value == float(cond)
 
 
-def gate_spec_from_dict(d: dict) -> GateSpec:
+def gate_spec_from_dict(d: dict, default_min_prob: float = 0.6) -> GateSpec:
     questions = questions_from_spec(d["questions"])
     route_question = d["route_question"]
     default_route = d.get("default_route", "review")
@@ -76,7 +76,7 @@ def gate_spec_from_dict(d: dict) -> GateSpec:
     for cat, rdata in d.get("routes", {}).items():
         if isinstance(rdata, dict):
             handler = rdata.get("handler", "review")
-            min_prob = float(rdata.get("min_prob", 0.6))
+            min_prob = float(rdata.get("min_prob", default_min_prob))
             when = dict(rdata.get("when", {}))
             brief = rdata.get("brief", "")
             routes[cat] = RouteRule(name=cat, handler=handler, min_prob=min_prob, when=when, brief=brief)

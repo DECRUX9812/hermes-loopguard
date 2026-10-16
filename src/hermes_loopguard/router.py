@@ -219,7 +219,7 @@ def poll(
     chain = None
     gate_spec = None
     if spec.gate is not None:
-        gate_spec = gate_spec_from_dict(spec.gate)
+        gate_spec = gate_spec_from_dict(spec.gate, default_min_prob=cfg.get("route_min_prob", 0.6))
         if to_process:
             if chain_factory is not None:
                 chain = chain_factory()

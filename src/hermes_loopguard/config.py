@@ -7,12 +7,17 @@ from typing import Any, Sequence
 
 from hermes_loopguard import _yaml, paths
 
+PLUGIN_ID = "loopguard"
+
 DEFAULTS = {
     "backend": "auto",  # auto | typesafe | openai | hermes | local
     "shadow": False,  # global shadow mode
     "on_error": "wake",  # watcher error policy: wake (fail open) | skip
+    "route_min_prob": 0.6,  # default Choice threshold for routes without min_prob
     "typesafe": {
-        "model": None,
+        # Pinned on purpose: aliases (jev-preview) move between releases and
+        # would change behavior silently.
+        "model": "jev-1.14.0",
         "api_key_env": "TYPESAFE_API_KEY",
         "timeout": 30,
         "usd_per_mtok_in": 0.0,
@@ -74,6 +79,78 @@ def deep_merge(base: dict, over: dict) -> dict:
         else:
             result[k] = copy.deepcopy(v)
     return result
+
+
+# Settings > Plugins keys (the plugin.yaml config_schema) and the LoopGuard
+# config path each layers onto. The secret key is deliberately absent: secret
+# values never land in config.yaml (Hermes routes them to .env), and the
+# plugin reads them only through paths.get_secret (agent.secret_scope).
+SETTING_KEYS: dict[str, str] = {
+    "shadow": "shadow",
+    "backend": "backend",
+    "route_min_prob": "route_min_prob",
+    "kanban.spend_cap_tokens": "kanban.spend_cap_tokens",
+    "tool_gate.enabled": "tool_gate.enabled",
+    "tool_gate.semantic": "tool_gate.semantic",
+    "completion.max_continuations": "completion.max_continuations",
+    "computer_use.enabled": "computer_use.enabled",
+    "computer_use.shadow": "computer_use.shadow",
+    "typesafe.model": "typesafe.model",
+    "computer_use.models": "computer_use.models",
+}
+SECRET_SETTING_KEYS = frozenset({"typesafe_api_key"})
+
+
+def hermes_plugin_settings() -> dict:
+    """Values saved in Settings > Plugins (``plugins.entries.<id>.settings``).
+
+    Read through Hermes's own config loader (profile-aware). Empty outside a
+    Hermes process (the cron shim still works from the LoopGuard config file
+    alone); a broken Hermes config can never fail a gate run.
+    """
+    try:
+        from hermes_cli.config import load_config_readonly
+
+        data = load_config_readonly() or {}
+        plugins = data.get("plugins")
+        entries = plugins.get("entries") if isinstance(plugins, dict) else None
+        entry = entries.get(PLUGIN_ID) if isinstance(entries, dict) else None
+        settings = entry.get("settings") if isinstance(entry, dict) else None
+        return dict(settings) if isinstance(settings, dict) else {}
+    except Exception:
+        return {}
+
+
+def _set_dotted(cfg: dict, dotted: str, value: Any) -> dict:
+    parts = dotted.split(".")
+    node = cfg
+    for part in parts[:-1]:
+        child = node.get(part)
+        if not isinstance(child, dict):
+            child = {}
+            node[part] = child
+        node = child
+    node[parts[-1]] = copy.deepcopy(value)
+    return cfg
+
+
+def apply_plugin_settings(cfg: dict, settings: dict | None) -> dict:
+    """Layer values saved in Settings > Plugins over the LoopGuard config file.
+
+    Only keys the user actually saved are applied — the form shows schema
+    defaults but writes nothing until saved, so existing loopguard
+    config.yaml values keep working. Unknown keys and secret keys are
+    ignored (secrets live in .env via Hermes, never in config).
+    """
+    cfg = copy.deepcopy(cfg)
+    for key, value in (settings or {}).items():
+        if key in SECRET_SETTING_KEYS:
+            continue
+        path = SETTING_KEYS.get(str(key))
+        if path is None:
+            continue
+        cfg = _set_dotted(cfg, path, value)
+    return cfg
 
 
 def load_config(path: Path | None = None) -> dict:

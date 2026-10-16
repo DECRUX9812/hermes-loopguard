@@ -32,19 +32,31 @@ def _config_file():
 
 
 def get_cfg() -> dict:
-    """LoopGuard config, reloaded only when the config file changes."""
+    """LoopGuard config, reloaded only when a config file changes.
+
+    Layers the values saved in Settings > Plugins
+    (``plugins.entries.loopguard.settings``, read through Hermes's own config
+    loader) over ``<HERMES_HOME>/loopguard/config.yaml``. Only keys the user
+    actually saved are applied, so existing config-file users keep their
+    values, and the cron shim (which reads this same function) follows the
+    settings too.
+    """
     try:
         path = _config_file()
-        key = (str(path), path.stat().st_mtime if path.is_file() else None)
+        hermes_cfg = paths.hermes_home() / "config.yaml"
+        key = (
+            (str(path), path.stat().st_mtime if path.is_file() else None),
+            (str(hermes_cfg), hermes_cfg.stat().st_mtime if hermes_cfg.is_file() else None),
+        )
     except Exception:
         key = (None, None)
     with _CFG_LOCK:
         if _CFG_CACHE["cfg"] is not None and _CFG_CACHE["key"] == key:
             return _CFG_CACHE["cfg"]
 
-    from hermes_loopguard.config import load_config
+    from hermes_loopguard.config import apply_plugin_settings, hermes_plugin_settings, load_config
 
-    cfg = load_config()
+    cfg = apply_plugin_settings(load_config(), hermes_plugin_settings())
     with _CFG_LOCK:
         _CFG_CACHE["cfg"] = cfg
         _CFG_CACHE["key"] = key

@@ -1,0 +1,107 @@
+name: loopguard
+version: 0.1.0
+manifest_version: 2
+api_version: 1
+description: >-
+  Stop automations from burning tokens: a change gate skips unchanged cron and
+  kanban runs at zero cost, a cheap typed semantic gate (TypeSafe Jev or any
+  OpenAI-compatible provider) does the triage, and a tool/completion guard
+  caps runaway loops.
+author: DECRUX9812
+license: MIT
+tags: [automation, cron, kanban, cost, gate]
+provides_tools:
+  - jev_computer
+  - loopguard_cu_status
+provides_hooks:
+  - post_api_request
+  - post_llm_call
+  - on_session_end
+  - kanban_task_claimed
+  - kanban_task_completed
+  - kanban_task_blocked
+  - on_kanban_worker_exited
+  - pre_tool_call
+  - transform_tool_result
+  - pre_verify
+python_dependencies:
+  - pyyaml>=6,<7
+# Optional: the TypeSafe key is a config_schema secret (Settings > Plugins >
+# loopguard), stored in .env via Hermes and read through
+# agent.secret_scope.get_secret. Every backend is optional; without it the
+# gate falls back to an OpenAI-compatible provider, the Hermes auxiliary
+# task, or local heuristics.
+optional_env:
+  - name: TYPESAFE_API_KEY
+    description: "TypeSafe API key for the Jev gate backends"
+    prompt: "TypeSafe API key"
+    password: true
+# Settings live in Hermes Desktop under Settings > Plugins > loopguard (the
+# gear on the plugin's row in Capabilities > Plugins opens it). Hermes builds
+# the form from this schema and stores the values under
+# plugins.entries.loopguard.settings in config.yaml; the plugin layers them
+# over its own <HERMES_HOME>/loopguard/config.yaml, which keeps working for
+# values not saved here.
+config_schema:
+  shadow:
+    type: bool
+    default: false
+    label: "Shadow mode"
+    description: "Log proposed gate decisions without changing behavior. Start here; turn off once the log looks right."
+  backend:
+    type: str
+    choices: [auto, typesafe, openai, hermes, local]
+    default: auto
+    label: "Semantic backend"
+    description: "Which backend answers gate questions. auto tries TypeSafe, then an OpenAI-compatible provider, then the Hermes auxiliary task, then local heuristics."
+  route_min_prob:
+    type: float
+    default: 0.6
+    label: "Route confidence threshold"
+    description: "Minimum Choice probability for a route to admit an item; below it the item falls back to the default (review) route. Route rules can override this per watcher."
+  kanban.spend_cap_tokens:
+    type: int
+    default: 400000
+    label: "Per-item spend cap (tokens)"
+    description: "Fallback per-item token cap for kanban and watcher items; a watcher spec's own spend_cap_tokens wins. Exhausting the cap blocks further tool calls for that item."
+  tool_gate.enabled:
+    type: bool
+    default: false
+    label: "Tool gate"
+    description: "Classify shell commands in automations (read / modify / network / destructive) and block or ask before risky ones. Only ever adds friction to Hermes's own approvals."
+  tool_gate.semantic:
+    type: bool
+    default: false
+    label: "Tool gate semantic classifier"
+    description: "Let the semantic backend give a second opinion on commands the static classifier cannot categorize. Errors fall back to the static verdict."
+  completion.max_continuations:
+    type: int
+    default: 3
+    label: "Completion continuations cap"
+    description: "How many times pre_verify may nudge the model to keep working on an unmet GOAL.md before the turn is allowed to finish. A GOAL.md max_continuations overrides this."
+  computer_use.enabled:
+    type: bool
+    default: false
+    label: "Computer-use gates"
+    description: "Enable the jev_computer tool and the verifier / stall / safety gates on Hermes's computer_use tool."
+  computer_use.shadow:
+    type: bool
+    default: false
+    label: "Computer-use shadow mode"
+    description: "Log verify and safety verdicts without changing computer-use behavior."
+  typesafe.model:
+    type: str
+    default: "jev-1.14.0"
+    label: "TypeSafe model (pinned)"
+    description: "Explicit versioned model id for gate questions. Pinned on purpose: aliases like jev-preview move between releases and would change behavior silently."
+  computer_use.models:
+    type: list
+    default: ["jev-1.14.0", "jev-1.13.0", "openai:gemini-3.8-flash-high"]
+    label: "Computer-use vision model chain"
+    description: "Ordered vision model chain for grounding and verification (explicit versioned ids; openai: prefixed entries use the computer_use.openai endpoint). On an error the next model takes over."
+  typesafe_api_key:
+    type: secret
+    env: TYPESAFE_API_KEY
+    default: ""
+    label: "TypeSafe API key"
+    description: "Stored in .env through Hermes, never in config.yaml."
