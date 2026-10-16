@@ -148,6 +148,57 @@ def test_a11y_grounding_costs_zero_locate_calls(monkeypatch):
     rec = result.steps[0]
     assert rec.grounding == "a11y"
     assert gate.calls["locate"] == []  # free path: zero-token grounding
+    methods = [c["method"] for c in driver.calls]
+    assert "click" not in methods and "click_element" not in methods
+    # X9: an a11y-grounded type step delivers via AT-SPI set_value (replace
+    # semantics), not keystrokes — and never needs the focus click.
+    typed = [c for c in driver.calls if c["method"] == "set_value"]
+    assert typed and typed[0]["args"]["text"] == "Ada"
+    assert typed[0]["args"]["element_token"] == "e1"
+    assert "type_text" not in methods
+
+
+def test_set_value_error_falls_back_to_focus_and_type(monkeypatch):
+    """X9: when set_value errors (element not EditableText), the step falls
+    back to the click-to-focus + type_text path."""
+    driver = make_driver(
+        ["form.png", "form.png", "thanks.png", "thanks.png"],
+        elements=[{"token": "e1", "role": "entry", "label": "Name", "x": 10, "y": 20, "w": 300, "h": 30}],
+        actions={"set_value": [{"ok": False, "effect": "error",
+                                "error": "set_value_unsupported: no EditableText"}]},
+    )
+    gate = FakeGate()
+    steps = [agent.Step(action="type", target="Name", text="Ada", expect="the Name field shows Ada")]
+    patch_plan(monkeypatch, [steps])
+    result = agent.run_task("type Ada", driver, gate, {"max_steps": 5})
+    assert result.state == "completed"
+    methods = [c["method"] for c in driver.calls]
+    sv = methods.index("set_value")
+    click = methods.index("click_element")
+    typed = methods.index("type_text")
+    assert sv < click < typed  # tried set_value FIRST, then focused and typed
+    typed_calls = [c for c in driver.calls if c["method"] == "type_text"]
+    assert typed_calls[0]["args"]["text"] == "Ada"
+
+
+def test_box_type_step_still_clicks_and_types(monkeypatch):
+    """X9: a purely Box-grounded type step (no editable a11y element nearby)
+    keeps the click-to-focus + type_text path — no set_value."""
+    driver = make_driver(["form.png", "form.png", "thanks.png", "thanks.png"], elements=[])
+    gate = FakeGate()
+    gate.locate_results.append(
+        LocateResult(found=True, presence=0.9, confidence=0.9, box=(0.1, 0.2, 0.3, 0.4),
+                     center=(200, 300), grounding="box", usage=_usage())
+    )
+    steps = [agent.Step(action="type", target="Name", text="Ada", expect="the Name field shows Ada")]
+    patch_plan(monkeypatch, [steps])
+    result = agent.run_task("type Ada", driver, gate, {"max_steps": 5})
+    rec = result.steps[0]
+    assert rec.grounding == "box"
+    methods = [c["method"] for c in driver.calls]
+    assert "set_value" not in methods
+    clicks = [c for c in driver.calls if c["method"] == "click"]
+    assert clicks and clicks[0]["args"]["x"] == 200 and clicks[0]["args"]["y"] == 300
     typed = [c for c in driver.calls if c["method"] == "type_text"]
     assert typed and typed[0]["args"]["text"] == "Ada"
 
@@ -175,7 +226,8 @@ def test_box_grounding_when_a11y_missing(monkeypatch):
 def test_ground_type_step_prefers_editable_over_same_named_label(monkeypatch):
     """REAL failure: a static 'Feedback' label shadowed the 'Feedback' text
     area, so typing went into the still-focused Name field.  A type step must
-    ground to the editable element first."""
+    ground to the editable element first — and (X9) deliver via set_value on
+    THAT element, not a keystroke blast into wherever focus happens to be."""
     driver = make_driver(
         ["form.png", "form.png", "thanks.png", "thanks.png"],
         elements=[
@@ -189,8 +241,9 @@ def test_ground_type_step_prefers_editable_over_same_named_label(monkeypatch):
     result = agent.run_task("fill feedback", driver, gate, {"max_steps": 5})
     rec = result.steps[0]
     assert rec.grounding == "a11y"
-    clicked = [c for c in driver.calls if c["method"] == "click_element"]
-    assert clicked and clicked[0]["args"]["token"] == "ta"
+    sv = [c for c in driver.calls if c["method"] == "set_value"]
+    assert sv and sv[0]["args"]["element_token"] == "ta"
+    assert sv[0]["args"]["text"] == "hi"
 
 
 def test_click_step_still_grounds_without_role_preference(monkeypatch):
@@ -213,17 +266,22 @@ def test_click_step_still_grounds_without_role_preference(monkeypatch):
 
 def test_type_step_retry_selects_all_before_typing(monkeypatch):
     """REAL failure: retried typing APPENDED ('Grace HopperThe fold is not a
-    bug').  A RETRY must ctrl+a (replace) so attempts are idempotent.  The
-    FIRST attempt must NOT: fields start empty (forms) or preselected (F2
-    inline rename), and the live probe showed the select-all DESTROYS the
-    rename preselection (GTK icon views swallow ctrl+a), so typing then
-    appends ('report.txtreport-final.txt' on disk)."""
-    driver = make_driver(
-        ["form.png"] * 6,
-        elements=[{"token": "e1", "role": "entry", "label": "Name", "x": 10, "y": 20, "w": 300, "h": 30}],
-    )
+    bug').  A RETRY of the focus+type fallback must ctrl+a (replace) so
+    attempts are idempotent.  The FIRST attempt must NOT: fields start empty
+    (forms) or preselected (F2 inline rename), and the live probe showed the
+    select-all DESTROYS the rename preselection (GTK icon views swallow
+    ctrl+a), so typing then appends ('report.txtreport-final.txt' on disk).
+    X9: this drives the BOX (fallback) path — an a11y-grounded step uses
+    set_value, which is replace-semantics already and never needs ctrl+a."""
+    driver = make_driver(["form.png"] * 6, elements=[])
     gate = FakeGate()
     gate.ask_noul = 0.9
+    box = LocateResult(found=True, presence=0.9, confidence=0.9, box=(0.1, 0.2, 0.3, 0.4),
+                       center=(200, 300), grounding="box", usage=_usage())
+    gate.locate_results.append(box)
+    gate.locate_results.append(LocateResult(found=True, presence=0.9, confidence=0.9,
+                                            box=(0.1, 0.2, 0.3, 0.4), center=(200, 300),
+                                            grounding="box", usage=_usage()))
     steps = [
         agent.Step(action="type", target="Name", text="Ada", expect="the Name field shows Ada"),
         agent.Step(action="type", target="Name", text="Ada", expect="the Name field shows Ada"),
@@ -234,6 +292,7 @@ def test_type_step_retry_selects_all_before_typing(monkeypatch):
     methods = [c["method"] for c in driver.calls]
     keys = [c["args"].get("keys") for c in driver.calls if c["method"] == "key"]
     assert keys.count("ctrl+a") == 1  # only the repeat of the same field
+    assert "set_value" not in methods  # Box path never touches set_value
     assert methods.index("type_text") < methods.index("key")  # after the first attempt
 
 
@@ -241,8 +300,9 @@ def test_type_step_after_key_step_skips_the_pre_click(monkeypatch):
     """REAL failure (thunar rename): F2 opens an inline edit with the name
     preselected; the type step re-clicked the entry (caret move / AT-SPI
     activate) and the select-all was swallowed, so typing APPENDED.  A type
-    step that directly follows a key step must type into the already-focused
-    widget without clicking."""
+    step that directly follows a key step must not touch the field's focus —
+    X9: grounding finds the inline-edit element and set_value replaces the
+    WHOLE value (no click, no keystrokes, no preselection to lose)."""
     driver = make_driver(
         ["form.png"] * 6,
         elements=[{"token": "e1", "role": "text", "label": "report.txt", "x": 10, "y": 20, "w": 300, "h": 30}],
@@ -265,15 +325,19 @@ def test_type_step_after_key_step_skips_the_pre_click(monkeypatch):
     assert keys == ["F2"]  # no ctrl+a between F2 and typing
     clicks = [c for c in driver.calls if c["method"] in ("click", "click_element")]
     assert not clicks, "no re-click after the key step opened the inline edit"
-    typed = [c for c in driver.calls if c["method"] == "type_text"]
-    assert typed and typed[-1]["args"]["text"] == "renamed.txt"
+    assert "type_text" not in methods
+    sv = [c for c in driver.calls if c["method"] == "set_value"]
+    assert sv and sv[-1]["args"]["element_token"] == "e1"
+    assert sv[-1]["args"]["text"] == "renamed.txt"
 
 
 def test_box_type_step_grounds_to_nearest_editable(monkeypatch):
     """REAL failure (mousepad-save): the Save-As Name entry has an EMPTY a11y
     label; the Box locate finds the 'Name' LABEL and clicking it leaves the
     focus on the search box, so the typed filename landed wherever focus was.
-    A type step must ground to the editable field next to the located label."""
+    A type step must ground to the editable field next to the located label —
+    X9: and since grounding then holds an a11y element, delivery is set_value
+    on THAT element (the entry itself, never the label)."""
     driver = make_driver(
         ["form.png", "form.png", "form.png", "form.png"],
         elements=[
@@ -292,8 +356,11 @@ def test_box_type_step_grounds_to_nearest_editable(monkeypatch):
     result = agent.run_task("save it", driver, gate, {"max_steps": 5})
     rec = result.steps[0]
     assert rec.grounding == "a11y"
-    clicked = [c for c in driver.calls if c["method"] == "click_element"]
-    assert clicked and clicked[0]["args"]["token"] == "ent"
+    sv = [c for c in driver.calls if c["method"] == "set_value"]
+    assert sv and sv[0]["args"]["element_token"] == "ent"
+    assert sv[0]["args"]["text"] == "hello.txt"
+    clicked = [c for c in driver.calls if c["method"] in ("click", "click_element")]
+    assert not clicked, "set_value needs no focus click"
 
 
 def test_type_step_without_target_types_into_focus(monkeypatch):

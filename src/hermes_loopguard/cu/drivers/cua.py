@@ -445,6 +445,23 @@ class CuaDriver:
             self._activate(window)
         return self._act("type_text", payload, escalate=False)
 
+    def set_value(self, element_token: str, text: str) -> ActionResult:
+        """AT-SPI EditableText SetValue on one element (cua-driver 0.28.2
+        ``set_value`` tool).  Replaces the element's WHOLE value: no
+        keystrokes, no focus change, no preselection to lose — the reliable
+        delivery into GTK entries whose XSendEvent typing is flaky
+        (thunar-rename's inline edit, mousepad-save's Save-As field).
+
+        Not routed through ``_act()``: set_value is an accessibility action
+        (never background global input), so there is no foreground escalation
+        to make.  cua 0.28.2 requires ``pid`` alongside ``element_token``.
+        """
+        payload: dict[str, Any] = {"element_token": element_token, "value": str(text)}
+        window = self._token_windows.get(element_token) or self._app_window()
+        if window is not None:
+            payload["pid"] = window["pid"]
+        return self._parse(self._call("set_value", payload))
+
     def key(self, keys: str) -> ActionResult:
         """``"Return"``, ``"Tab"`` or combos like ``"ctrl+a"`` / ``"ctrl+shift+s"``."""
         parts = [p for p in keys.strip().split("+") if p]

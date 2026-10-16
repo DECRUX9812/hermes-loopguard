@@ -166,10 +166,13 @@ home-directory file names (the disposable-HOME fix is visible in the Save As sho
 
 ## What is still open
 
-1. **GTK inline-edit typing** (thunar-rename, mousepad-save r2): cua-driver's XSendEvent text
-   delivery into GTK entries is unreliable in this stack; renaming never completed for either
-   arm in any run ever recorded. A driver that could set entry values over AT-SPI (EditableText)
-   would bypass it.
+1. **mousepad-save** (thunar-rename is FIXED in X9): GTK text delivery itself is solved — the
+   driver's AT-SPI `set_value` (EditableText) replaced the flaky XSendEvent path for a11y-grounded
+   type steps (X9: thunar-rename 2/2 PASS, first ever; probe in `.oc/x9-driver.log`). What still
+   fails for mousepad-save is UPSTREAM of typing: the TypeSafe 400 storm kills the locate calls
+   that ground the 'Name'/'Save' steps (see item 2), and one r2 run died on an empty planner
+   answer (not yet caught by the `infra_error` marker). The baseline still fails both tasks every
+   run recorded (baseline-x7, unchanged — its endpoint has been 429 since 20:38).
 2. **TypeSafe `400 Invalid image dimensions`** are intermittent and server-side (identical
    screenshots pass a moment later). The same-model retry added in X7 recovers some calls, not
    all; 4 of 22 rows lost grounding calls to it.
@@ -238,6 +241,56 @@ both runs (payment risk 0.88-0.92, no payment submitted).
 If the Opus endpoint recovers, rerun the baseline on this exact code with the Reproduce commands
 (`--out results/baseline-x8.jsonl`) and replace the right column.
 
+### Targeted rerun (X9, set_value)
+
+X8's last remaining failure class was text delivery into GTK entries (cua-driver's XSendEvent
+`type_text`). The driver now has `set_value(element_token, text)` (AT-SPI EditableText SetValue —
+replaces the whole value with no keystrokes and no focus change; cua-driver 0.28.2 tool). In the
+agent, a type step grounded to an a11y editable element delivers with `set_value` FIRST and falls
+back to focus+`type_text` on error; Box-grounded steps keep the click-to-focus + type path. A
+successful `set_value` also makes retries idempotent (it replaces, so the ctrl+a retry never fires
+on this path). Grounding is untouched: still ONE a11y walk per grounding (X8 rule). Details and the
+live probe in `.oc/x9-driver.log` — by hand, set_value filled both the Thunar F2 inline edit (file
+actually renamed on disk) and Mousepad's Save-As Name field (the empty-label entry; text visible in
+the dialog).
+
+Only the two failing tasks reran (`results/jev-x9.jsonl`, both repeats; baseline NOT rerun — the
+Opus endpoint has been 429 since 20:38, so the baseline side of these tasks stands from
+baseline-x7, where both tasks failed both repeats):
+
+| Task | Jev X9 r1 | Jev X9 r2 | Jev $ (r1 / r2) | Jev wall (r1 / r2) |
+|---|---|---|---|---|
+| mousepad-save | FAIL blocked 9 st | FAIL blocked 0 st | 0.0275 / 0.0004 | 267 s / 1.3 s |
+| thunar-rename | **PASS** 4 st | **PASS** 4 st | 0.0039 / 0.0039 | 10.4 s / 9.8 s |
+
+Round-by-round on the two failing tasks (Jev successes, 2 repeats per round):
+
+| Task | jev-x7 | jev-x8 | jev-x9 |
+|---|---|---|---|
+| mousepad-save | 0/2 | 0/2 | 0/2 |
+| thunar-rename | 0/2 | 0/2 | **2/2** |
+
+**thunar-rename is fixed**: first passes ever recorded, 10 s per run at $0.0039 (X7: blocked at
+6-9 steps, $0.011-0.014). The trace is click file -> F2 -> type via a11y (**set_value**) -> Return;
+the verify Noul is low (0.02) because the replaced inline edit barely changes the pixels, the
+screen-unchanged rule marks it `unverified`, and the Return step carries the judge-checked result.
+
+**mousepad-save still fails, and not because of delivery**: r1's grounding for both the 'Name'
+type and the 'Save' click died on the same TypeSafe `400 Invalid image dimensions` storm (marked
+infra_error; the one type step that did ground through the zoom path found no a11y editable within
+reach and its click+type fallback keystrokes did not land — the Name field frame shows empty), so
+the run blocked at 9 steps with the dialog open. r2 never started: the planner returned an empty
+steps list on its first call (a Flash-Lite flake; the infra marker does not catch that shape yet).
+The X8 open item therefore splits: text delivery is fixed where an editable element gets grounded;
+what remains for mousepad-save is grounding availability under the 400 storm (open item 2) and the
+unmarked empty-planner flake.
+
+![jev mousepad-save r1](examples/cu_bench/results/thumbs/x9/jev-mousepad-save-r1-006-before.jpg)
+
+The one failing-run thumbnail is in `results/thumbs/x9/` (r2 ended before its first frame was
+saved). It was OCR-checked: Save-As dialog, disposable "home" breadcrumb, no account name, no
+/home paths, no real file names.
+
 ## Caveats
 
 - TypeSafe labels image input and the Box question "Dreamer-ready", not production. Formats,
@@ -257,10 +310,9 @@ PY=</path/to/venv>/bin/python    # needs the bench extras: typesafe-sdk, pillow
 $PY -c "import typesafe_sdk"                                     # interpreter check
 flock /tmp/lg-cu/stack.lock examples/cu_bench/stack.sh start     # Xvfb :97 stack
 cd examples/cu_bench
-flock /tmp/lg-cu/stack.lock env PYTHONPATH=../../src \
-  $PY run_bench.py --arm jev --tasks all --repeat 2 --out results/jev-x7.jsonl
-flock /tmp/lg-cu/stack.lock env PYTHONPATH=../../src \
-  $PY run_bench.py --arm baseline --tasks all --repeat 2 --out results/baseline-x7.jsonl
+# run_bench.py takes /tmp/lg-cu/stack.lock itself; an outer flock would deadlock
+env PYTHONPATH=../../src $PY run_bench.py --arm jev --tasks all --repeat 2 --out results/jev-x7.jsonl
+env PYTHONPATH=../../src $PY run_bench.py --arm baseline --tasks all --repeat 2 --out results/baseline-x7.jsonl
 PYTHONPATH=../../src $PY run_bench.py --summary
 ```
 

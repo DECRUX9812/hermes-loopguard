@@ -1122,28 +1122,41 @@ def run_task(
         if step.action == "click":
             res = driver.click_element(el) if el is not None else driver.click(point[0], point[1])
         elif step.action == "type":
-            # The previous step was a KEY step (e.g. F2/rename opens an
-            # inline edit with the text preselected): the field is already
-            # focused and clicking it again only moves the caret / drops the
-            # selection — type straight into the focused widget.
-            after_key = len(records) >= 2 and records[-2].action == "key"
-            if not after_key:
-                if el is not None:
-                    driver.click_element(el)
-                elif point is not None:
-                    driver.click(point[0], point[1])
-                time.sleep(0.3)
-            # Fill semantics on RETRIES: select whatever is in the field and
-            # replace it (typing alone appends, so a retried step would
-            # duplicate text).  On the FIRST attempt the field starts empty
-            # (forms) or with the text preselected (inline rename), and the
-            # select-all is actively harmful there (GTK icon views swallow
-            # ctrl+a and the preselection is lost — typing then appends).
-            if type_attempts.get(step.sig(), 0) >= 1:
-                driver.key("ctrl+a")
-                time.sleep(0.15)
-            type_attempts[step.sig()] = type_attempts.get(step.sig(), 0) + 1
-            res = driver.type_text(str(step.text or ""))
+            # X9: when grounding found an a11y editable element, deliver the
+            # text with AT-SPI set_value FIRST — it REPLACES the element's
+            # whole value with no keystrokes and no focus change, which is
+            # exactly what the flaky XSendEvent path keeps losing (GTK inline
+            # rename drops its preselection; the Save-As field never got the
+            # text).  Focus+type_text stays as the fallback for a set_value
+            # error and as THE path for Box-grounded steps.
+            res: ActionResult | None = None
+            if el is not None and role_is_editable(el.role):
+                res = driver.set_value(el.token, str(step.text or ""))
+            if res is None or not res.ok or res.effect == "error":
+                # The previous step was a KEY step (e.g. F2/rename opens an
+                # inline edit with the text preselected): the field is already
+                # focused and clicking it again only moves the caret / drops the
+                # selection — type straight into the focused widget.
+                after_key = len(records) >= 2 and records[-2].action == "key"
+                if not after_key:
+                    if el is not None:
+                        driver.click_element(el)
+                    elif point is not None:
+                        driver.click(point[0], point[1])
+                    time.sleep(0.3)
+                # Fill semantics on RETRIES: select whatever is in the field and
+                # replace it (typing alone appends, so a retried step would
+                # duplicate text).  On the FIRST attempt the field starts empty
+                # (forms) or with the text preselected (inline rename), and the
+                # select-all is actively harmful there (GTK icon views swallow
+                # ctrl+a and the preselection is lost — typing then appends).
+                # A SUCCESSFUL set_value never lands here: it is replace-
+                # semantics already, so retries of it are idempotent.
+                if type_attempts.get(step.sig(), 0) >= 1:
+                    driver.key("ctrl+a")
+                    time.sleep(0.15)
+                type_attempts[step.sig()] = type_attempts.get(step.sig(), 0) + 1
+                res = driver.type_text(str(step.text or ""))
         elif step.action == "key":
             res = driver.key(str(step.keys or ""))
         elif step.action == "scroll":

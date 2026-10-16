@@ -13,7 +13,7 @@ from hermes_loopguard.cu.driver import ActionResult, Element, Frame, register_dr
 
 __all__ = ["FakeDriver"]
 
-_ACTION_METHODS = ("click", "click_element", "type_text", "key", "scroll")
+_ACTION_METHODS = ("click", "click_element", "type_text", "set_value", "key", "scroll")
 
 
 @register_driver("fake")
@@ -137,6 +137,10 @@ class FakeDriver:
     def type_text(self, text: str) -> ActionResult:
         self._record("type_text", {"text": text})
         return self._next_result("type_text")
+
+    def set_value(self, element_token: str, text: str) -> ActionResult:
+        self._record("set_value", {"element_token": element_token, "text": text})
+        return self._next_result("set_value")
 
     def key(self, keys: str) -> ActionResult:
         self._record("key", {"keys": keys})

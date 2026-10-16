@@ -263,6 +263,36 @@ def test_type_text_targets_window_foreground(cua):
     assert payload["pid"] == REAL["list_windows"]["windows"][0]["pid"]
 
 
+def test_set_value_sends_element_token_value_pid(cua):
+    """X9: set_value targets the ELEMENT over AT-SPI (token + pid + value),
+    not a window with keystrokes: no delivery_mode, no window_id."""
+    el = cua.find_element("Name")
+    res = cua.set_value(el.token, "Ada Lovelace")
+    cmd = cua._fake_proc.calls[-1]
+    assert cmd[4] == "set_value"
+    payload = json.loads(cmd[5])
+    assert payload["element_token"] == el.token
+    assert payload["value"] == "Ada Lovelace"
+    assert payload["pid"] == REAL["list_windows"]["windows"][0]["pid"]
+    assert "delivery_mode" not in payload
+    assert isinstance(res, ActionResult)
+
+
+def test_set_value_reports_cli_error_as_error_result(cua, monkeypatch):
+    """A set_value failure (e.g. the element is not EditableText) must come
+    back as ActionResult(ok=False, effect='error') so the agent can fall
+    back to focus+type_text — never raise."""
+    script = cua._fake_proc.script
+    script["set_value"] = json.dumps(
+        {"code": "set_value_unsupported", "detail": "role does not expose EditableText"}
+    )
+    el = cua.find_element("Name")
+    res = cua.set_value(el.token, "Ada")
+    assert res.ok is False
+    assert res.effect == "error"
+    assert "set_value_unsupported" in res.error
+
+
 def test_key_single_vs_combo(cua):
     cua.key("Return")
     assert cua._fake_proc.calls[-1][4] == "press_key"
