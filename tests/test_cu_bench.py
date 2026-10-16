@@ -544,8 +544,17 @@ def test_launcher_spawn_keeps_home_and_tracks_but_reset_kills_and_wipes(tmp_path
         # spawning did NOT wipe the first app's files
         assert (home_root / "first-app-file.txt").exists()
         # and the app really runs with the disposable identity
-        with open(f"/proc/{resp['pid']}/environ", "rb") as fh:
-            env = fh.read().split(b"\0")
+        # /proc/<pid>/environ is empty until the child has exec'd; on a fast
+        # spawn (CI runners) the first read can land before that.
+        import time
+
+        deadline = time.monotonic() + 5.0
+        while True:
+            with open(f"/proc/{resp['pid']}/environ", "rb") as fh:
+                env = fh.read().split(b"\0")
+            if env != [b""] or time.monotonic() > deadline:
+                break
+            time.sleep(0.05)
         assert b"HOME=" + str(home_root).encode() in env
         assert b"USER=bench" in env
 
