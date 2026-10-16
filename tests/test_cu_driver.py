@@ -26,6 +26,7 @@ from hermes_loopguard.cu.driver import (
 )
 from hermes_loopguard.cu.drivers.cua import (
     CuaDriver,
+    best_match,
     desktop_to_window_local,
     window_local_to_desktop,
 )
@@ -569,6 +570,35 @@ def test_find_element_reverse_containment_matches_over_specified_target(monkeypa
     hit = driver.find_element("Dark mode switch")
     assert hit is not None and hit.token == "sw"
     assert driver.find_element("Nothing like this") is None
+
+
+def test_match_score_reverse_containment_requires_word_boundary():
+    """X8: target 'Username field' must not match the label 'Name' hiding
+    INSIDE the word 'Username' — a substring-only reverse containment ties
+    with the real 'Username' label and walk order picked 'Name'."""
+    score = CuaDriver._match_score
+    assert score("username field", "Name") == -1  # 'name' inside 'username'
+    assert score("username field", "Username") == 1  # whole word: matches
+    assert score("dark mode switch", "Dark mode") == 1  # still matches on boundary
+
+
+def test_best_match_prefers_longer_label_on_tie():
+    """X8: two reverse-containment hits ('Username', 'field') must not be
+    decided by walk order — the LONGER label is the more specific match."""
+    els = [
+        Element(token="f", role="entry", label="field", x=0, y=0, w=50, h=30),
+        Element(token="u", role="entry", label="Username", x=0, y=40, w=50, h=30),
+    ]
+    assert best_match(els, "Username field").token == "u"
+
+
+def test_best_match_role_filter():
+    els = [
+        Element(token="lab", role="label", label="Name", x=0, y=0, w=50, h=30),
+        Element(token="ent", role="entry", label="Name", x=0, y=40, w=50, h=30),
+    ]
+    assert best_match(els, "Name", role="entry").token == "ent"
+    assert best_match(els, "Name", role="push button") is None
 
 
 def test_screenshot_retries_once_on_capture_error(cua):

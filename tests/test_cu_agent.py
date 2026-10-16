@@ -15,11 +15,13 @@ unless the test exercises the no-op path.
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 import pytest
 
 from hermes_loopguard.cu import agent
+from hermes_loopguard.cu.driver import Element, Frame
 from hermes_loopguard.cu.drivers.fake import FakeDriver
 from hermes_loopguard.cu.vision import (
     ChangeResult,
@@ -1031,3 +1033,136 @@ def test_goal_replan_drops_exact_repeats_of_verified_steps(monkeypatch):
     assert dark_clicks[0].verdict == "pass"
     # the non-repeat (Save) still runs
     assert any(s.target == "Save" for s in result.steps[1:])
+
+
+# ------------------------------------------------------------------ X8: grounding speed + role matching
+
+
+class _ScriptedWalkDriver:
+    """Stands in for a driver whose AT-SPI walk is EXPENSIVE: every
+    elements() call IS a walk (counted); each walk pops the next scripted
+    answer, then keeps repeating the last one."""
+
+    def __init__(self, walks: list[list["Element"]], app: str = ""):
+        self._walks = list(walks)
+        self._last: list[Element] = []
+        self.app = app
+        self.walk_count = 0
+
+    def elements(self, app: str | None = None) -> list[Element]:
+        self.walk_count += 1
+        if self._walks:
+            self._last = self._walks.pop(0)
+        return self._last
+
+
+_FRAME = None
+
+
+def _frame() -> Frame:
+    global _FRAME
+    if _FRAME is None:
+        from hermes_loopguard.cu.driver import Frame as _F
+
+        _FRAME = _F(png=b"", width=1280, height=800, ts=0.0)
+    return _FRAME
+
+
+def _el(token, role, label, y=0):
+    return Element(token=token, role=role, label=label, x=0, y=y, w=200, h=30)
+
+
+def test_ground_walks_once_for_a_gtk_app(monkeypatch):
+    """X8 REAL failure: ground(prefer_editable=True) called find_element once
+    per EDITABLE_ROLES entry (9) plus once untyped, and every miss re-walked
+    3 times with sleeps — a Mousepad+Save-As walk costs ~20 s, so one type
+    step took up to ~20 min.  One walk per grounding, roles filtered in
+    memory; a non-browser app must NEVER get extra walks."""
+    driver = _ScriptedWalkDriver(
+        [[_el("ent", "text", "Name")]],  # the Save-As entry, walk 1
+        app="Mousepad",
+    )
+    gate = FakeGate()
+    grounding, box, point, el, usages = agent.ground(
+        driver, gate, _frame(), "Name", prefer_editable=True
+    )
+    assert grounding == "a11y" and el is not None and el.token == "ent"
+    assert driver.walk_count == 1
+
+
+def test_ground_single_walk_even_on_a_total_miss_for_gtk(monkeypatch):
+    driver = _ScriptedWalkDriver([[]], app="Mousepad")
+    gate = FakeGate()  # locate answers found=False -> box+zoom paths also miss
+    grounding, box, point, el, usages = agent.ground(
+        driver, gate, _frame(), "Nothing", prefer_editable=True
+    )
+    assert grounding == "none" and el is None
+    assert driver.walk_count == 1  # not 10 find_element calls x 3 retries
+
+
+def test_ground_extra_walks_only_for_the_browser_second_walk_quirk(monkeypatch):
+    """Chrome exposes its web-content tree only from the SECOND walk on; the
+    retry walks are kept ONLY for browser drivers."""
+    chrome = _ScriptedWalkDriver(
+        [[], [_el("btn", "push button", "Search", y=40)]], app="chrome"
+    )
+    gate = FakeGate()
+    grounding, box, point, el, usages = agent.ground(chrome, gate, _frame(), "Search")
+    assert grounding == "a11y" and el is not None and el.token == "btn"
+    assert chrome.walk_count == 2
+
+    # ...and bounded when the tree never shows up
+    chrome2 = _ScriptedWalkDriver([[], [], []], app="chrome")
+    grounding, box, point, el, usages = agent.ground(chrome2, gate, _frame(), "Search")
+    assert grounding == "none" and el is None
+    assert chrome2.walk_count == 3  # 1 + 2 quirk retries, no more
+
+
+def test_ground_type_step_nearest_editable_reuses_the_walk():
+    """The nearest-editable fallback must not take a SECOND walk: the
+    grounding already walked once (X8: one walk per grounding)."""
+    driver = _ScriptedWalkDriver(
+        [[_el("ent", "text", "", y=60)]], app="Mousepad"
+    )
+    gate = FakeGate()
+    gate.locate_results.append(
+        LocateResult(found=True, presence=0.9, confidence=0.9,
+                     box=(0.01, 0.07, 0.05, 0.12), center=(35, 75),
+                     grounding="box", usage=_usage())
+    )
+    grounding, box, point, el, usages = agent.ground(
+        driver, gate, _frame(), "Name", prefer_editable=True
+    )
+    assert grounding == "a11y" and el is not None and el.token == "ent"
+    assert driver.walk_count == 1
+
+
+def test_role_is_editable_is_exact_per_role_name():
+    """X8: the EDITABLE_ROLES entry 'text' matched by SUBSTRING, so AT-SPI's
+    'static text' (a plain label!) counted as editable — nearest-editable
+    could then ground a type step to a label.  Matching is exact per role
+    name."""
+    assert agent.role_is_editable("text")
+    assert agent.role_is_editable("Text Box")  # case-insensitive
+    assert agent.role_is_editable("entry")
+    assert agent.role_is_editable("password text")
+    assert not agent.role_is_editable("static text")
+    assert not agent.role_is_editable("push button")
+    assert not agent.role_is_editable("")
+
+
+def test_nearest_editable_never_picks_a_static_text_label():
+    els = [
+        _el("lab", "static text", "Name", y=60),  # nearest, but NOT editable
+        _el("ent", "text", "", y=90),             # farther, but editable
+    ]
+    picked = agent._nearest_editable(None, (10, 75), els=els)
+    assert picked is not None and picked.token == "ent"
+
+
+def test_planner_prompt_bullets_are_space_separated():
+    """X7's added prompt lines ended without a trailing space, gluing the
+    next bullet onto the sentence ('confirmed.- To move', 'list.- A step')."""
+    assert not re.search(r"\S- ", agent._PLANNER_SYSTEM)
+    assert "confirmed. - To move" in agent._PLANNER_SYSTEM
+    assert "in the list. - A step" in agent._PLANNER_SYSTEM

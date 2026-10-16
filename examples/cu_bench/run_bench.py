@@ -115,6 +115,29 @@ def kill_bench_apps() -> None:
     time.sleep(1.5)
 
 
+def launcher_request(req: dict, timeout: float = 30.0) -> dict:
+    """Send one request to the app launcher socket ({"reset": true} or
+    {"argv": [...]}); returns its JSON response ({} on any failure)."""
+    import socket as _socket
+
+    sock_path = "/tmp/lg-cu/launcher.sock"
+    try:
+        with _socket.socket(_socket.AF_UNIX, _socket.SOCK_STREAM) as s:
+            s.settimeout(timeout)
+            s.connect(sock_path)
+            s.sendall((json.dumps(req) + "\n").encode())
+            s.shutdown(_socket.SHUT_WR)
+            out = b""
+            while True:
+                chunk = s.recv(65536)
+                if not chunk:
+                    break
+                out += chunk
+        return json.loads(out.decode().strip() or "{}")
+    except (OSError, json.JSONDecodeError) as e:
+        return {"error": f"launcher request failed: {e}"}
+
+
 def load_tasks(which: str) -> list[dict]:
     tasks = []
     for path in sorted(HERE.glob("tasks/*.yaml")):
@@ -276,6 +299,173 @@ def judge_task(task: dict, log_index_before: int) -> tuple[bool, list[str]]:
     return ok_all, details
 
 
+def list_windows_cli(timeout: float = 10.0) -> list[dict]:
+    """cua-driver list_windows via the CLI (returns [] on any failure)."""
+    try:
+        out = subprocess.run(
+            ["cua-driver", "call", "--socket", SOCKET, "list_windows", "{}"],
+            capture_output=True, text=True, timeout=timeout,
+        ).stdout
+        windows = json.loads(out).get("windows", [])
+        return [w for w in windows if isinstance(w, dict)]
+    except (json.JSONDecodeError, subprocess.SubprocessError, OSError):
+        return []
+
+
+# Window-manager / desktop shells that are NOT bench apps (the display-empty
+# check must not count them as leftovers).
+_WM_APPS = ("xfwm", "xfce4", "marco", "mutter", "muffin", "openbox")
+
+
+def _is_bench_app_window(w: dict) -> bool:
+    """True for real app windows; False for the desktop WM and cua-driver's
+    own pid-less, full-screen cursor overlay (never clickable, never a leak)."""
+    app = str(w.get("app_name", "")).lower()
+    if any(name in app for name in _WM_APPS):
+        return False
+    if not w.get("pid") and ("cua" in app or "cursor" in str(w.get("title", "")).lower()):
+        return False
+    return bool(app) or bool(w.get("pid"))
+
+
+def wait_display_empty(timeout_s: float = 30.0, poll_s: float = 1.0) -> str | None:
+    """After the per-task reset: verify NO bench app window is left on :97
+    before the next task starts.  Returns None when empty, else an error
+    naming the leftover windows (REAL leak: a Mousepad Save-As dialog and a
+    LibreOffice Writer window survived the old pattern-based kills and sat on
+    the display between tasks, ruining the next task's screenshots)."""
+    deadline = time.time() + timeout_s
+    leftovers: list[dict] = []
+    while time.time() < deadline:
+        windows = list_windows_cli()
+        leftovers = [w for w in windows if _is_bench_app_window(w)]
+        if not leftovers:
+            return None
+        time.sleep(poll_s)
+    names = ", ".join(
+        f"{w.get('app_name', '?')}/{str(w.get('title', ''))[:40]}" for w in leftovers
+    )
+    return f"display :97 not empty after the reset; leftover windows: {names}"
+
+
+def frame_is_blank(png: bytes, threshold: float = 2.0) -> bool:
+    """True when the screenshot is (near-)uniform — a window that is mapped
+    but has not painted yet (REAL failure: P6B captured a black settings
+    frame because the first GTK map under the disposable HOME took >10 s)."""
+    from io import BytesIO
+
+    from PIL import Image, ImageStat
+
+    try:
+        img = Image.open(BytesIO(png)).convert("L")
+    except Exception:
+        return True  # unreadable frame: treat as not-ready, keep waiting
+    stat = ImageStat.Stat(img)
+    return float(stat.stddev[0]) < threshold
+
+
+def wait_app_ready(
+    app: str | None,
+    *,
+    driver=None,
+    timeout_s: float = 120.0,
+    poll_s: float = 1.0,
+) -> str | None:
+    """Block until the task's app window is mapped, exposes a11y elements and
+    has actually painted (not a blank frame).  Bounded; returns a clear error
+    string on timeout, None when ready.  Runs for BOTH arms — the arms must
+    never start on a half-mapped desktop."""
+    if not app:
+        return None
+    from hermes_loopguard.cu.driver import get_driver
+
+    own = driver is None
+    if driver is None:
+        driver = get_driver("cua", socket=SOCKET, app=app)
+    try:
+        deadline = time.time() + timeout_s
+        last = "no probe ran"
+        while time.time() < deadline:
+            try:
+                els = driver.elements()
+            except Exception as e:
+                els, last = [], f"a11y probe failed: {e}"
+            if not els:
+                last = "app window not mapped / exposes no a11y elements yet"
+            else:
+                try:
+                    frame = driver.screenshot()
+                    if frame_is_blank(frame.png):
+                        last = "window is mapped but the frame is blank (still painting)"
+                    else:
+                        return None
+                except Exception as e:
+                    last = f"screenshot failed: {e}"
+            time.sleep(poll_s)
+        return f"app {app!r} not ready after {timeout_s:.0f}s: {last}"
+    finally:
+        if own:
+            try:
+                driver.close()
+            except Exception:
+                pass
+
+
+def infra_error_reason(row: dict) -> str:
+    """Why this row's failure is INFRASTRUCTURE (model endpoint error/timeout,
+    driver capture error, app never became ready), or "" when it is a task
+    failure.  Infra rows stay in the data; BENCH.md reports them separately
+    instead of as task failures."""
+    state = str(row.get("terminal_state", ""))
+    reason = str(row.get("reason", ""))
+    if row.get("success"):
+        return ""  # infra errors only explain failures, never successes
+    if state in ("error", "infra_error"):
+        return reason or "runner/infra exception"
+    if reason.startswith("driver screenshot failed"):
+        return reason  # the run died on a driver capture failure
+    trace = row.get("trace") or []
+    if trace and not trace[-1].get("action"):
+        error = str(trace[-1].get("error") or "")
+        if error:
+            # The run ended on a model call that never answered (baseline
+            # "every model failed: <model>: timed out" shape).
+            return f"model endpoint failed: {error}"
+    # Jev arm: a failing step whose grounding never got a model answer — the
+    # locate calls all died on endpoint errors (TypeSafe 400s, timeouts, 429s),
+    # so the step failure is infrastructure, not agent behavior.
+    if any(
+        t.get("verdict") == "fail" and str(t.get("effect", "")).startswith("grounding failed")
+        for t in trace
+    ) and _endpoint_errors(row):
+        return "grounding locate calls died on model endpoint errors: " + _endpoint_errors(row)
+    return ""
+
+
+def _endpoint_errors(row: dict) -> str:
+    """A short summary of the endpoint errors in the row's fallback list."""
+    import re as _re
+
+    errors = []
+    for fb in row.get("fallbacks") or []:
+        text = str(fb)
+        if _re.search(r"(timed out|HTTP Error|System One call failed|non-JSON stdout|Capture err)", text):
+            model = text.split(":", 1)[0].strip()
+            if model == "openai" and ":" in text:
+                model = "openai:" + text.split(":")[1].strip()  # "openai:<model>"
+            kind = ("timeout" if "timed out" in text
+                    else "HTTP 400 image dimensions" if "Invalid image dimensions" in text
+                    else "HTTP error" if "HTTP Error" in text
+                    else "capture error" if "Capture err" in text
+                    else "endpoint error")
+            errors.append(f"{model}: {kind}")
+    seen: list[str] = []
+    for e in errors:
+        if e not in seen:
+            seen.append(e)
+    return "; ".join(seen[:4]) + (f" (+{len(seen) - 4} more)" if len(seen) > 4 else "")
+
+
 def wait_browser_ready(timeout_s: float = 120.0) -> None:
     """After open_url setup: poll cua list_windows until a chrome window has a
     real page title — chrome titles end with " - Google Chrome" only once the
@@ -283,14 +473,7 @@ def wait_browser_ready(timeout_s: float = 120.0) -> None:
     turns burned watching chrome cold-start (28s warm, minutes worst case)."""
     deadline = time.time() + timeout_s
     while time.time() < deadline:
-        try:
-            out = subprocess.run(
-                ["cua-driver", "call", "--socket", SOCKET, "list_windows", "{}"],
-                capture_output=True, text=True, timeout=10,
-            ).stdout
-            windows = json.loads(out).get("windows", [])
-        except (json.JSONDecodeError, subprocess.SubprocessError):
-            windows = []
+        windows = list_windows_cli()
         for w in windows:
             title = str(w.get("title", "")).strip()
             lower = title.lower()
@@ -478,7 +661,19 @@ def run(args) -> int:
                     )
                     return 2
                 print(f"=== {task['id']} repeat {repeat}: reset ===", flush=True)
+                # Per-TASK reset (X8): the launcher kills every app it spawned
+                # (tracked PIDs + process groups, SIGTERM -> SIGKILL) and THEN
+                # wipes the disposable HOME once per task.  The scoped pattern
+                # kills below stay as a fallback for apps not spawned through
+                # the launcher; the display must be EMPTY before the next task.
+                reset_resp = launcher_request({"reset": True})
+                if reset_resp.get("error"):
+                    print(f"  launcher reset error: {reset_resp['error']}", flush=True)
+                elif reset_resp.get("alive"):
+                    print(f"  WARNING: tracked apps survived the reset: {reset_resp['alive']}", flush=True)
                 kill_bench_apps()
+                if (err := wait_display_empty()) is not None:
+                    print(f"  RESET ERROR: {err}", flush=True)
                 log_index_before = len(read_log())
                 setup = subprocess.run(
                     [sys.executable, str(HERE / "setup.py"), task["id"]],
@@ -492,9 +687,38 @@ def run(args) -> int:
                 )
                 if is_browser:
                     wait_browser_ready()
-                    time.sleep(2.0)
-                else:
-                    time.sleep(6.0)
+                # Both arms start only on a mapped, a11y-exposed, painted app
+                # window (bounded wait); otherwise the row is an infra error.
+                app = task_app(task)
+                ready_err = wait_app_ready(app)
+                if ready_err is not None:
+                    print(f"  APP READY ERROR: {ready_err}", flush=True)
+                    row = {
+                        "task": task["id"],
+                        "arm": args.arm,
+                        "repeat": repeat,
+                        "ts": time.time(),
+                        "model": (baseline_model() if args.arm == "baseline" else planner_model()),
+                        "terminal_state": "infra_error",
+                        "steps": 0,
+                        "wall_s": 0.0,
+                        "calls_per_model": {},
+                        "input_tokens": 0,
+                        "output_tokens": 0,
+                        "usd": 0.0,
+                        "big_model_calls": 0,
+                        "reason": ready_err,
+                        "infra_error": ready_err,
+                    }
+                    ok, details = judge_task(task, log_index_before)
+                    row["success"] = ok
+                    row["judge"] = details
+                    row["unpriced_models"] = []
+                    write_row(out, row)
+                    for d in details:
+                        print(f"     {d}", flush=True)
+                    continue
+                time.sleep(2.0)  # settle after the app is up
 
                 print(f"=== {task['id']} repeat {repeat}: run {arm_name(args.arm)} ===", flush=True)
                 row = {
@@ -525,6 +749,12 @@ def run(args) -> int:
                 ok, details = judge_task(task, log_index_before)
                 row["success"] = ok
                 row["judge"] = details
+                # Infrastructure failures (endpoint errors/timeouts, driver
+                # capture errors) are REPORTED SEPARATELY, not dropped and
+                # not silently counted as plain task failures (X8).
+                row["infra_error"] = infra_error_reason(row)
+                if row["infra_error"]:
+                    print(f"  INFRA ERROR: {row['infra_error']}", flush=True)
                 # Flag unpriced models on this row (should be none: check_pricing).
                 unpriced = pricing.unpriced_models(list(row["calls_per_model"]))
                 row["unpriced_models"] = unpriced
@@ -594,6 +824,7 @@ def aggregate(rows: list[dict]) -> dict:
                 "output_tokens": 0,
                 "usd": 0.0,
                 "big_model_calls": 0,
+                "infra_errors": 0,
                 "tasks": {},
             },
         )
@@ -605,6 +836,8 @@ def aggregate(rows: list[dict]) -> dict:
         cell["output_tokens"] += row.get("output_tokens", 0)
         cell["usd"] += row.get("usd", 0.0)
         cell["big_model_calls"] += row.get("big_model_calls", 0)
+        if row.get("infra_error"):
+            cell["infra_errors"] += 1
         tcell = cell["tasks"].setdefault(row["task"], {"attempts": 0, "successes": 0, "usd": 0.0})
         tcell["attempts"] += 1
         tcell["successes"] += 1 if row["success"] else 0
@@ -678,15 +911,18 @@ def summary(results_dir: Path | None = None) -> None:
     for armname, cell in agg.items():
         ups = (
             f"${cell['usd_per_success']:.4f}"
-            if cell["usd_per_success"] is not None
+            if cell['usd_per_success'] is not None
             else "n/a"
         )
+        failures = cell["attempts"] - cell["successes"]
         print(
             f"{armname:9s}: {cell['successes']}/{cell['attempts']} succeeded, "
             f"avg steps {cell['avg_steps']:.1f}, wall {cell['wall_s']:.0f}s, "
             f"tokens {cell['input_tokens']}/{cell['output_tokens']}, "
             f"${cell['usd']:.4f} total, ${ups} per success, "
-            f"big-model calls {cell['big_model_calls']}"
+            f"big-model calls {cell['big_model_calls']}, "
+            f"infra errors {cell.get('infra_errors', 0)} "
+            f"({failures - cell.get('infra_errors', 0)} task failure(s))"
         )
     if "baseline" in agg and "jev" in agg:
         b, j = agg["baseline"]["usd"], agg["jev"]["usd"]

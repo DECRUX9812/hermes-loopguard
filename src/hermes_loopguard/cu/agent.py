@@ -37,6 +37,7 @@ from typing import Any
 
 from hermes_loopguard.cu import frames, pricing
 from hermes_loopguard.cu.driver import ActionResult, ComputerDriver, Element, Frame
+from hermes_loopguard.cu.drivers.cua import best_match
 from hermes_loopguard.cu.stall import StallDetector
 from hermes_loopguard.cu.vision import VisionError, VisionGate, VisionUsage
 from hermes_loopguard.questions import Noul
@@ -337,14 +338,14 @@ _PLANNER_SYSTEM = (
     "Lovelace\". Use action \"key\" with keys like \"Return\" or \"ctrl+a\". "
     "- When typing into a rename or save-as name field, make `expect` the OUTCOME (the new "
     "name shown in the file list, the window title), not the text inside the field: such "
-    "fields often close as soon as the step is confirmed."
+    "fields often close as soon as the step is confirmed. "
     "- To move or copy a file in a file manager: click the file to select it, press key "
     "\"ctrl+x\" (or \"ctrl+c\"), click the destination folder, then press key \"ctrl+v\"; set "
     "the expect of that final paste to the file appearing in the destination. "
     "- To rename an item in a file manager: click the item, press key \"F2\", then ONE type "
     "step with the NEW name (target = the item's current name; the field opens with the old "
     "name preselected, so do not add select-all or extra clicks between F2 and typing), then "
-    "key \"Return\"; set the expect of the type step to the new name shown in the list."
+    "key \"Return\"; set the expect of the type step to the new name shown in the list. "
     "- A step whose outcome shows no visible change (saving, selecting) must NOT claim one: "
     "give it the smallest honestly-checkable expect or none. "
     "- Ignore window-manager panels, docks and browser toolbars; act only in the app window "
@@ -555,6 +556,8 @@ def _pad_region(box: tuple[float, float, float, float], w: int, h: int, pad: flo
 # step should prefer these over a same-named static label: clicking a label
 # ("Feedback" heading) never focuses the field under it.  ("text" covers GTK
 # entries whose walk exposes an empty label, e.g. a Save-As name field.)
+# Roles are matched EXACTLY (role_is_editable): a substring rule would let
+# "text" match AT-SPI's "static text" — a plain label is not an editable.
 EDITABLE_ROLES = (
     "entry",
     "text box",
@@ -567,6 +570,35 @@ EDITABLE_ROLES = (
     "combo box",
 )
 
+_EDITABLE_ROLE_SET = frozenset(r.strip().lower() for r in EDITABLE_ROLES)
+
+
+def role_is_editable(role: str) -> bool:
+    """True when the AT-SPI role name IS an editable role (exact match per
+    role name, whitespace/case-insensitive)."""
+    return role.strip().lower() in _EDITABLE_ROLE_SET
+
+
+# Browsers expose their web-content a11y tree only from the second walk on
+# (cua-driver quirk): only these app drivers justify extra walks when an
+# in-memory match over the first walk finds nothing.
+_BROWSER_APPS = ("chrome", "chromium", "brave", "edge", "firefox")
+
+
+def _is_browser_driver(driver: ComputerDriver) -> bool:
+    app = str(getattr(driver, "app", "") or "").lower()
+    return any(name in app for name in _BROWSER_APPS)
+
+
+def _walk_elements(driver: ComputerDriver) -> list[Element]:
+    """ONE fresh AT-SPI walk.  A walk of a GTK app plus its dialog is SLOW
+    (~20 s on this stack), so grounding must never walk repeatedly (X8: the
+    per-role find_element loop cost up to ~20 min for one type step)."""
+    try:
+        return list(driver.elements())
+    except Exception:
+        return []
+
 
 def _rect_distance(el: Element, x: float, y: float) -> float:
     """Distance from a desktop point to the element's rectangle (0 inside)."""
@@ -575,7 +607,7 @@ def _rect_distance(el: Element, x: float, y: float) -> float:
     return (dx * dx + dy * dy) ** 0.5
 
 
-def _nearest_editable(driver: ComputerDriver, point: tuple[int, int]) -> Element | None:
+def _nearest_editable(driver: ComputerDriver, point: tuple[int, int], els: list[Element] | None = None) -> Element | None:
     """The editable a11y element closest to a Box-found point.
 
     REAL failure (mousepad-save): the Save-As dialog's Name entry has an
@@ -583,15 +615,15 @@ def _nearest_editable(driver: ComputerDriver, point: tuple[int, int]) -> Element
     it; the Box locate finds the 'Name' LABEL TEXT left of the entry, and
     clicking that leaves the focus on the search box / list — the typed path
     lands wherever focus was.  The editable field sits on the same row as the
-    label the planner meant; pick it.
+    label the planner meant; pick it.  `els` lets the caller reuse the walk
+    it already took for this grounding (one walk per grounding, X8).
     """
-    try:
-        candidates = [
-            el for el in driver.elements()
-            if any(role in el.role.lower() for role in EDITABLE_ROLES) and el.w > 0 and el.h > 0
-        ]
-    except Exception:
-        return None
+    if els is None:
+        els = _walk_elements(driver)
+    candidates = [
+        el for el in els
+        if role_is_editable(el.role) and el.w > 0 and el.h > 0
+    ]
     if not candidates:
         return None
     best = min(candidates, key=lambda el: _rect_distance(el, point[0], point[1]))
@@ -600,6 +632,15 @@ def _nearest_editable(driver: ComputerDriver, point: tuple[int, int]) -> Element
     if _rect_distance(best, point[0], point[1]) > 80:
         return None
     return best
+
+
+def _best_element(els: list[Element], target: str, *, editable_only: bool) -> Element | None:
+    """Best-specificity in-memory label match.  For type steps ONLY editable
+    roles qualify: a static element ("Name" label, role "static text") can be
+    clicked forever without focusing any field."""
+    if editable_only:
+        els = [el for el in els if role_is_editable(el.role)]
+    return best_match(els, target)
 
 
 def ground(
@@ -618,32 +659,28 @@ def ground(
 ]:
     """AT-SPI first (zero tokens), then Jev Box, then one zoomed retry.
 
-    prefer_editable (type steps): try role-filtered AT-SPI lookups first so a
-    static label with the same text cannot shadow the editable field.
+    prefer_editable (type steps): only editable-role AT-SPI elements ground a
+    type step, so a static label with the same text cannot shadow the field.
+
+    ONE AT-SPI walk per grounding: roles are filtered in memory over the
+    walk's elements.  Extra walks happen ONLY for the Chrome quirk (the
+    web-content tree is exposed from the second walk on) — a GTK walk is far
+    too slow to burn ten of them per step (X8: ~20 min for one type step).
     """
     usages: list[VisionUsage] = []
     if target:
-        el = None
-        if prefer_editable:
-            for role in EDITABLE_ROLES:
-                try:
-                    el = driver.find_element(target, role=role)
-                except Exception:
-                    el = None
+        els = _walk_elements(driver)
+        el = _best_element(els, target, editable_only=prefer_editable)
+        if el is None and _is_browser_driver(driver):
+            # Chrome's web tree appears only on a later walk; a couple of
+            # fresh walks (which also refresh element tokens) are the ONLY
+            # permitted retries.
+            for _ in range(2):
+                time.sleep(0.8)
+                els = _walk_elements(driver)
+                el = _best_element(els, target, editable_only=prefer_editable)
                 if el is not None:
                     break
-        if el is None:
-            try:
-                el = driver.find_element(target)
-            except Exception:
-                el = None
-            if el is not None and prefer_editable and not any(
-                role in el.role.lower() for role in EDITABLE_ROLES
-            ):
-                # A type step matched a STATIC element ("Name" label): clicking
-                # it never focuses the editable field it names.  Leave it to
-                # the Box locate + nearest-editable fallback below.
-                el = None
         if el is not None:
             return "a11y", None, el.center, el, usages
     if not target:
@@ -655,7 +692,7 @@ def ground(
         # editable it belongs to sits right next to it (same row).  Ground to
         # the editable so the click focuses the FIELD, not the label.
         if prefer_editable:
-            near = _nearest_editable(driver, loc.center)
+            near = _nearest_editable(driver, loc.center, els=els)
             if near is not None:
                 return "a11y", None, near.center, near, usages
         return "box", loc.box, loc.center, None, usages

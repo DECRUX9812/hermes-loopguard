@@ -485,3 +485,265 @@ def test_launcher_cwd_defaults_to_disposable_home():
     assert launcher.resolve_cwd("/tmp/lg-cu/files/fm-task", "/tmp/lg-cu/home") == (
         "/tmp/lg-cu/files/fm-task"
     )
+
+
+# --- X8: per-task reset kills every tracked app; HOME resets once per task ---
+
+
+def test_launcher_kill_tracked_kills_the_whole_process_group(tmp_path):
+    """X7 leak: a Mousepad stuck in its modal Save-As dialog ignored SIGTERM,
+    and the dialog haunted later tasks' screenshots.  The launcher must track
+    PIDs/process GROUPS and escalate to SIGKILL — the group kill takes child
+    processes (renderers, dialogs) with the parent."""
+    import os
+    import subprocess
+
+    import launcher
+
+    proc = subprocess.Popen(
+        ["bash", "-c", "sleep 60 & wait"],  # a child sharing the process group
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        start_new_session=True,
+    )
+    try:
+        pgid = os.getpgid(proc.pid)
+        tracked = {proc.pid: proc}
+        killed, alive = launcher.kill_tracked(tracked, grace_s=2.0)
+        assert killed == [proc.pid]
+        assert alive == []
+        assert tracked == {}  # reaped and dropped
+        # the whole group (parent + child sleep) is gone
+        assert subprocess.run(["pgrep", "-g", str(pgid)], capture_output=True).returncode != 0
+    finally:
+        proc.kill()
+
+
+def test_launcher_spawn_keeps_home_and_tracks_but_reset_kills_and_wipes(tmp_path):
+    """X8: reset_disposable_home must run ONCE PER TASK (on the reset
+    request), not per spawn — a second app launched in the same task used to
+    lose the first app's files.  The reset request also kills every tracked
+    app."""
+    import launcher
+
+    home_root = tmp_path / "home"
+    log_path = tmp_path / "apps.log"
+    launcher.reset_disposable_home(str(home_root))
+    (home_root / "first-app-file.txt").write_text("app one wrote this")
+    tracked: dict = {}
+    resp = launcher.handle_request(
+        {"argv": ["sleep", "30"]},
+        base_env={"DISPLAY": ":97", "HOME": "/home/bench"},
+        home_root=str(home_root),
+        log_path=str(log_path),
+        tracked=tracked,
+    )
+    try:
+        assert "pid" in resp
+        assert resp["pid"] in tracked  # the app is tracked for the task reset
+        # spawning did NOT wipe the first app's files
+        assert (home_root / "first-app-file.txt").exists()
+        # and the app really runs with the disposable identity
+        with open(f"/proc/{resp['pid']}/environ", "rb") as fh:
+            env = fh.read().split(b"\0")
+        assert b"HOME=" + str(home_root).encode() in env
+        assert b"USER=bench" in env
+
+        resp = launcher.handle_request(
+            {"reset": True},
+            base_env={},
+            home_root=str(home_root),
+            log_path=str(log_path),
+            tracked=tracked,
+        )
+        assert resp["reset"] == "ok"
+        assert resp["killed"] and not resp["alive"]
+        assert tracked == {}
+        assert not (home_root / "first-app-file.txt").exists()  # wiped once per task
+        for sub in ("", ".config", ".local/share", ".cache"):
+            assert (home_root / sub).is_dir()
+    finally:
+        for proc in tracked.values():
+            proc.kill()
+
+
+def test_launcher_handle_request_survives_bad_requests(tmp_path):
+    import launcher
+
+    tracked: dict = {}
+    for req in ({}, {"argv": []}, {"argv": "not-a-list"}):
+        resp = launcher.handle_request(
+            req,
+            base_env={},
+            home_root=str(tmp_path / "home"),
+            log_path=str(tmp_path / "apps.log"),
+            tracked=tracked,
+        )
+        assert "error" in resp
+    assert tracked == {}
+
+
+# --- X8: app readiness + infra-error bookkeeping ------------------------------
+
+
+def test_frame_is_blank_distinguishes_painted_from_uniform_frames():
+    from io import BytesIO
+
+    from PIL import Image
+
+    import run_bench
+
+    def png(color, rect=False):
+        img = Image.new("RGB", (320, 200), color)
+        if rect:
+            for x in range(40, 280):
+                for y in range(40, 160):
+                    img.putpixel((x, y), (255, 255, 255))
+        buf = BytesIO()
+        img.save(buf, "PNG")
+        return buf.getvalue()
+
+    assert run_bench.frame_is_blank(png((0, 0, 0)))  # the P6B black frame
+    assert run_bench.frame_is_blank(png((40, 40, 60)))
+    assert not run_bench.frame_is_blank(png((40, 40, 60), rect=True))
+
+
+def test_wait_app_ready_waits_for_map_a11y_and_paint(tmp_path):
+    """X8: the bench must not start an arm on a half-mapped desktop — wait
+    until the app window exposes a11y elements AND the frame is painted."""
+    import types
+
+    from io import BytesIO
+
+    from PIL import Image
+
+    import run_bench
+
+    def png(color, rect=False):
+        img = Image.new("RGB", (80, 60), color)
+        if rect:
+            for x in range(8, 72):
+                for y in range(8, 52):
+                    img.putpixel((x, y), (255, 255, 255))
+        buf = BytesIO()
+        img.save(buf, "PNG")
+        return buf.getvalue()
+
+    class FakeReadyDriver:
+        def __init__(self):
+            self.probes = 0
+            self.screens = 0
+
+        def elements(self):
+            self.probes += 1
+            return [object()] if self.probes >= 2 else []  # mapped on poll 2
+
+        def screenshot(self):
+            self.screens += 1
+            blank = self.probes < 3  # first a11y exposure still paints blank
+            return types.SimpleNamespace(png=png((0, 0, 0), rect=not blank))
+
+        def close(self):
+            pass
+
+    drv = FakeReadyDriver()
+    assert run_bench.wait_app_ready("Settings_app", driver=drv, timeout_s=10) is None
+    assert drv.probes >= 3 and drv.screens >= 2
+
+
+def test_wait_app_ready_times_out_with_a_clear_error():
+    import run_bench
+
+    class NeverReady:
+        def elements(self):
+            return []
+
+        def screenshot(self):  # pragma: no cover - never reached
+            raise AssertionError("should not screenshot without elements")
+
+        def close(self):
+            pass
+
+    err = run_bench.wait_app_ready("Mousepad", driver=NeverReady(), timeout_s=2.0, poll_s=0.2)
+    assert err is not None
+    assert "Mousepad" in err and "not ready" in err and "a11y" in err
+
+
+def test_display_empty_check_ignores_wm_and_cursor_overlay():
+    """The display-empty check must not treat the window manager or cua-driver's
+    own pid-less cursor overlay as leaked bench apps (X8: every reset
+    otherwise reports a bogus leftover)."""
+    import run_bench
+
+    assert not run_bench._is_bench_app_window({"app_name": "xfwm4", "pid": 100, "title": "Desktop"})
+    assert not run_bench._is_bench_app_window({"app_name": "", "pid": None, "title": "Cua.AgentCursorOverlay.default"})
+    assert not run_bench._is_bench_app_window({"app_name": "Cua", "pid": None, "title": "cursor"})
+    assert run_bench._is_bench_app_window({"app_name": "Mousepad", "pid": 222, "title": "Untitled"})
+    assert run_bench._is_bench_app_window({"app_name": "Thunar", "pid": 223, "title": "fm-task"})
+
+
+def test_infra_error_reason_marks_infra_not_task_failures():
+    import run_bench
+
+    # baseline: every endpoint failed -> infra
+    row = {"terminal_state": "error", "reason": "every model failed: gemini-3.8-flash-high: timed out"}
+    assert "every model failed" in run_bench.infra_error_reason(row)
+    # baseline: the run died on the last model call (no action taken)
+    row = {
+        "terminal_state": "max_steps",
+        "reason": "max_steps=10 reached",
+        "trace": [
+            {"turn": 9, "action": "click", "error": "claude-opus-4-6-thinking: HTTP Error 429"},
+            {"turn": 10, "action": "", "error": "gemini-3.8-flash-high: timed out"},
+        ],
+    }
+    assert "timed out" in run_bench.infra_error_reason(row)
+    # driver capture error, either terminal shape
+    assert run_bench.infra_error_reason(
+        {"terminal_state": "error", "reason": "driver screenshot failed: get_desktop_state failed"}
+    )
+    assert run_bench.infra_error_reason(
+        {"terminal_state": "blocked", "reason": "driver screenshot failed: boom"}
+    )
+    # genuine task failure: no infra marker
+    assert run_bench.infra_error_reason(
+        {"terminal_state": "max_steps", "reason": "max_steps=12 reached",
+         "trace": [{"turn": 12, "action": "click", "error": ""}]}
+    ) == ""
+    # a row that never ran (app not ready)
+    assert run_bench.infra_error_reason({"terminal_state": "infra_error", "reason": "app not ready"})
+    # jev arm: the failing step never got a locate answer (TypeSafe 400s +
+    # fallback timeouts) -> infrastructure, not agent behavior
+    row = {
+        "terminal_state": "blocked",
+        "reason": "step type on 'Name' failed twice",
+        "fallbacks": [
+            "jev-1.14.0: TypeSafe System One call failed: 400 Invalid image dimensions (retrying once)",
+            "jev-1.14.0: TypeSafe System One call failed: 400 Invalid image dimensions",
+            "openai:gemini-3.8-flash-high: OpenAICompat request failed: timed out",
+        ],
+        "trace": [
+            {"idx": 0, "action": "type", "verdict": "pass", "effect": "unverifiable"},
+            {"idx": 1, "action": "type", "verdict": "fail", "effect": "grounding failed"},
+        ],
+    }
+    infra = run_bench.infra_error_reason(row)
+    assert "image dimensions" in infra and "timeout" in infra
+    assert "gemini-3.8-flash-high" in infra
+    # the same endpoint noise on a row that ultimately PASSED is not infra
+    assert run_bench.infra_error_reason({**row, "success": True}) == ""
+    # ...but a grounding failure with NO endpoint errors is a task failure
+    row_no_fb = {**row, "fallbacks": []}
+    assert run_bench.infra_error_reason(row_no_fb) == ""
+
+
+def test_aggregate_reports_infra_errors_separately():
+    rows = [
+        _row("a", "baseline", False, 1.0),
+        {**_row("b", "baseline", False, 1.0), "infra_error": "model endpoint failed: timed out"},
+        _row("a", "jev", True, 0.01),
+    ]
+    agg = aggregate(rows)
+    assert agg["baseline"]["infra_errors"] == 1
+    assert agg["baseline"]["successes"] == 0
+    assert agg["jev"]["infra_errors"] == 0

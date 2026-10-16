@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -26,9 +27,69 @@ from hermes_loopguard.cu.driver import (
     register_driver,
 )
 
-__all__ = ["CuaDriver", "desktop_to_window_local", "window_local_to_desktop"]
+__all__ = [
+    "CuaDriver",
+    "best_match",
+    "desktop_to_window_local",
+    "match_score",
+    "window_local_to_desktop",
+]
 
 _MOUSE_BUTTONS = {"left", "right", "middle"}
+
+
+def match_score(want: str, label: str) -> int:
+    """Specificity of a label match (higher = better; -1 = no match).
+
+    First-substring-match picks the WRONG element when one label merely
+    contains the target ("Search…" input) and another IS the target
+    ("Search" button): the substring click landed on the input and the
+    step did nothing.  Exact beats prefix beats substring; a label fully
+    contained in the target ("Dark mode" for target "Dark mode switch")
+    still matches — planners over-specify switch/checkbox labels — but
+    only on a WORD BOUNDARY: target "Username field" must not match the
+    label "Name" hiding inside "Username" (X8: real near-tie that picked
+    the wrong field).
+    """
+    if not want or not label:
+        return -1
+    want = want.strip().lower()  # callers may pass the raw planner target
+    lbl = label.lower()
+    if lbl == want:
+        return 4
+    if lbl.startswith(want):
+        return 3
+    if want in lbl:
+        return 2
+    if re.search(rf"(?<!\w){re.escape(lbl)}(?!\w)", want):
+        return 1
+    return -1
+
+
+def best_match(
+    elements: list[Element], want: str, *, role: str | None = None
+) -> Element | None:
+    """Best-specificity case-insensitive label match over an in-memory
+    element list (ONE AT-SPI walk, no retries — see ground()).
+
+    Ties are broken toward the LONGER label: with target "Username field",
+    "Name" and "Username" would otherwise both score 1 and walk order (the
+    shorter "Name" first) won (X8).  The longer label is the more specific
+    match.
+    """
+    best: Element | None = None
+    best_score = 0
+    for el in elements:
+        score = match_score(want, el.label)
+        if score < 0:
+            continue
+        if role is not None and role.lower() not in el.role.lower():
+            continue
+        if score > best_score or (
+            score == best_score and best is not None and len(el.label) > len(best.label)
+        ):
+            best, best_score = el, score
+    return best
 
 
 def desktop_to_window_local(x: int, y: int, window_bounds: dict) -> tuple[int, int] | None:
@@ -219,29 +280,12 @@ class CuaDriver:
             )
         return elements
 
+    # Matching lives in module-level match_score/best_match (shared with the
+    # agent's in-memory grounding filter); kept as a staticmethod because
+    # tests and callers reference it.
     @staticmethod
     def _match_score(want: str, label: str) -> int:
-        """Specificity of a label match (higher = better; -1 = no match).
-
-        First-substring-match picks the WRONG element when one label merely
-        contains the target ("Search…" input) and another IS the target
-        ("Search" button): the substring click landed on the input and the
-        step did nothing.  Exact beats prefix beats substring; a label fully
-        contained in the target ("Dark mode" for target "Dark mode switch")
-        still matches — planners over-specify switch/checkbox labels.
-        """
-        if not want or not label:
-            return -1
-        lbl = label.lower()
-        if lbl == want:
-            return 4
-        if lbl.startswith(want):
-            return 3
-        if want in lbl:
-            return 2
-        if lbl in want:
-            return 1
-        return -1
+        return match_score(want, label)
 
     def find_element(self, label: str, role: str | None = None, retries: int = 3) -> Element | None:
         """Best-specificity case-insensitive label match, with fresh AT-SPI
@@ -252,16 +296,7 @@ class CuaDriver:
         """
         want = label.strip().lower()
         for attempt in range(max(1, retries)):
-            best: Element | None = None
-            best_score = 0
-            for el in self.elements():
-                score = self._match_score(want, el.label)
-                if score < 0:
-                    continue
-                if role is not None and role.lower() not in el.role.lower():
-                    continue
-                if score > best_score:
-                    best, best_score = el, score
+            best = best_match(self.elements(), want, role=role)
             if best is not None:
                 return best
             time.sleep(0.8)

@@ -5,6 +5,7 @@ instruction: >
   In the file manager window showing the fm-task folder, move notes.txt into
   the archive folder that is next to it.
 setup:
+  - rm: /tmp/lg-cu/files/fm-task
   - mkdir: /tmp/lg-cu/files/fm-task
   - rm: /tmp/lg-cu/files/fm-task/archive
   - write:
