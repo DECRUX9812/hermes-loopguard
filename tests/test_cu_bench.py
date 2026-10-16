@@ -289,7 +289,7 @@ def test_preflight_jev_fails_without_sdk():
     with pytest.raises(SystemExit) as exc:
         preflight_jev(_import_sdk=no_sdk, _ping=_ok_ping, _key="sk-test")
     assert "typesafe-sdk is not importable" in str(exc.value)
-    assert "lg-venv" in str(exc.value)  # names the fix (the venv recipe)
+    assert "typesafe-sdk, pillow" in str(exc.value)  # names the fix (extras + PYTHONPATH)
 
 
 def test_preflight_jev_fails_without_key():

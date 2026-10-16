@@ -602,7 +602,7 @@ def preflight_jev(_import_sdk=None, _ping=None, _key=None) -> None:
         raise SystemExit(
             "JEV PREFLIGHT FAILED: typesafe-sdk is not importable from this "
             f"interpreter ({e}). Run the bench with "
-            "~/Code/ship-test/lg-venv/bin/python and PYTHONPATH=src (see BENCH.md) "
+            "a Python with the bench extras (typesafe-sdk, pillow) and PYTHONPATH=src (see BENCH.md) "
             "— otherwise every Jev call fails and the gate falls back silently."
         )
     key = _key if _key is not None else os.environ.get("TYPESAFE_API_KEY", "")
